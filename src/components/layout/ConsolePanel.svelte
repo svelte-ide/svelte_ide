@@ -1,0 +1,320 @@
+<script>
+  import { ideStore } from '../../stores/ideStore.svelte.js'
+
+  let { height = 150 } = $props()
+  let isResizing = $state(false)
+  let startY = $state(0)
+  let startHeight = $state(height)
+
+  function startResize(e) {
+    isResizing = true
+    startY = e.clientY
+    startHeight = height
+    
+    // Empêcher la sélection de texte pendant le redimensionnement
+    document.body.style.userSelect = 'none'
+    document.body.style.cursor = 'ns-resize'
+    
+    document.addEventListener('mousemove', handleResize)
+    document.addEventListener('mouseup', stopResize)
+  }
+
+  function handleResize(e) {
+    if (!isResizing) return
+    const newHeight = startHeight - (e.clientY - startY)
+    if (newHeight >= 32) {
+      height = newHeight
+    }
+  }
+
+  function stopResize() {
+    isResizing = false
+    
+    // Restaurer la sélection de texte normale
+    document.body.style.userSelect = ''
+    document.body.style.cursor = ''
+    
+    document.removeEventListener('mousemove', handleResize)
+    document.removeEventListener('mouseup', stopResize)
+  }
+
+  function selectTab(tabId) {
+    ideStore.setActiveConsoleTab(tabId)
+  }
+
+  function closeTab(e, tabId) {
+    e.stopPropagation()
+    ideStore.closeConsoleTab(tabId)
+  }
+
+  function clearTab(tabId) {
+    ideStore.clearConsoleTab(tabId)
+  }
+
+  function getLogClass(type) {
+    switch (type) {
+      case 'error': return 'log-error'
+      case 'warning': return 'log-warning'
+      case 'info': return 'log-info'
+      default: return 'log-default'
+    }
+  }
+
+  let activeConsoleTabData = $state(null)
+
+  $effect(() => {
+    if (ideStore.consoleTabs && ideStore.activeConsoleTab) {
+      activeConsoleTabData = ideStore.consoleTabs.find(tab => tab.id === ideStore.activeConsoleTab)
+    } else {
+      activeConsoleTabData = null
+    }
+  })
+</script>
+
+{#if ideStore.consolePanelVisible}
+  <div 
+    class="console-panel" 
+    style="height: {height}px"
+    tabindex="-1"
+    onfocus={() => ideStore.setFocusedPanel('console')}
+    onblur={() => ideStore.clearFocusedPanel()}
+    onclick={() => ideStore.setFocusedPanel('console')}
+  >
+    <div class="resize-handle" role="separator" onmousedown={startResize}></div>
+    
+    <div class="console-header">
+      <h3>Console</h3>
+      
+      {#if ideStore.consoleTabs.length > 0}
+        <div class="console-tab-bar">
+          {#each ideStore.consoleTabs as tab (tab.id)}
+            <div 
+              class="console-tab"
+              class:active={tab.id === ideStore.activeConsoleTab}
+              onclick={() => selectTab(tab.id)}
+              role="tab"
+              tabindex="0"
+            >
+              <span class="tab-title">{tab.title}</span>
+              <div class="tab-actions">
+                <button 
+                  class="clear-tab-btn"
+                  onclick={() => clearTab(tab.id)}
+                  title="Nettoyer l'onglet"
+                >
+                  🧹
+                </button>
+                <button 
+                  class="close-tab-btn"
+                  onclick={(e) => closeTab(e, tab.id)}
+                  title="Fermer l'onglet"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          {/each}
+        </div>
+      {/if}
+    </div>
+      
+    {#if ideStore.consoleTabs.length > 0}
+      <div class="console-content">
+        {#if ideStore.activeConsoleTab}
+          {@const currentTab = ideStore.consoleTabs.find(tab => tab.id === ideStore.activeConsoleTab)}
+          {#if currentTab && currentTab.logs && currentTab.logs.length > 0}
+            {#each currentTab.logs as log (log.id)}
+              <div class="log-entry {getLogClass(log.type)}">
+                <span class="log-time">
+                  {log.timestamp.toLocaleTimeString()}
+                </span>
+                <span class="log-message">{log.message}</span>
+              </div>
+            {/each}
+          {:else}
+            <div class="empty-console">
+              <p>Aucun message dans cet onglet</p>
+            </div>
+          {/if}
+        {:else}
+          <div class="empty-console">
+            <p>Aucun onglet actif</p>
+          </div>
+        {/if}
+      </div>
+    {:else}
+      <div class="empty-console">
+        <p>Aucun onglet de console</p>
+      </div>
+    {/if}
+  </div>
+{/if}
+
+<style>
+  .console-panel {
+    background: #1e1e1e;
+    border-top: 1px solid #3e3e42;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    outline: none;
+  }
+
+  .resize-handle {
+    position: absolute;
+    top: -2px;
+    left: 0;
+    right: 0;
+    height: 4px;
+    cursor: ns-resize;
+    background: transparent;
+  }
+
+  .resize-handle:hover {
+    background: #007acc;
+  }
+
+  .console-header {
+    height: 32px;
+    background: #2d2d30;
+    border-bottom: 1px solid #3e3e42;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    color: #cccccc;
+    gap: 12px;
+  }
+
+  .console-header h3 {
+    font-size: 13px;
+    font-weight: 400;
+    margin: 0;
+    flex-shrink: 0;
+  }
+
+  .console-tab-bar {
+    display: flex;
+    flex: 1;
+    overflow-x: auto;
+    scrollbar-width: none;
+    gap: 0;
+  }
+
+  .console-tab-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .console-tab {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 8px;
+    background: transparent;
+    border: 1px solid #3e3e42;
+    border-radius: 3px;
+    color: #cccccc;
+    cursor: pointer;
+    min-width: 100px;
+    max-width: 150px;
+    white-space: nowrap;
+    position: relative;
+    margin-right: 4px;
+    height: 22px;
+  }
+
+  .console-tab:hover {
+    background: #3e3e42;
+  }
+
+  .console-tab.active {
+    background: #007acc;
+    border-color: #007acc;
+    color: white;
+  }
+
+  .tab-title {
+    flex: 1;
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .tab-actions {
+    display: flex;
+    gap: 2px;
+    margin-left: 4px;
+  }
+
+  .clear-tab-btn, .close-tab-btn {
+    background: transparent;
+    border: none;
+    color: #cccccc;
+    font-size: 10px;
+    cursor: pointer;
+    padding: 1px 3px;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+  }
+
+  .clear-tab-btn:hover, .close-tab-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+  }
+
+  .console-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .log-entry {
+    display: flex;
+    margin-bottom: 2px;
+    padding: 2px 0;
+  }
+
+  .log-time {
+    color: #858585;
+    margin-right: 8px;
+    min-width: 80px;
+  }
+
+  .log-message {
+    flex: 1;
+    word-wrap: break-word;
+  }
+
+  .log-info {
+    color: #cccccc;
+  }
+
+  .log-error {
+    color: #f48771;
+  }
+
+  .log-warning {
+    color: #dcdcaa;
+  }
+
+  .log-default {
+    color: #cccccc;
+  }
+
+  .empty-console {
+    text-align: center;
+    color: #858585;
+    margin-top: 20px;
+  }
+
+  .empty-console p {
+    font-size: 13px;
+    font-style: italic;
+  }
+</style>
