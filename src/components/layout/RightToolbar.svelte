@@ -1,63 +1,37 @@
 <script>
   import { ideStore } from '../../stores/ideStore.svelte.js'
-  import NotificationButton from './NotificationButton.svelte'
 
   function handleToolClick(tool) {
-    ideStore.toggleRightPanel(tool.id)
-    
-    // Fermer les notifications si un outil est activé
-    if (tool.active && ideStore.notificationsPanelVisible) {
-      ideStore.notificationsPanelVisible = false
-    }
-    
-    // IMPORTANT: Vérifier l'état APRÈS le toggle
-    if (tool.active) {
-      ideStore.setStatusMessage(`${tool.name} activé`)
-    } else {
-      ideStore.setStatusMessage(`${tool.name} désactivé`)
-    }
+    ideStore.toggleTool(tool.id)
   }
-
-  // Forcer la réactivité avec accès explicite aux propriétés
-  $effect(() => {
-    // Accès explicite pour forcer la réactivité
-    if (ideStore.rightTools) ideStore.rightTools.length
-    if (ideStore.focusedPanel) ideStore.focusedPanel
-    if (ideStore.notificationsPanelVisible) ideStore.notificationsPanelVisible
-    if (ideStore.rightToolbarItems) ideStore.rightToolbarItems.length
-  })
 </script>
 
 <div class="right-toolbar">
   <div class="tools-section">
-    {#each ideStore.rightTools as tool (tool.id)}
-      <button
-        class="tool-button"
-        class:active={tool.active}
-        class:focused={tool.active && ideStore.focusedPanel === 'right'}
-        onclick={() => handleToolClick(tool)}
-        title={tool.name}
-      >
-        <i class="icon">{tool.icon}</i>
-      </button>
-    {/each}
-  </div>
-  
-  <div class="bottom-section">
-    <!-- Bouton notifications intégré -->
-    <div class="toolbar-item">
-      <NotificationButton isActive={ideStore.notificationsPanelVisible} />
+    <div class="quadrant-group">
+      {#each ideStore.topRightTools as tool (tool.id)}
+        <button
+          class="tool-button"
+          class:active={tool.active}
+          onclick={() => handleToolClick(tool)}
+          title={tool.name}
+        >
+          <i class="icon">{tool.icon}</i>
+        </button>
+      {/each}
     </div>
-    
-    <!-- Items génériques additionnels -->
-    {#each ideStore.rightToolbarItems as item (item.id)}
-      <div class="toolbar-item">
-        {#if item.component}
-          {@const Component = item.component}
-          <Component {...item.props} />
-        {/if}
-      </div>
-    {/each}
+    <div class="quadrant-group bottom">
+      {#each ideStore.bottomRightTools as tool (tool.id)}
+        <button
+          class="tool-button"
+          class:active={tool.active}
+          onclick={() => handleToolClick(tool)}
+          title={tool.name}
+        >
+          <i class="icon">{tool.icon}</i>
+        </button>
+      {/each}
+    </div>
   </div>
 </div>
 
@@ -75,18 +49,17 @@
     display: flex;
     flex-direction: column;
     padding: 8px 0;
+    flex: 1;
   }
 
-  .bottom-section {
-    margin-top: auto;
+  .quadrant-group {
     display: flex;
     flex-direction: column;
-    border-top: 1px solid #3e3e42;
-    padding: 8px 0;
+    gap: 4px;
   }
 
-  .toolbar-item {
-    margin: 2px 8px;
+  .quadrant-group.bottom {
+    margin-top: auto;
   }
 
   .tool-button {
@@ -109,12 +82,7 @@
   }
 
   .tool-button.active {
-    background: #094771;
-    color: #ffffff;
-  }
-
-  .tool-button.focused {
-    background: #0e639c;
+    background: #007acc !important;
     color: #ffffff;
   }
 

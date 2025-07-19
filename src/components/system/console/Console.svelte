@@ -1,5 +1,5 @@
 <script>
-  import { ideStore } from '../../stores/ideStore.svelte.js'
+  import { ideStore } from '../../../stores/ideStore.svelte.js'
 
   let { height = 150 } = $props()
   let isResizing = $state(false)
@@ -71,8 +71,7 @@
   })
 </script>
 
-{#if ideStore.consolePanelVisible}
-  <div 
+<div 
     class="console-panel" 
     style="height: {height}px"
     tabindex="-1"
@@ -148,7 +147,6 @@
       </div>
     {/if}
   </div>
-{/if}
 
 <style>
   .console-panel {

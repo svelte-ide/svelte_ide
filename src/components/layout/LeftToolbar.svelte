@@ -2,48 +2,49 @@
   import { ideStore } from '../../stores/ideStore.svelte.js'
 
   function handleToolClick(tool) {
-    ideStore.toggleLeftPanel(tool.id)
+    ideStore.toggleTool(tool.id)
   }
-
-  function handleConsoleToggle() {
-    ideStore.toggleConsolePanel()
-    ideStore.setStatusMessage(ideStore.consolePanelVisible ? 'Console ouverte' : 'Console fermée')
-  }
-
-  // Forcer la réactivité avec accès explicite aux propriétés
-  $effect(() => {
-    // Accès explicite pour forcer la réactivité
-    if (ideStore.leftTools) ideStore.leftTools.length
-    if (ideStore.focusedPanel) ideStore.focusedPanel
-    if (ideStore.consolePanelVisible) ideStore.consolePanelVisible
-  })
 </script>
 
 <div class="left-toolbar">
   <div class="tools-section">
-    {#each ideStore.leftTools as tool (tool.id)}
+    <div class="quadrant-group">
+      {#each ideStore.topLeftTools as tool (tool.id)}
+        <button
+          class="tool-button"
+          class:active={tool.active}
+          onclick={() => handleToolClick(tool)}
+          title={tool.name}
+        >
+          <i class="icon">{tool.icon}</i>
+        </button>
+      {/each}
+    </div>
+    <div class="quadrant-group bottom">
+      {#each ideStore.bottomLeftTools as tool (tool.id)}
+        <button
+          class="tool-button"
+          class:active={tool.active}
+          onclick={() => handleToolClick(tool)}
+          title={tool.name}
+        >
+          <i class="icon">{tool.icon}</i>
+        </button>
+      {/each}
+    </div>
+  </div>
+
+  <div class="bottom-section">
+    {#each ideStore.bottomTools as tool (tool.id)}
       <button
         class="tool-button"
         class:active={tool.active}
-        class:focused={tool.active && ideStore.focusedPanel === 'left'}
         onclick={() => handleToolClick(tool)}
         title={tool.name}
       >
         <i class="icon">{tool.icon}</i>
       </button>
     {/each}
-  </div>
-  
-  <div class="bottom-section">
-    <button
-      class="tool-button console-button"
-      class:active={ideStore.consolePanelVisible}
-      class:focused={ideStore.consolePanelVisible && ideStore.focusedPanel === 'console'}
-      onclick={handleConsoleToggle}
-      title="Console"
-    >
-      <i class="icon">></i>
-    </button>
   </div>
 </div>
 
@@ -61,10 +62,20 @@
     display: flex;
     flex-direction: column;
     padding: 8px 0;
+    flex: 1;
+  }
+
+  .quadrant-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .quadrant-group.bottom {
+    margin-top: auto;
   }
 
   .bottom-section {
-    margin-top: auto;
     display: flex;
     flex-direction: column;
     border-top: 1px solid #3e3e42;
@@ -91,10 +102,6 @@
   }
 
   .tool-button.active {
-    background: #3e3e42 !important;
-  }
-
-  .tool-button.focused {
     background: #007acc !important;
     color: #ffffff;
   }

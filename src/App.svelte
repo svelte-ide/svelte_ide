@@ -1,67 +1,67 @@
 <script>
-  import {toolManager} from './core/ToolManager.svelte.js'
-  import {ideStore} from './stores/ideStore.svelte.js'
+  import { toolManager } from './core/ToolManager.svelte.js'
+  import { ideStore } from './stores/ideStore.svelte.js'
+  import { ConsoleTool, NotificationsTool } from './core/SystemTools.js'
 
   import TitleBar from './components/layout/TitleBar.svelte'
   import LeftToolbar from './components/layout/LeftToolbar.svelte'
   import RightToolbar from './components/layout/RightToolbar.svelte'
   import StatusBar from './components/layout/StatusBar.svelte'
-  import LeftPanel from './components/layout/LeftPanel.svelte'
-  import RightPanel from './components/layout/RightPanel.svelte'
   import MainView from './components/layout/MainView.svelte'
-  import ConsolePanel from './components/layout/ConsolePanel.svelte'
   import ContextMenu from './components/layout/ContextMenu.svelte'
+  import ToolPanel from './components/layout/ToolPanel.svelte'
 
-  let lastActiveTab = null
-
-  $effect(async () => {
+  // Initialisation unique à la création du composant
+  (async () => {
     window.toolManager = toolManager
-    ideStore.setStatusMessage('Chargement des outils...')
+    ideStore.setStatusMessage('Chargement des outils système...')
+    
+    // Enregistrement des outils système
+    toolManager.registerTool(new ConsoleTool())
+    toolManager.registerTool(new NotificationsTool())
+    
+    ideStore.setStatusMessage('Chargement des outils externes...')
     await toolManager.loadTools()
     ideStore.setStatusMessage('IDE prêt')
-  })
+  })()
 </script>
 
 <div class="app">
-  <!-- Section A: Barre de titre -->
   <TitleBar />
-  
+
   {#if ideStore.user}
     <div class="main-container">
-      <!-- Section B: Barre d'outils latérale gauche -->
       <LeftToolbar />
       
       <div class="content-area">
-        <div class="editor-area">
-          <!-- Section E: Panneau latéral gauche -->
-          <LeftPanel />
+        <div class="panels-wrapper">
+          <div class="side-panels left">
+            <ToolPanel position="topLeft" />
+            <ToolPanel position="bottomLeft" />
+          </div>
           
-          <!-- Section G: Zone de visualisation principale -->
           <MainView />
           
-          <!-- Section H: Panneau latéral droit -->
-          <RightPanel />
+          <div class="side-panels right">
+            <ToolPanel position="topRight" />
+            <ToolPanel position="bottomRight" />
+          </div>
         </div>
         
-        <!-- Section F: Console (pleine largeur) -->
-        <ConsolePanel />
+        <ToolPanel position="bottom" />
       </div>
       
-      <!-- Section D: Barre d'outils latérale droite -->
       <RightToolbar />
     </div>
     
-    <!-- Section C: Barre d'état -->
     <StatusBar />
   {:else}
-    <!-- Welcome Screen en plein écran quand non connecté -->
     <div class="welcome-container">
       <MainView />
     </div>
   {/if}
 </div>
 
-<!-- Menu contextuel global -->
 <ContextMenu />
 
 <style>
@@ -89,7 +89,6 @@
     flex: 1;
     display: flex;
     overflow: hidden;
-    min-width: 0;
   }
 
   .content-area {
@@ -97,14 +96,28 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    min-width: 0;
   }
 
-  .editor-area {
+  .panels-wrapper {
     flex: 1;
     display: flex;
     overflow: hidden;
-    min-width: 0;
+  }
+
+  .side-panels {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .side-panels > :global(.tool-panel) {
+    flex: 1;
+    min-height: 0;
+  }
+  
+  :global(.tool-panel[style*="grid-area: bottom"]) {
+    height: 200px; /* Hauteur par défaut pour la console */
+    border-top: 1px solid #3e3e42;
   }
 
   .welcome-container {

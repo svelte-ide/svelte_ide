@@ -3,7 +3,7 @@ import Calculator from './Calculator.svelte'
 
 class CalculatorTool extends Tool {
   constructor() {
-    super('Calculatrice', '🧮', 'left')
+    super('Calculatrice', '🧮', 'topLeft')
   }
 
   initialize() {

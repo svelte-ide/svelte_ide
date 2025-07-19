@@ -5,28 +5,32 @@ class IDEStore {
     this.tools = $state([])
     this.tabs = $state([])
     this.activeTab = $state(null)
-    this.leftPanelVisible = $state(false)
-    this.rightPanelVisible = $state(false)
-    this.consolePanelVisible = $state(true)
     this.statusMessage = $state('')
     this.user = $state(null)
+    this.focusedPanel = $state(null)
+
+    this.activeToolsByPosition = $state({
+      topLeft: null,
+      bottomLeft: null,
+      topRight: null,
+      bottomRight: null,
+      bottom: null
+    })
+
     this.consoleTabs = $state([])
     this.activeConsoleTab = $state(null)
     this._logIdCounter = 0
-    this.activeLeftTool = $state(null)
-    this.activeRightTool = $state(null)
-    this.focusedPanel = $state(null)
 
     this.notifications = $state([])
     this.unreadNotificationsCount = $state(0)
-    this.notificationsPanelVisible = $state(false)
     this._notificationIdCounter = 0
-
-    this.rightToolbarItems = $state([])
   }
 
-  leftTools = $derived(this.tools.filter(t => t.position === 'left'))
-  rightTools = $derived(this.tools.filter(t => t.position === 'right'))
+  topLeftTools = $derived(this.tools.filter(t => t.position === 'topLeft'))
+  bottomLeftTools = $derived(this.tools.filter(t => t.position === 'bottomLeft'))
+  topRightTools = $derived(this.tools.filter(t => t.position === 'topRight'))
+  bottomRightTools = $derived(this.tools.filter(t => t.position === 'bottomRight'))
+  bottomTools = $derived(this.tools.filter(t => t.position === 'bottom'))
 
   addTool(tool) {
     if (!this.tools.find(t => t.id === tool.id)) {
@@ -43,49 +47,28 @@ class IDEStore {
 
   moveTool(toolId, newPosition) {
     const tool = this.tools.find(t => t.id === toolId)
-    if (tool && (newPosition === 'left' || newPosition === 'right')) {
+    if (tool && this.activeToolsByPosition.hasOwnProperty(newPosition)) {
       tool.setPosition(newPosition)
     }
   }
 
-  toggleLeftPanel(toolId) {
-    const tool = this.leftTools.find(t => t.id === toolId)
+  toggleTool(toolId) {
+    const tool = this.tools.find(t => t.id === toolId)
     if (!tool) return
 
-    const wasActive = tool.active
+    const position = tool.position
+    const currentlyActiveTool = this.activeToolsByPosition[position]
 
-    this.leftTools.forEach(t => t.deactivate())
-
-    if (!wasActive) {
-      tool.activate()
-      this.activeLeftTool = tool
-      this.leftPanelVisible = true
-    } else {
-      this.activeLeftTool = null
-      this.leftPanelVisible = false
+    if (currentlyActiveTool) {
+      currentlyActiveTool.deactivate()
     }
-  }
 
-  toggleRightPanel(toolId) {
-    const tool = this.rightTools.find(t => t.id === toolId)
-    if (!tool) return
-
-    const wasActive = tool.active
-
-    this.rightTools.forEach(t => t.deactivate())
-
-    if (!wasActive) {
+    if (currentlyActiveTool?.id !== tool.id) {
       tool.activate()
-      this.activeRightTool = tool
-      this.rightPanelVisible = true
+      this.activeToolsByPosition[position] = tool
     } else {
-      this.activeRightTool = null
-      this.rightPanelVisible = false
+      this.activeToolsByPosition[position] = null
     }
-  }
-
-  toggleConsolePanel() {
-    this.consolePanelVisible = !this.consolePanelVisible
   }
 
   addConsoleTab(title) {
@@ -121,6 +104,61 @@ class IDEStore {
 
   setActiveConsoleTab(tabId) {
     this.activeConsoleTab = tabId
+  }
+  
+  addLog(message, type = 'info', tabTitle = 'Général') {
+    const consoleTab = this.addConsoleTab(tabTitle)
+    consoleTab.logs.push({
+      id: ++this._logIdCounter,
+      message,
+      type,
+      timestamp: new Date()
+    })
+    this.consoleTabs = [...this.consoleTabs]
+  }
+
+  addNotification(title, message, type = 'info', source = 'IDE') {
+    const notification = {
+      id: ++this._notificationIdCounter,
+      title,
+      message,
+      type,
+      source,
+      timestamp: new Date(),
+      read: false
+    }
+    this.notifications.unshift(notification)
+    this.unreadNotificationsCount += 1
+    return notification.id
+  }
+
+  markNotificationAsRead(notificationId) {
+    const notification = this.notifications.find(n => n.id === notificationId)
+    if (notification && !notification.read) {
+      notification.read = true
+      this.unreadNotificationsCount = Math.max(0, this.unreadNotificationsCount - 1)
+    }
+  }
+
+  markAllNotificationsAsRead() {
+    this.notifications.forEach(n => n.read = true)
+    this.unreadNotificationsCount = 0
+  }
+
+  removeNotification(notificationId) {
+    const index = this.notifications.findIndex(n => n.id === notificationId)
+    if (index !== -1) {
+      const notification = this.notifications[index]
+      if (!notification.read) {
+        this.unreadNotificationsCount = Math.max(0, this.unreadNotificationsCount - 1)
+      }
+      this.notifications.splice(index, 1)
+    }
+  }
+
+  clearAllNotifications() {
+    this.notifications = []
+    this.unreadNotificationsCount = 0
   }
 
   addTab(tab) {
@@ -191,100 +229,9 @@ class IDEStore {
     this.user = null
   }
 
-  async loginWithOAuth(provider = 'default') {
-    return new Promise((resolve, reject) => {
-      this.addNotification(
-        'OAuth',
-        `Redirection vers ${provider} en cours...`,
-        'info',
-        'Authentification'
-      )
-      setTimeout(() => {
-        reject(new Error('OAuth non implémenté - utiliser la connexion temporaire'))
-      }, 1000)
-    })
-  }
-
   closeAllTabs() {
     this.tabs = []
     this.activeTab = null
-  }
-
-  addLog(message, type = 'info', tabTitle = 'Général') {
-    const consoleTab = this.addConsoleTab(tabTitle)
-    consoleTab.logs.push({
-      id: ++this._logIdCounter,
-      message,
-      type,
-      timestamp: new Date()
-    })
-    
-    this.consoleTabs = [...this.consoleTabs]
-  }
-
-  addNotification(title, message, type = 'info', source = 'IDE') {
-    const notification = {
-      id: ++this._notificationIdCounter,
-      title,
-      message,
-      type,
-      source,
-      timestamp: new Date(),
-      read: false
-    }
-
-    this.notifications.unshift(notification)
-    this.unreadNotificationsCount += 1
-    
-    return notification.id
-  }
-
-  markNotificationAsRead(notificationId) {
-    const notification = this.notifications.find(n => n.id === notificationId)
-    if (notification && !notification.read) {
-      notification.read = true
-      this.unreadNotificationsCount = Math.max(0, this.unreadNotificationsCount - 1)
-    }
-  }
-
-  markAllNotificationsAsRead() {
-    this.notifications.forEach(n => n.read = true)
-    this.unreadNotificationsCount = 0
-  }
-
-  removeNotification(notificationId) {
-    const index = this.notifications.findIndex(n => n.id === notificationId)
-    if (index !== -1) {
-      const notification = this.notifications[index]
-      if (!notification.read) {
-        this.unreadNotificationsCount = Math.max(0, this.unreadNotificationsCount - 1)
-      }
-      this.notifications.splice(index, 1)
-    }
-  }
-
-  clearAllNotifications() {
-    this.notifications = []
-    this.unreadNotificationsCount = 0
-  }
-
-  toggleNotificationsPanel() {
-    if (!this.notificationsPanelVisible) {
-      this.rightTools.forEach(t => {
-        if (t.active) {
-          t.deactivate()
-        }
-      })
-    }
-    
-    this.notificationsPanelVisible = !this.notificationsPanelVisible
-    this.rightPanelVisible = this.notificationsPanelVisible || this.rightTools.some(t => t.active)
-    
-    if (this.notificationsPanelVisible) {
-      this.setStatusMessage('Notifications ouvertes')
-    } else {
-      this.setStatusMessage('Notifications fermées')
-    }
   }
 }
 

@@ -1,9 +1,9 @@
 export class Tool {
-  constructor(name, icon, position = 'left') {
+  constructor(name, icon, position = 'topLeft') {
     this.id = crypto.randomUUID()
     this.name = name
     this.icon = icon
-    this.position = $state(position)
+    this.position = $state(position) // topLeft, bottomLeft, topRight, bottomRight, bottom
     this.active = $state(false)
     this.component = null
     this.componentProps = {}

@@ -4,7 +4,7 @@ import MetadataPanel from './MetadataPanel.svelte'
 
 class MetadataTool extends Tool {
   constructor() {
-    super('Métadonnées', '📋', 'right')
+    super('Métadonnées', '📋', 'topRight')
   }
 
   initialize() {
@@ -18,7 +18,7 @@ class MetadataTool extends Tool {
 
 class ExplorerTool extends Tool {
   constructor() {
-    super('Explorateur', '📁', 'left')
+    super('Explorateur', '📁', 'topLeft')
   }
 
   initialize() {
