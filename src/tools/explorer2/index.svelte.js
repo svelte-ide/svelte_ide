@@ -4,19 +4,11 @@ import MetadataPanel from './MetadataPanel.svelte'
 
 class MetadataV2Tool extends RightTool {
   constructor() {
-    super('metadata-v2', 'Métadonnées V2', '🔍')
+    super('Métadonnées V2', '🔍')
   }
 
   initialize() {
     this.setComponent(MetadataPanel)
-  }
-
-  updateVisibility(activeTabId) {
-    if (activeTabId && activeTabId.startsWith('explorer2-')) {
-      this.shouldBeVisible = true
-    } else {
-      this.shouldBeVisible = false
-    }
   }
 
   destroy() {
@@ -26,20 +18,11 @@ class MetadataV2Tool extends RightTool {
 
 class ExplorerV2Tool extends LeftTool {
   constructor() {
-    super('explorer2', 'Explorateur V2', '🔍')
+    super('Explorateur V2', '🔍')
   }
 
   initialize() {
     this.setComponent(ExplorerWrapper, { toolId: this.id })
-  }
-
-  updateVisibility(activeTabId) {
-    // Les explorateurs gardent leur état manuel - pas de gestion automatique
-    // Ne pas changer shouldBeVisible, laisser le toggle manuel
-  }
-
-  isMyTab(tabId) {
-    return tabId.startsWith(`${this.id}-`)
   }
 
   destroy() {
@@ -59,10 +42,7 @@ explorerTool.files = [
 
 export default {
   register(toolManager) {
-    explorerTool.setToolManager(toolManager)
     toolManager.registerTool(explorerTool)
-    
-    metadataV2Tool.setToolManager(toolManager)
     toolManager.registerTool(metadataV2Tool)
   }
 }

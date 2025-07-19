@@ -132,8 +132,8 @@
   {:else}
     <div class="empty-state">
       <div class="empty-content">
-        <h2>Aucun fichier ouvert</h2>
-        <p>Ouvrez un fichier depuis l'explorateur pour commencer</p>
+        <h2>Bienvenue</h2>
+        <p>Sélectionner un outils pour commencer</p>
       </div>
     </div>
   {/if}

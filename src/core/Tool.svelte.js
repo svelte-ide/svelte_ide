@@ -1,6 +1,6 @@
 export class Tool {
-  constructor(id, name, icon, position = 'left') {
-    this.id = id
+  constructor(name, icon, position = 'left') {
+    this.id = crypto.randomUUID()
     this.name = name
     this.icon = icon
     this.position = position
@@ -9,7 +9,6 @@ export class Tool {
     this.component = null
     this.componentProps = {}
     // this.wasActiveBeforeUnregister = false
-    // this.toolManager = null
   }
 
   setComponent(component, props = {}) {
@@ -33,10 +32,6 @@ export class Tool {
     // Par défaut, ne change pas la visibilité
     // Les sous-classes peuvent redéfinir cette méthode
   }
-
-  // setToolManager(toolManager) {
-  //   this.toolManager = toolManager
-  // }
 
   initialize() {
   }

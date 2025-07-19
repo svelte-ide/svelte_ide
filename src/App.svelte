@@ -28,7 +28,7 @@
     
     if (activeTab !== lastActiveTab) {
       lastActiveTab = activeTab
-      toolVisibilityManager.updateAllToolsVisibility(activeTab)
+      //toolVisibilityManager.updateAllToolsVisibility(activeTab)
     }
   })
 </script>

@@ -27,8 +27,7 @@ class IDEStore {
     // Items génériques pour les barres d'outils
     this.rightToolbarItems = $state([])
     
-    // Préférences utilisateur (supprimées pour simplifier)
-    this.userPreferences = $state({})
+
   }
 
   addLeftTool(tool) {

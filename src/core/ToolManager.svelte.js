@@ -42,14 +42,6 @@ class ToolManagerSvelte {
     ideStore.addLog(`Tool ${tool.name} unregistered`, 'info')
   }
 
-  // getTool(toolId) {
-  //   return this.registeredTools.get(toolId)
-  // }
-  //
-  // getAllTools() {
-  //   return Array.from(this.registeredTools.values())
-  // }
-
   async loadTools() {
     try {
       const toolModules = import.meta.glob('../tools/**/index.svelte.js')
