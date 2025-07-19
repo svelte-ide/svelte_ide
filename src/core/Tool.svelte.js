@@ -3,12 +3,10 @@ export class Tool {
     this.id = crypto.randomUUID()
     this.name = name
     this.icon = icon
-    this.position = position
-    // this.active = $state(false)
-    // this.shouldBeVisible = $state(false)
+    this.position = $state(position)
+    this.active = $state(false)
     this.component = null
     this.componentProps = {}
-    // this.wasActiveBeforeUnregister = false
   }
 
   setComponent(component, props = {}) {
@@ -16,39 +14,22 @@ export class Tool {
     this.componentProps = props
   }
 
-  // activate() {
-  //   this.active = true
-  //   this.shouldBeVisible = true // Synchroniser avec l'activation manuelle
-  //   this.wasActiveBeforeUnregister = false // Reset quand activé manuellement
-  // }
-  //
-  // deactivate() {
-  //   this.active = false
-  //   this.shouldBeVisible = false // Synchroniser avec la désactivation
-  // }
+  setPosition(newPosition) {
+    this.position = newPosition
+  }
 
-  // Méthode pour déterminer si l'outil devrait être visible selon le contexte
-  updateVisibility(activeTabId) {
-    // Par défaut, ne change pas la visibilité
-    // Les sous-classes peuvent redéfinir cette méthode
+  activate() {
+    this.active = true
+  }
+
+  deactivate() {
+    this.active = false
   }
 
   initialize() {
   }
 
   destroy() {
-  }
-}
-
-export class LeftTool extends Tool {
-  constructor(id, name, icon) {
-    super(id, name, icon, 'left')
-  }
-}
-
-export class RightTool extends Tool {
-  constructor(id, name, icon) {
-    super(id, name, icon, 'right')
   }
 }
 

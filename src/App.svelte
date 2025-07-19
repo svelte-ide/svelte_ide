@@ -1,8 +1,7 @@
 <script>
-  import { toolManager } from './core/ToolManager.svelte.js'
-  import { toolVisibilityManager } from './core/ToolVisibilityManager.svelte.js'
-  import { ideStore } from './stores/ideStore.svelte.js'
-  
+  import {toolManager} from './core/ToolManager.svelte.js'
+  import {ideStore} from './stores/ideStore.svelte.js'
+
   import TitleBar from './components/layout/TitleBar.svelte'
   import LeftToolbar from './components/layout/LeftToolbar.svelte'
   import RightToolbar from './components/layout/RightToolbar.svelte'
@@ -20,16 +19,6 @@
     ideStore.setStatusMessage('Chargement des outils...')
     await toolManager.loadTools()
     ideStore.setStatusMessage('IDE prêt')
-  })
-
-  // Gérer la visibilité automatique des outils selon l'onglet actif
-  $effect(() => {
-    const activeTab = ideStore.activeTab
-    
-    if (activeTab !== lastActiveTab) {
-      lastActiveTab = activeTab
-      //toolVisibilityManager.updateAllToolsVisibility(activeTab)
-    }
   })
 </script>
 

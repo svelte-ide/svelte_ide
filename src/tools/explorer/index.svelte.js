@@ -1,10 +1,10 @@
-import { LeftTool, RightTool } from '../../core/Tool.svelte.js'
+import { Tool } from '../../core/Tool.svelte.js'
 import ExplorerWrapper from './ExplorerWrapper.svelte'
 import MetadataPanel from './MetadataPanel.svelte'
 
-class MetadataTool extends RightTool {
+class MetadataTool extends Tool {
   constructor() {
-    super('Métadonnées', '📋')
+    super('Métadonnées', '📋', 'right')
   }
 
   initialize() {
@@ -16,9 +16,9 @@ class MetadataTool extends RightTool {
   }
 }
 
-class ExplorerTool extends LeftTool {
+class ExplorerTool extends Tool {
   constructor() {
-    super('Explorateur', '📁')
+    super('Explorateur', '📁', 'left')
   }
 
   initialize() {

@@ -92,7 +92,8 @@ src/
 
 ### Nettoyage Obligatoire
 ```javascript
-destroy() {
+destroy() 
+{
   // Supprimer les watchers
   tabWatcherService.removeWatcher(this.watcherId)
   // Désenregistrer les outils dynamiques
@@ -156,6 +157,18 @@ Attention aux pièges de réactivité avec Svelte 5 :
     if (activeTool) activeTool.name
     if (store.visible) store.visible
   })
+
+N'oublie pas les règles de base des derived svelte 5:
+`$derived` est un "rune" que le compilateur Svelte doit pouvoir "voir" à un endroit bien précis pour transformer le code.
+
+$derived il a le droit de se trouver :
+1. Comme initialisateur d'une déclaration de variable (ex: let
+   valeur = $derived(...) dans un composant .svelte).
+2. Dans la déclaration d'un champ de classe (ex: class C {
+   valeur = $derived(...) }).
+3. Comme première assignation à un champ de classe au premier
+   niveau du constructeur (ex: class C { constructor() {
+   this.valeur = $derived(...) } }).
 
 # RÈGLES TRÈS IMPORTANTES
 **TU DOIS RESPECTER LA SÉPARATION STRICTE DES RESPONSABILITÉS ENTRE L'IDE ET LES OUTILS.**

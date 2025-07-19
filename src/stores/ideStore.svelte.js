@@ -2,8 +2,7 @@ import { Tab } from '../core/Tool.svelte.js'
 
 class IDEStore {
   constructor() {
-    this.leftTools = $state([])
-    this.rightTools = $state([])
+    this.tools = $state([])
     this.tabs = $state([])
     this.activeTab = $state(null)
     this.leftPanelVisible = $state(false)
@@ -16,125 +15,78 @@ class IDEStore {
     this._logIdCounter = 0
     this.activeLeftTool = $state(null)
     this.activeRightTool = $state(null)
-    this.focusedPanel = $state(null) // 'left', 'right', 'console' ou null
-    
-    // Système de notifications
+    this.focusedPanel = $state(null)
+
     this.notifications = $state([])
     this.unreadNotificationsCount = $state(0)
     this.notificationsPanelVisible = $state(false)
     this._notificationIdCounter = 0
-    
-    // Items génériques pour les barres d'outils
+
     this.rightToolbarItems = $state([])
-    
-
   }
 
-  addLeftTool(tool) {
-    // Éviter les doublons
-    if (!this.leftTools.find(t => t.id === tool.id)) {
-      this.leftTools.push(tool)
+  leftTools = $derived(this.tools.filter(t => t.position === 'left'))
+  rightTools = $derived(this.tools.filter(t => t.position === 'right'))
+
+  addTool(tool) {
+    if (!this.tools.find(t => t.id === tool.id)) {
+      this.tools.push(tool)
     }
   }
 
-  addRightTool(tool) {
-    // Éviter les doublons
-    if (!this.rightTools.find(t => t.id === tool.id)) {
-      this.rightTools.push(tool)
-    }
-  }
-
-  removeLeftTool(toolId) {
-    const index = this.leftTools.findIndex(tool => tool.id === toolId)
+  removeTool(toolId) {
+    const index = this.tools.findIndex(tool => tool.id === toolId)
     if (index !== -1) {
-      this.leftTools.splice(index, 1)
+      this.tools.splice(index, 1)
     }
   }
 
-  removeRightTool(toolId) {
-    const index = this.rightTools.findIndex(tool => tool.id === toolId)
-    if (index !== -1) {
-      this.rightTools.splice(index, 1)
+  moveTool(toolId, newPosition) {
+    const tool = this.tools.find(t => t.id === toolId)
+    if (tool && (newPosition === 'left' || newPosition === 'right')) {
+      tool.setPosition(newPosition)
     }
   }
 
-  toggleLeftPanel(toolId = null) {
-    // if (toolId) {
-    //   const tool = this.leftTools.find(t => t.id === toolId)
-    //   if (tool) {
-    //     const wasActive = tool.active
-    //
-    //     this.leftTools.forEach(t => {
-    //       if (t.id !== toolId && t.active) {
-    //         t.active = false
-    //         t.deactivate()
-    //       }
-    //     })
-    //
-    //     tool.active = !wasActive
-    //     if (tool.active) {
-    //       tool.activate()
-    //       this.activeLeftTool = tool
-    //     } else {
-    //       tool.deactivate()
-    //       this.activeLeftTool = null
-    //     }
-    //
-    //     this.leftPanelVisible = this.leftTools.some(t => t.active)
-    //   }
-    // } else {
-    //   this.leftPanelVisible = !this.leftPanelVisible
-    // }
+  toggleLeftPanel(toolId) {
+    const tool = this.leftTools.find(t => t.id === toolId)
+    if (!tool) return
+
+    const wasActive = tool.active
+
+    this.leftTools.forEach(t => t.deactivate())
+
+    if (!wasActive) {
+      tool.activate()
+      this.activeLeftTool = tool
+      this.leftPanelVisible = true
+    } else {
+      this.activeLeftTool = null
+      this.leftPanelVisible = false
+    }
   }
 
-  toggleRightPanel(toolId = null) {
-    // if (toolId) {
-    //   const tool = this.rightTools.find(t => t.id === toolId)
-    //   if (tool) {
-    //     const wasActive = tool.active
-    //
-    //     // Désactiver tous les autres outils
-    //     this.rightTools.forEach(t => {
-    //       if (t.id !== toolId && t.active) {
-    //         t.active = false
-    //         t.deactivate()
-    //       }
-    //     })
-    //
-    //     // Basculer l'état de l'outil sélectionné
-    //     tool.active = !wasActive
-    //     if (tool.active) {
-    //       tool.activate()
-    //       this.activeRightTool = tool
-    //     } else {
-    //       tool.deactivate()
-    //       this.activeRightTool = null
-    //     }
-    //
-    //     // Mettre à jour la visibilité du panneau
-    //     this.rightPanelVisible = this.rightTools.some(t => t.active)
-    //   }
-    // } else {
-    //   // Basculer simplement la visibilité du panneau
-    //   this.rightPanelVisible = !this.rightPanelVisible
-    // }
+  toggleRightPanel(toolId) {
+    const tool = this.rightTools.find(t => t.id === toolId)
+    if (!tool) return
+
+    const wasActive = tool.active
+
+    this.rightTools.forEach(t => t.deactivate())
+
+    if (!wasActive) {
+      tool.activate()
+      this.activeRightTool = tool
+      this.rightPanelVisible = true
+    } else {
+      this.activeRightTool = null
+      this.rightPanelVisible = false
+    }
   }
 
   toggleConsolePanel() {
     this.consolePanelVisible = !this.consolePanelVisible
   }
-
-  // // Méthodes pour les items génériques de la barre d'outils droite
-  // addRightToolbarItem(item) {
-  //   this.rightToolbarItems.push(item)
-  // }
-
-  // removeRightToolbarItem(itemId) {
-  //   const index = this.rightToolbarItems.findIndex(item => item.id === itemId)
-  //   if (index !== -1) {
-  //     this.rightToolbarItems.splice(index, 1)
-  //   }
-  // }
 
   addConsoleTab(title) {
     let consoleTab = this.consoleTabs.find(tab => tab.title === title)
@@ -180,7 +132,7 @@ class IDEStore {
   }
 
   addTabFromTool(toolId, tabId, title, component, closable = true, additionalProps = {}) {
-    const tool = [...this.leftTools, ...this.rightTools].find(t => t.id === toolId)
+    const tool = this.tools.find(t => t.id === toolId)
     const toolIcon = tool ? tool.icon : null
     
     const tab = new (class extends Tab {
@@ -228,38 +180,25 @@ class IDEStore {
     this.user = {
       ...user,
       loginTime: new Date().toISOString(),
-      authType: 'temporary' // Sera 'oauth' quand le système sera intégré
+      authType: 'temporary'
     }
   }
 
   logout() {
     if (this.user) {
-      // Ici on pourrait ajouter des actions de nettoyage
-      // comme la fermeture de tous les onglets, etc.
       this.closeAllTabs()
     }
     this.user = null
   }
 
-  // Méthode pour préparer l'intégration OAuth future
   async loginWithOAuth(provider = 'default') {
-    // Cette méthode sera remplacée par l'appel réel au microservice
-    // Pour l'instant, on peut juste retourner une promesse
     return new Promise((resolve, reject) => {
-      // Simulation d'un appel OAuth
       this.addNotification(
         'OAuth',
         `Redirection vers ${provider} en cours...`,
         'info',
         'Authentification'
       )
-      
-      // Ici, le futur développeur ajoutera :
-      // 1. Redirection vers le provider OAuth
-      // 2. Gestion du callback
-      // 3. Récupération du token
-      // 4. Appel au microservice d'authentification
-      
       setTimeout(() => {
         reject(new Error('OAuth non implémenté - utiliser la connexion temporaire'))
       }, 1000)
@@ -280,17 +219,15 @@ class IDEStore {
       timestamp: new Date()
     })
     
-    // Forcer la réactivité en recréant le tableau
     this.consoleTabs = [...this.consoleTabs]
   }
 
-  // Méthodes pour les notifications
   addNotification(title, message, type = 'info', source = 'IDE') {
     const notification = {
       id: ++this._notificationIdCounter,
       title,
       message,
-      type, // info, warning, error, success
+      type,
       source,
       timestamp: new Date(),
       read: false
@@ -332,11 +269,9 @@ class IDEStore {
   }
 
   toggleNotificationsPanel() {
-    // Désactiver tous les outils de droite si on ouvre les notifications
     if (!this.notificationsPanelVisible) {
       this.rightTools.forEach(t => {
         if (t.active) {
-          t.active = false
           t.deactivate()
         }
       })
@@ -351,11 +286,8 @@ class IDEStore {
       this.setStatusMessage('Notifications fermées')
     }
   }
-
-  // Méthodes supprimées pour simplifier
 }
 
 export const ideStore = new IDEStore()
 
-// Créer un onglet de console par défaut
 ideStore.addConsoleTab('Général')

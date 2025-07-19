@@ -11,15 +11,8 @@ class ToolManagerSvelte {
     }
 
     this.registeredTools.set(tool.id, tool)
-    
-    tool.setToolManager(this)
     tool.initialize()
-
-    if (tool.position === 'left') {
-      ideStore.addLeftTool(tool)
-    } else if (tool.position === 'right') {
-      ideStore.addRightTool(tool)
-    }
+    ideStore.addTool(tool)
   }
 
   unregisterTool(toolId) {
@@ -29,15 +22,8 @@ class ToolManagerSvelte {
       return
     }
 
-    // tool.saveActiveState()
     tool.destroy()
-    
-    if (tool.position === 'left') {
-      ideStore.removeLeftTool(toolId)
-    } else if (tool.position === 'right') {
-      ideStore.removeRightTool(toolId)
-    }
-
+    ideStore.removeTool(toolId)
     this.registeredTools.delete(toolId)
     ideStore.addLog(`Tool ${tool.name} unregistered`, 'info')
   }

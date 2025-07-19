@@ -1,25 +1,13 @@
-import { LeftTool } from '../../core/Tool.svelte.js'
-import { ideStore } from '../../stores/ideStore.svelte.js'
+import { Tool } from '../../core/Tool.svelte.js'
 import Calculator from './Calculator.svelte'
 
-class CalculatorTool extends LeftTool {
+class CalculatorTool extends Tool {
   constructor() {
-    super('Calculatrice', '🧮')
+    super('Calculatrice', '🧮', 'left')
   }
 
   initialize() {
     this.setComponent(Calculator)
-  }
-
-  activate() {
-    super.activate()
-  }
-
-  deactivate() {
-    super.deactivate()
-  }
-
-  destroy() {
   }
 }
 
