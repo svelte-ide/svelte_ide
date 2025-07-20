@@ -34,6 +34,7 @@
     flex: 1;
     padding: 12px;
     overflow: auto;
+    user-select: text;
   }
 
   pre {

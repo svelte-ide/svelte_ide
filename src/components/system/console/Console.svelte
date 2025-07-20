@@ -217,6 +217,7 @@
     font-family: 'Courier New', monospace;
     font-size: 12px;
     line-height: 1.4;
+    user-select: text;
   }
 
   .log-entry {

@@ -140,6 +140,7 @@
     display: flex;
     flex-direction: column;
     background: #2d2d30;
+    user-select: none;
   }
 
   .main-container {

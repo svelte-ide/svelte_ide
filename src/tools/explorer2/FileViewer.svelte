@@ -21,6 +21,7 @@
     flex: 1;
     overflow: auto;
     padding: 12px;
+    user-select: text;
   }
 
   pre {
