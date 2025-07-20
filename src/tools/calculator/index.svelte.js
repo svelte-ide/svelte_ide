@@ -1,4 +1,4 @@
-import { Tool } from '../../core/Tool.svelte.js'
+import { Tool } from '@/core/Tool.svelte.js'
 import Calculator from './Calculator.svelte'
 
 class CalculatorTool extends Tool {

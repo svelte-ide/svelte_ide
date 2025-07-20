@@ -1,6 +1,6 @@
 <script>
-  import { ideStore } from '../../stores/ideStore.svelte.js'
-  import WelcomeScreen from './WelcomeScreen.svelte'
+  import { ideStore } from '@/stores/ideStore.svelte.js'
+  import WelcomeScreen from '@/components/layout/WelcomeScreen.svelte'
 
   let draggedTab = $state(null)
   let dragOverTab = $state(null)

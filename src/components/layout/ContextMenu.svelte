@@ -1,5 +1,5 @@
 <script>
-  import { contextMenuService } from '../../core/ContextMenuService.svelte.js'
+  import { contextMenuService } from '@/core/ContextMenuService.svelte.js'
   import { onMount } from 'svelte'
 
   let isVisible = $state(false)

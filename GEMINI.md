@@ -12,6 +12,7 @@ applyTo: '**'
 - Utiliser uniquement les services publics exposés par l'IDE
 
 ### Syntaxe Svelte 5 Obligatoire
+- Utilise les alias pour les imports Svelte 5, pas de chemins relatifs
 - `$state()` au lieu de `let` pour la réactivité
 - `$derived()` pour les valeurs calculées
 - `$effect()` pour les effets de bord

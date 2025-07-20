@@ -1,4 +1,4 @@
-import { ideStore } from '../stores/ideStore.svelte.js'
+import { ideStore } from '@/stores/ideStore.svelte.js'
 
 class ToolManagerSvelte {
   constructor() {

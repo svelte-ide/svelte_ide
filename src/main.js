@@ -1,6 +1,6 @@
 import { mount } from 'svelte'
-import App from './App.svelte'
-import { ideStore } from './stores/ideStore.svelte.js'
+import App from '@/App.svelte'
+import { ideStore } from '@/stores/ideStore.svelte.js'
 
 const app = mount(App, { target: document.getElementById('app') })
 

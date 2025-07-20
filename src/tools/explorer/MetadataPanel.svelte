@@ -1,5 +1,5 @@
 <script>
-  import { ideStore } from '../../stores/ideStore.svelte.js'
+  import { ideStore } from '@/stores/ideStore.svelte.js'
 
   let activeTab = $state(null)
   let metadata = $state(null)

@@ -1,5 +1,5 @@
 <script>
-  import { ideStore } from '../../stores/ideStore.svelte.js'
+  import { ideStore } from '@/stores/ideStore.svelte.js'
   
   let expression = $state('')
   let result = $state('')

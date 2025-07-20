@@ -1,4 +1,4 @@
-import { Tab } from '../core/Tool.svelte.js'
+import { Tab } from '@/core/Tool.svelte.js'
 
 class IDEStore {
   constructor() {

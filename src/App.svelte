@@ -1,15 +1,15 @@
 <script>
-  import { toolManager } from './core/ToolManager.svelte.js'
-  import { ideStore } from './stores/ideStore.svelte.js'
-  import { ConsoleTool, NotificationsTool } from './core/SystemTools.js'
+  import { toolManager } from '@/core/ToolManager.svelte.js'
+  import { ideStore } from '@/stores/ideStore.svelte.js'
+  import { ConsoleTool, NotificationsTool } from '@/core/SystemTools.js'
 
-  import TitleBar from './components/layout/TitleBar.svelte'
-  import Toolbar from './components/layout/Toolbar.svelte'
-  import StatusBar from './components/layout/StatusBar.svelte'
-  import MainView from './components/layout/MainView.svelte'
-  import ContextMenu from './components/layout/ContextMenu.svelte'
-  import ToolPanel from './components/layout/ToolPanel.svelte'
-  import ResizeHandle from './components/layout/ResizeHandle.svelte'
+  import TitleBar from '@/components/layout/TitleBar.svelte'
+  import Toolbar from '@/components/layout/Toolbar.svelte'
+  import StatusBar from '@/components/layout/StatusBar.svelte'
+  import MainView from '@/components/layout/MainView.svelte'
+  import ContextMenu from '@/components/layout/ContextMenu.svelte'
+  import ToolPanel from '@/components/layout/ToolPanel.svelte'
+  import ResizeHandle from '@/components/layout/ResizeHandle.svelte'
 
   let leftPanelWidth = $state(250)
   let rightPanelWidth = $state(250)
@@ -62,9 +62,13 @@
     ideStore.setStatusMessage('Chargement des outils système...')
     
     // Enregistrement des outils système
-    toolManager.registerTool(new ConsoleTool())
+    const console = new ConsoleTool()
+    toolManager.registerTool(console)
     toolManager.registerTool(new NotificationsTool())
-    
+
+    // Activation de la console par défaut
+    ideStore.toggleTool(console.id)
+
     ideStore.setStatusMessage('Chargement des outils externes...')
     await toolManager.loadTools()
     ideStore.setStatusMessage('IDE prêt')

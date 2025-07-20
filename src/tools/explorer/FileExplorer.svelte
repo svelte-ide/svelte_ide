@@ -1,7 +1,7 @@
 <script>
-  import { ideStore } from '../../stores/ideStore.svelte.js'
+  import { ideStore } from '@/stores/ideStore.svelte.js'
   import FileViewer from './FileViewer.svelte'
-  import { contextMenuService } from '../../core/ContextMenuService.svelte.js'
+  import { contextMenuService } from '@/core/ContextMenuService.svelte.js'
 
   let { files = [], toolId } = $props()
   let selectedFileName = $state(null)

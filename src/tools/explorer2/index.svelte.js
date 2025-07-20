@@ -1,4 +1,4 @@
-import { Tool } from '../../core/Tool.svelte.js'
+import { Tool } from '@/core/Tool.svelte.js'
 import ExplorerWrapper from './ExplorerWrapper.svelte'
 import MetadataPanel from './MetadataPanel.svelte'
 
