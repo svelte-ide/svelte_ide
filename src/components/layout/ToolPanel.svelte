@@ -27,11 +27,11 @@
     position: relative;
     outline: none;
     overflow: hidden;
+    height: 100%;
   }
 
   .panel-content {
     flex: 1;
     overflow: auto;
-    padding: 8px;
   }
 </style>

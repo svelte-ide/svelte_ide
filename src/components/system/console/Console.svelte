@@ -1,43 +1,6 @@
 <script>
   import { ideStore } from '../../../stores/ideStore.svelte.js'
 
-  let { height = 150 } = $props()
-  let isResizing = $state(false)
-  let startY = $state(0)
-  let startHeight = $state(height)
-
-  function startResize(e) {
-    isResizing = true
-    startY = e.clientY
-    startHeight = height
-    
-    // Empêcher la sélection de texte pendant le redimensionnement
-    document.body.style.userSelect = 'none'
-    document.body.style.cursor = 'ns-resize'
-    
-    document.addEventListener('mousemove', handleResize)
-    document.addEventListener('mouseup', stopResize)
-  }
-
-  function handleResize(e) {
-    if (!isResizing) return
-    const newHeight = startHeight - (e.clientY - startY)
-    if (newHeight >= 32) {
-      height = newHeight
-    }
-  }
-
-  function stopResize() {
-    isResizing = false
-    
-    // Restaurer la sélection de texte normale
-    document.body.style.userSelect = ''
-    document.body.style.cursor = ''
-    
-    document.removeEventListener('mousemove', handleResize)
-    document.removeEventListener('mouseup', stopResize)
-  }
-
   function selectTab(tabId) {
     ideStore.setActiveConsoleTab(tabId)
   }
@@ -73,14 +36,11 @@
 
 <div 
     class="console-panel" 
-    style="height: {height}px"
     tabindex="-1"
     onfocus={() => ideStore.setFocusedPanel('console')}
     onblur={() => ideStore.clearFocusedPanel()}
     onclick={() => ideStore.setFocusedPanel('console')}
   >
-    <div class="resize-handle" role="separator" onmousedown={startResize}></div>
-    
     <div class="console-header">
       <h3>Console</h3>
       
@@ -151,25 +111,11 @@
 <style>
   .console-panel {
     background: #1e1e1e;
-    border-top: 1px solid #3e3e42;
     display: flex;
     flex-direction: column;
     position: relative;
     outline: none;
-  }
-
-  .resize-handle {
-    position: absolute;
-    top: -2px;
-    left: 0;
-    right: 0;
-    height: 4px;
-    cursor: ns-resize;
-    background: transparent;
-  }
-
-  .resize-handle:hover {
-    background: #007acc;
+    height: 100%;
   }
 
   .console-header {
@@ -181,6 +127,7 @@
     padding: 0 12px;
     color: #cccccc;
     gap: 12px;
+    flex-shrink: 0;
   }
 
   .console-header h3 {

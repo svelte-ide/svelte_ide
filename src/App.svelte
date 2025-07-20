@@ -10,6 +10,52 @@
   import MainView from './components/layout/MainView.svelte'
   import ContextMenu from './components/layout/ContextMenu.svelte'
   import ToolPanel from './components/layout/ToolPanel.svelte'
+  import ResizeHandle from './components/layout/ResizeHandle.svelte'
+
+  let leftPanelWidth = $state(250)
+  let rightPanelWidth = $state(250)
+  let bottomPanelHeight = $state(200)
+
+  function createResizeLogic(panel) {
+    return (e) => {
+      e.preventDefault()
+      const startX = e.clientX
+      const startY = e.clientY
+      const startWidth = leftPanelWidth
+      const startHeight = bottomPanelHeight
+      const startRightWidth = rightPanelWidth
+
+      const handleResize = (e) => {
+        switch (panel) {
+          case 'left':
+            leftPanelWidth = Math.max(50, startWidth + (e.clientX - startX))
+            break
+          case 'right':
+            rightPanelWidth = Math.max(50, startRightWidth - (e.clientX - startX))
+            break
+          case 'bottom':
+            bottomPanelHeight = Math.max(50, startHeight - (e.clientY - startY))
+            break
+        }
+      }
+
+      const stopResize = () => {
+        document.removeEventListener('mousemove', handleResize)
+        document.removeEventListener('mouseup', stopResize)
+        document.body.style.cursor = ''
+        document.body.style.userSelect = ''
+      }
+
+      document.addEventListener('mousemove', handleResize)
+      document.addEventListener('mouseup', stopResize)
+      document.body.style.userSelect = 'none'
+      if (panel === 'bottom') {
+        document.body.style.cursor = 'ns-resize'
+      } else {
+        document.body.style.cursor = 'ew-resize'
+      }
+    }
+  }
 
   // Initialisation unique à la création du composant
   (async () => {
@@ -35,20 +81,31 @@
       
       <div class="content-area">
         <div class="panels-wrapper">
-          <div class="side-panels left">
-            <ToolPanel position="topLeft" />
-            <ToolPanel position="bottomLeft" />
-          </div>
+          {#if ideStore.activeToolsByPosition.topLeft || ideStore.activeToolsByPosition.bottomLeft}
+            <div class="side-panel-container left" style:width="{leftPanelWidth}px">
+              <ToolPanel position="topLeft" />
+              <ToolPanel position="bottomLeft" />
+            </div>
+            <ResizeHandle direction="vertical" onResizeStart={createResizeLogic('left')} />
+          {/if}
           
           <MainView />
           
-          <div class="side-panels right">
-            <ToolPanel position="topRight" />
-            <ToolPanel position="bottomRight" />
-          </div>
+          {#if ideStore.activeToolsByPosition.topRight || ideStore.activeToolsByPosition.bottomRight}
+            <ResizeHandle direction="vertical" onResizeStart={createResizeLogic('right')} />
+            <div class="side-panel-container right" style:width="{rightPanelWidth}px">
+              <ToolPanel position="topRight" />
+              <ToolPanel position="bottomRight" />
+            </div>
+          {/if}
         </div>
         
-        <ToolPanel position="bottom" />
+        {#if ideStore.activeToolsByPosition.bottom}
+          <ResizeHandle direction="horizontal" onResizeStart={createResizeLogic('bottom')} />
+          <div class="bottom-panel-container" style:height="{bottomPanelHeight}px">
+            <ToolPanel position="bottom" />
+          </div>
+        {/if}
       </div>
       
       <RightToolbar />
@@ -96,28 +153,30 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    min-width: 0;
   }
 
   .panels-wrapper {
     flex: 1;
     display: flex;
     overflow: hidden;
+    min-height: 0;
   }
 
-  .side-panels {
+  .side-panel-container {
     display: flex;
     flex-direction: column;
     height: 100%;
+    flex-shrink: 0;
   }
-
-  .side-panels > :global(.tool-panel) {
+  
+  .side-panel-container > :global(.tool-panel) {
     flex: 1;
     min-height: 0;
   }
-  
-  :global(.tool-panel[style*="grid-area: bottom"]) {
-    height: 200px; /* Hauteur par défaut pour la console */
-    border-top: 1px solid #3e3e42;
+
+  .bottom-panel-container {
+    flex-shrink: 0;
   }
 
   .welcome-container {
