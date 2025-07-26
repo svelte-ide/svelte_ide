@@ -1,40 +1,43 @@
 <script>
   import { ideStore } from '@/stores/ideStore.svelte.js'
+  import { eventBus } from '@/core/EventBusService.svelte.js'
+  import FileViewer from '@tools/explorer2/FileViewer.svelte'
 
-  let metadata = $state({
-    fileName: '',
-    fileType: '',
-    fileSize: '',
-    lines: 0,
-    words: 0,
-    characters: 0
-  })
+  let metadata = $state(null)
 
-  $effect(() => {
-    const activeTab = ideStore.tabs.find(tab => tab.id === ideStore.activeTab)
-    if (activeTab && activeTab.id.startsWith('explorer2-')) {
-      const fileName = activeTab.title.replace('V2: ', '')
+  function processTab(tab) {
+    if (tab && tab.component === FileViewer) {
+      const fileContent = tab.fileContent || ''
+      const fileName = tab.title.replace('V2: ', '')
       metadata = {
         fileName: fileName,
         fileType: getFileExtension(fileName),
-        fileSize: generateFakeSize(),
-        lines: Math.floor(Math.random() * 50) + 10,
-        words: Math.floor(Math.random() * 200) + 50,
-        characters: Math.floor(Math.random() * 1000) + 200
+        fileSize: `${fileContent.length} octets`,
+        lines: countLines(fileContent),
+        words: fileContent.split(/\s+/).filter(Boolean).length,
+        characters: fileContent.length
       }
     } else {
-      metadata = {
-        fileName: '',
-        fileType: '',
-        fileSize: '',
-        lines: 0,
-        words: 0,
-        characters: 0
-      }
+      metadata = null
     }
+  }
+
+  $effect(() => {
+    // 1. Traiter l'état initial
+    const currentActiveTab = ideStore.tabs.find(t => t.id === ideStore.activeTab)
+    processTab(currentActiveTab)
+
+    // 2. S'abonner aux futurs changements
+    const unsubscribe = eventBus.subscribe('tabs:activated', (activatedTab) => {
+      processTab(activatedTab)
+    })
+
+    // 3. Nettoyer
+    return () => unsubscribe()
   })
 
   function getFileExtension(fileName) {
+    if (!fileName) return 'Inconnu'
     const ext = fileName.split('.').pop()
     const types = {
       'js': 'JavaScript',
@@ -46,14 +49,14 @@
     return types[ext] || 'Fichier'
   }
 
-  function generateFakeSize() {
-    const sizes = ['1.2 KB', '3.5 KB', '12.8 KB', '456 B', '8.1 KB']
-    return sizes[Math.floor(Math.random() * sizes.length)]
+  function countLines(content) {
+    if (!content) return 0
+    return content.split('\n').length
   }
 </script>
 
 <div class="metadata-panel">
-  {#if metadata.fileName}
+  {#if metadata}
     <div class="metadata-section">
       <h4>🔍 Infos V2</h4>
       <div class="metadata-item">
