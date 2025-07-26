@@ -1,6 +1,15 @@
 class EventBusService {
   constructor() {
     this.listeners = {}
+    this.debugMode = false
+  }
+
+  /**
+   * Active ou désactive le mode de débogage.
+   * @param {boolean} enabled
+   */
+  setDebugMode(enabled) {
+    this.debugMode = !!enabled
   }
 
   /**
@@ -9,6 +18,15 @@ class EventBusService {
    * @param {*} [data] - Les données à transmettre avec l'événement.
    */
   publish(eventName, data) {
+    if (this.debugMode) {
+      console.log(
+        `%c[EventBus] %c${eventName}`,
+        'color: #ff7f50; font-weight: bold;',
+        'color: #87ceeb;',
+        data
+      )
+    }
+
     if (!this.listeners[eventName]) {
       return
     }

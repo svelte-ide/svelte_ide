@@ -62,6 +62,9 @@
     window.toolManager = toolManager
     ideStore.setStatusMessage('Chargement des outils système...')
     
+    // Activation du mode de débogage de l'EventBus
+    eventBus.setDebugMode(true)
+
     // Enregistrement des outils système
     const console = new ConsoleTool()
     toolManager.registerTool(console)
@@ -74,24 +77,6 @@
     await toolManager.loadTools()
     ideStore.setStatusMessage('IDE prêt')
   })()
-
-  // Test de l'Event Bus
-  $effect(() => {
-    const consoleTabName = 'Événements IDE'
-
-    const unsubActivated = eventBus.subscribe('tabs:activated', (data) => {
-      ideStore.addLog(`Onglet activé: ${data.tabId}`, 'info', consoleTabName)
-    })
-
-    const unsubClosed = eventBus.subscribe('tabs:closed', (data) => {
-      ideStore.addLog(`Onglet fermé: ${data.tabId}`, 'warning', consoleTabName)
-    })
-
-    return () => {
-      unsubActivated()
-      unsubClosed()
-    }
-  })
 </script>
 
 <div class="app">
