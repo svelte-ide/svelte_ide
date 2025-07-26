@@ -54,7 +54,31 @@ C'est le fichier le plus important pour comprendre le fonctionnement de l'IDE. I
 
 **Un développeur d'outils interagira principalement avec `ideStore` pour intégrer son outil à l'IDE.**
 
-### 2. `src/core/` : Les Classes de Base et Services
+### 2. Le Bus d'Événements (`eventBus`)
+
+Pour la communication découplée entre les outils, ou entre l'IDE et les outils.
+
+-   **Principe :** Un composant publie un événement sans savoir qui écoute. D'autres composants s'abonnent à cet événement et réagissent.
+-   **Publier un événement :**
+    ```javascript
+    import { eventBus } from '@/core/EventBusService.svelte.js';
+    eventBus.publish('mon-evenement:nom', { maData: 'valeur' });
+    ```
+-   **S'abonner à un événement (Exemple dans un composant Svelte) :**
+    ```javascript
+    $effect(() => {
+      const unsubscribe = eventBus.subscribe('mon-evenement:nom', (data) => {
+        // Mettre à jour un $state ici pour la réactivité
+        console.log('Événement reçu:', data);
+      });
+
+      // OBLIGATOIRE: Nettoyer l'abonnement à la destruction du composant
+      return () => unsubscribe();
+    });
+    ```
+-   **Débogage :** Activez le mode debug via `eventBus.setDebugMode(true)` pour voir tous les événements et leurs données passer dans la console du navigateur.
+
+### 3. `src/core/` : Les Classes de Base et Services
 
 Ce dossier contient la logique "métier" de l'IDE lui-même.
 
@@ -62,7 +86,7 @@ Ce dossier contient la logique "métier" de l'IDE lui-même.
 -   `ToolManager.svelte.js` : Le service responsable du chargement des outils. Au démarrage de l'application, il scanne le répertoire `src/tools` à la recherche de fichiers `index.svelte.js`, les importe dynamiquement et appelle leur fonction `register` pour les intégrer à l'IDE.
 -   `Tab.svelte.js` : La classe de base pour les onglets, définissant leurs propriétés (ID, titre, composant à rendre, etc.).
 
-### 3. `src/components/layout/` : L'Interface de l'IDE
+### 4. `src/components/layout/` : L'Interface de l'IDE
 
 Ce dossier contient les composants Svelte qui forment la structure visuelle de l'IDE. Ces composants sont "passifs" : leur rôle est de lire l'état depuis `ideStore` et de l'afficher.
 
@@ -72,7 +96,7 @@ Ce dossier contient les composants Svelte qui forment la structure visuelle de l
 
 Ces composants ne contiennent aucune logique métier. Ils sont uniquement responsables du rendu de l'état.
 
-### 4. `App.svelte` : Le Point d'Entrée
+### 5. `App.svelte` : Le Point d'Entrée
 
 C'est le composant racine qui assemble toutes les pièces du puzzle.
 
