@@ -1,51 +1,45 @@
 <script>
   import { contextMenuService } from '@/core/ContextMenuService.svelte.js'
-  import { onMount } from 'svelte'
 
-  let isVisible = $state(false)
-  let position = $state({ x: 0, y: 0 })
-  let menuItems = $state([])
-  let context = $state(null)
+  // Plus besoin d'état local, on accède directement au service réactif
+  // avec les runes Svelte 5, le service est automatiquement réactif
 
-  onMount(() => {
-    const unsubscribe = contextMenuService.subscribe((state) => {
-      isVisible = state.isVisible
-      position = state.position
-      menuItems = state.menuItems
-      context = state.context
-    })
+  function handleItemClick(item) {
+    contextMenuService.executeAction(item.id)
+  }
 
+  // Gestion des événements globaux avec $effect
+  $effect(() => {
     const handleClickOutside = (e) => {
-      if (isVisible && !e.target.closest('.context-menu')) {
+      if (contextMenuService.isVisible && !e.target.closest('.context-menu')) {
+        contextMenuService.hide()
+      }
+    }
+
+    const handleGlobalContextMenu = (e) => {
+      if (!e.target.closest('[data-context-menu]')) {
+        e.preventDefault()
         contextMenuService.hide()
       }
     }
 
     document.addEventListener('click', handleClickOutside)
-    document.addEventListener('contextmenu', (e) => {
-      if (!e.target.closest('[data-context-menu]')) {
-        e.preventDefault()
-        contextMenuService.hide()
-      }
-    })
+    document.addEventListener('contextmenu', handleGlobalContextMenu)
 
+    // Fonction de nettoyage retournée par $effect
     return () => {
-      unsubscribe()
       document.removeEventListener('click', handleClickOutside)
+      document.removeEventListener('contextmenu', handleGlobalContextMenu)
     }
   })
-
-  function handleItemClick(item) {
-    contextMenuService.executeAction(item.id)
-  }
 </script>
 
-{#if isVisible}
+{#if contextMenuService.isVisible}
   <div 
     class="context-menu" 
-    style="left: {position.x}px; top: {position.y}px;"
+    style="left: {contextMenuService.position.x}px; top: {contextMenuService.position.y}px;"
   >
-    {#each menuItems as item}
+    {#each contextMenuService.menuItems as item}
       <div 
         class="menu-item" 
         class:disabled={item.disabled}

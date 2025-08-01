@@ -1,5 +1,6 @@
 <script>
   import { ideStore } from '@/stores/ideStore.svelte.js'
+  import { contextMenuService } from '@/core/ContextMenuService.svelte.js'
   import WelcomeScreen from '@/components/layout/WelcomeScreen.svelte'
 
   let draggedTab = $state(null)
@@ -12,6 +13,77 @@
   function closeTab(e, tabId) {
     e.stopPropagation()
     ideStore.closeTab(tabId)
+  }
+
+  function closeOtherTabs(currentTabId) {
+    const tabsToClose = ideStore.tabs.filter(tab => tab.id !== currentTabId && tab.closable)
+    tabsToClose.forEach(tab => ideStore.closeTab(tab.id))
+  }
+
+  function closeAllTabs() {
+    const closableTabs = ideStore.tabs.filter(tab => tab.closable)
+    closableTabs.forEach(tab => ideStore.closeTab(tab.id))
+  }
+
+  function handleTabContextMenu(e, tab) {
+    e.preventDefault()
+    
+    const menuItems = [
+      {
+        id: 'close-tab',
+        label: 'Fermer l\'onglet',
+        icon: '✕',
+        action: () => {
+          if (tab.closable) {
+            ideStore.closeTab(tab.id)
+          }
+        },
+        disabled: !tab.closable
+      },
+      {
+        id: 'separator1',
+        separator: true
+      },
+      {
+        id: 'close-other-tabs',
+        label: 'Fermer les autres onglets',
+        icon: '📄',
+        action: () => closeOtherTabs(tab.id),
+        disabled: ideStore.tabs.filter(t => t.id !== tab.id && t.closable).length === 0
+      },
+      {
+        id: 'close-all-tabs',
+        label: 'Fermer tous les onglets',
+        icon: '🗂️',
+        action: () => closeAllTabs(),
+        disabled: ideStore.tabs.filter(t => t.closable).length === 0
+      },
+      {
+        id: 'separator2',
+        separator: true
+      },
+      {
+        id: 'duplicate-tab',
+        label: 'Dupliquer l\'onglet',
+        icon: '📋',
+        action: () => {
+          const newTab = ideStore.addTabFromTool(
+            'duplicate',
+            `${tab.id}-copy-${Date.now()}`,
+            `${tab.title} (Copie)`,
+            tab.component,
+            {
+              closable: tab.closable,
+              icon: tab.icon,
+              fileContent: tab.fileContent
+            }
+          )
+          ideStore.addLog(`Onglet "${tab.title}" dupliqué`, 'info', 'Interface')
+        }
+      }
+    ]
+
+    contextMenuService.show(e.clientX, e.clientY, tab, menuItems)
   }
 
   function handleDragStart(e, tab) {
@@ -83,7 +155,9 @@
           class:active={tab.id === ideStore.activeTab}
           class:dragging={draggedTab?.id === tab.id}
           class:drag-over={dragOverTab?.id === tab.id}
+          data-context-menu
           onclick={() => selectTab(tab.id)}
+          oncontextmenu={(e) => handleTabContextMenu(e, tab)}
           ondragstart={(e) => handleDragStart(e, tab)}
           ondragover={(e) => handleDragOver(e, tab)}
           ondragleave={(e) => handleDragLeave(e, tab)}
