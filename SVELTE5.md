@@ -34,7 +34,44 @@ La maîtrise de ces quatre concepts est non négociable.
         });
         ```
 
-## 2. Le Piège de `$derived` et Comment l'Éviter (Règle Critique)
+## 2. RÈGLE ABSOLUE : INTERDICTION TOTALE DE `$derived` DANS CE PROJET
+
+**⚠️ ATTENTION : Suite à des incidents répétés, `$derived` est FORMELLEMENT INTERDIT dans ce projet ⚠️**
+
+### Pourquoi cette interdiction radicale ?
+
+Le piège `$derived` s'est manifesté plusieurs fois dans ce projet, causant des pertes de temps importantes sur des bugs de réactivité difficiles à déboguer. Même avec des calculs qui semblent "purs", les dépendances indirectes créent des situations où Svelte n'exécute pas les calculs.
+
+### Pattern de Remplacement OBLIGATOIRE
+
+```javascript
+// ❌ TOTALEMENT INTERDIT - Peu importe la simplicité
+let simple = $derived(a + b)
+let complex = $derived(() => container.width / content.width)
+
+// ✅ SEULE APPROCHE AUTORISÉE
+let simple = $state(0)
+let complex = $state(0)
+
+$effect(() => {
+  simple = a + b
+  console.log('simple CALCULATED:', simple)
+})
+
+$effect(() => {
+  complex = container.width / content.width
+  console.log('complex CALCULATED:', complex)
+})
+```
+
+### Avantages de cette approche stricte :
+
+1. **Réactivité garantie** : `$effect` s'exécute toujours
+2. **Debugging facile** : Logs explicites des calculs
+3. **Pas de perte de temps** : Fini les mystères de réactivité
+4. **Code prévisible** : Comportement explicite et déterministe
+
+## 3. Le Piège de `$derived` et Comment l'Éviter (Règle Critique - SECTION HISTORIQUE)
 
 L'expérience a montré que le compilateur Svelte peut être trop optimiste avec `$derived`, conduisant à des non-mises à jour si les dépendances sont indirectes.
 

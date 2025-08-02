@@ -4,9 +4,18 @@
   import { layoutService } from '@/core/LayoutService.svelte.js'
   import { dragDropService } from '@/core/DragDropService.svelte.js'
   import ResizeHandle from '@/components/layout/ResizeHandle.svelte'
+  import TabScrollContainer from '@/components/layout/TabScrollContainer.svelte'
   import LayoutContainer from './LayoutContainer.svelte'
 
   let { layoutNode } = $props()
+  let tabScrollContainer = $state(null)
+
+  // Effet pour faire défiler automatiquement vers l'onglet actif
+  $effect(() => {
+    if (tabScrollContainer && tabScrollContainer._scrollToTab && layoutNode.activeTab) {
+      tabScrollContainer._scrollToTab(layoutNode.activeTab)
+    }
+  })
 
   function selectTab(tabId) {
     ideStore.setActiveTab(tabId)
@@ -365,7 +374,7 @@
     {/if}
 
     {#if layoutNode.tabs.length > 0}
-      <div class="tab-bar">
+      <TabScrollContainer bind:this={tabScrollContainer}>
         {#each layoutNode.tabs as tab (tab.id)}
           <div 
             class="tab"
@@ -373,6 +382,7 @@
             class:dragging={dragDropService.isTabBeingDragged(tab.id)}
             class:drag-over={dragDropService.isTabDragTarget(tab.id)}
             data-context-menu
+            data-tab-id={tab.id}
             onclick={() => selectTab(tab.id)}
             oncontextmenu={(e) => handleTabContextMenu(e, tab)}
             ondragstart={(e) => handleDragStart(e, tab)}
@@ -403,7 +413,7 @@
             {/if}
           </div>
         {/each}
-      </div>
+      </TabScrollContainer>
       
       <div class="tab-content">
         {#if activeTabData && activeTabData.component}
@@ -449,9 +459,8 @@
     overflow: hidden;
     min-width: 0;
     min-height: 0;
-    gap: 1px;
     background: #3c3c3c;
-    height: 100%; /* Important pour les splits verticaux */
+    height: 100%;
   }
 
   .split-container.horizontal {
@@ -532,20 +541,6 @@
     right: 0;
     bottom: 0;
     width: 50%;
-  }
-
-  .tab-bar {
-    background: #2d2d30;
-    border-bottom: 1px solid #3e3e42;
-    display: flex;
-    overflow-x: auto;
-    scrollbar-width: none;
-    min-width: 0;
-    flex-shrink: 0;
-  }
-
-  .tab-bar::-webkit-scrollbar {
-    display: none;
   }
 
   .tab {
