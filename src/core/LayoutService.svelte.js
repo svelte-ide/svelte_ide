@@ -71,6 +71,20 @@ export class LayoutService {
           ? group.tabs[group.tabs.length - 1].id 
           : null
       }
+
+      // Nettoyer les groupes vides après la fermeture
+      this._cleanupEmptyGroups()
+      
+      // Si plus aucun tab nulle part, reset au layout initial
+      if (this.tabs.length === 0) {
+        this.layout = {
+          type: 'tabgroup',
+          id: 'main',
+          tabs: [],
+          activeTab: null
+        }
+      }
+      
       this._triggerAutoSave()
     }
     return tabId
@@ -197,6 +211,16 @@ export class LayoutService {
   // Nettoyer les groupes vides et simplifier l'arbre
   _cleanupEmptyGroups() {
     this._cleanupNode(this.layout)
+    
+    // Si le root est un container vide, le reset
+    if (this.layout.type === 'container' && this.layout.children.length === 0) {
+      this.layout = {
+        type: 'tabgroup',
+        id: 'main',
+        tabs: [],
+        activeTab: null
+      }
+    }
   }
 
   _cleanupNode(node) {

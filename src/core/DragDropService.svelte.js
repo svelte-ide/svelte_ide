@@ -121,8 +121,11 @@ export class DragDropService {
 
   // Calculer la zone de bord en fonction de la position de la souris
   calculateEdgeZone(rect, mouseX, mouseY) {
-    const edgeThreshold = 30 // 30px depuis les bords
+    const edgeThreshold = 20 // Réduit de 30px à 20px pour être moins agressif
     const { left, right, top, bottom, width, height } = rect
+    
+    // Seulement activé si le groupe a déjà des tabs (évite de créer des splits sur groupes vides)
+    // Cette vérification sera faite dans le composant appelant
     
     // Vérifier les bords dans l'ordre de priorité
     if (mouseX - left < edgeThreshold) {

@@ -22,6 +22,9 @@
 <div class="main-view-split">
   {#if !ideStore.user}
     <WelcomeScreen />
+  {:else if layoutService.tabs.length === 0}
+    <!-- Afficher la page de bienvenue si aucun tab n'est ouvert -->
+    <WelcomeScreen />
   {:else}
     <!-- Rendu du layout avec support futur pour les splits -->
     <LayoutContainer layoutNode={layoutService.layout} />

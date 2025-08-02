@@ -190,7 +190,14 @@
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
     
-    if (layoutNode.tabs.length > 0) {
+    // Ne créer des zones de bord que si :
+    // 1. Le groupe a déjà des onglets (pas vide)
+    // 2. On ne déplace pas depuis le même groupe (sinon c'est juste un réarrangement)
+    const dragInfo = dragDropService.getDragInfo()
+    const canCreateSplit = layoutNode.tabs.length > 0 && 
+                          dragInfo.sourceGroup !== layoutNode.id
+    
+    if (canCreateSplit) {
       const rect = e.currentTarget.getBoundingClientRect()
       const edge = dragDropService.calculateEdgeZone(rect, e.clientX, e.clientY)
       
@@ -200,6 +207,7 @@
         dragDropService.setDragTarget(layoutNode.id, null)
       }
     } else {
+      // Groupe vide ou mouvement interne = drop normal
       dragDropService.setDragTarget(layoutNode.id, null)
     }
   }
