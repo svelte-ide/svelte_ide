@@ -297,7 +297,7 @@
     overflow: hidden;
     min-width: 0;
     min-height: 0;
-    gap: 2px;
+    gap: 1px;
     background: #3c3c3c;
     height: 100%; /* Important pour les splits verticaux */
   }

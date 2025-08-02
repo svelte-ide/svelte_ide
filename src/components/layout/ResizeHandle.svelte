@@ -22,13 +22,13 @@
   }
 
   .vertical {
-    width: 4px;
+    width: 1px;
     cursor: ew-resize;
     height: 100%;
   }
 
   .horizontal {
-    height: 4px;
+    height: 1px;
     cursor: ns-resize;
     width: 100%;
   }

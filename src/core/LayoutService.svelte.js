@@ -45,9 +45,6 @@ export class LayoutService {
           ? group.tabs[group.tabs.length - 1].id 
           : null
       }
-      
-      // Nettoyer les groupes vides (si ce n'est pas le root)
-      this._cleanupEmptyGroups()
     }
     return tabId
   }
@@ -239,11 +236,6 @@ export class LayoutService {
       }
     }
     return false
-  }
-
-  _cleanupEmptyGroups() {
-    // Pour simplifier, on ne nettoie pas automatiquement
-    // L'utilisateur peut fermer manuellement les splits vides
   }
 }
 
