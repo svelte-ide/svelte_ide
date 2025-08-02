@@ -3,6 +3,20 @@
   import { ideStore } from '@/stores/ideStore.svelte.js'
   import WelcomeScreen from '@/components/layout/WelcomeScreen.svelte'
   import LayoutContainer from '@/components/layout/LayoutContainer.svelte'
+
+  // Restauration automatique au démarrage
+  $effect(() => {
+    if (typeof window !== 'undefined') {
+      ideStore.restoreLayout()
+    }
+  })
+
+  // Surveillance des changements pour la sauvegarde automatique
+  $effect(() => {
+    if (layoutService.layout) {
+      layoutService._triggerAutoSave()
+    }
+  })
 </script>
 
 <div class="main-view-split">

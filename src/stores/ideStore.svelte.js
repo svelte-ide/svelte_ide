@@ -266,6 +266,48 @@ class IDEStore {
     this.tabs = []
     this.activeTab = null
   }
+
+  // Sauvegarder la disposition dans localStorage
+  saveLayout() {
+    try {
+      const layoutData = {
+        layout: layoutService.layout,
+        timestamp: Date.now()
+      }
+      localStorage.setItem('ide-layout', JSON.stringify(layoutData))
+    } catch (error) {
+      console.warn('Impossible de sauvegarder la disposition:', error)
+    }
+  }
+
+  // Restaurer la disposition depuis localStorage
+  restoreLayout() {
+    try {
+      const savedData = localStorage.getItem('ide-layout')
+      if (savedData) {
+        const { layout } = JSON.parse(savedData)
+        // Vérifier que le layout est valide avant de l'appliquer
+        if (layout && layout.type && layout.id) {
+          layoutService.layout = layout
+          return true
+        }
+      }
+    } catch (error) {
+      console.warn('Impossible de restaurer la disposition:', error)
+    }
+    return false
+  }
+
+  // Réinitialiser la disposition
+  resetLayout() {
+    layoutService.layout = {
+      type: 'tabgroup',
+      id: 'main',
+      tabs: [],
+      activeTab: null
+    }
+    this.saveLayout()
+  }
 }
 
 export const ideStore = new IDEStore()

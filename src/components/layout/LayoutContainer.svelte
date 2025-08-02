@@ -2,13 +2,11 @@
   import { ideStore } from '@/stores/ideStore.svelte.js'
   import { contextMenuService } from '@/core/ContextMenuService.svelte.js'
   import { layoutService } from '@/core/LayoutService.svelte.js'
+  import { dragDropService } from '@/core/DragDropService.svelte.js'
   import ResizeHandle from '@/components/layout/ResizeHandle.svelte'
   import LayoutContainer from './LayoutContainer.svelte'
 
   let { layoutNode } = $props()
-
-  let draggedTab = $state(null)
-  let dragOverTab = $state(null)
 
   function selectTab(tabId) {
     ideStore.setActiveTab(tabId)
@@ -88,47 +86,155 @@
   }
 
   function handleDragStart(e, tab) {
-    draggedTab = tab
+    dragDropService.startDrag(tab, layoutNode.id)
     e.dataTransfer.effectAllowed = 'move'
     e.dataTransfer.setData('text/html', '')
-    document.body.style.userSelect = 'none'
+    
+    // Curseur personnalisé pour le drag
+    document.body.style.cursor = 'grabbing'
+    
+    // Créer une image de drag personnalisée
+    const dragImage = document.createElement('div')
+    dragImage.textContent = `📄 ${tab.title}`
+    dragImage.style.cssText = `
+      position: absolute;
+      top: -1000px;
+      background: #2d2d30;
+      color: white;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      pointer-events: none;
+    `
+    document.body.appendChild(dragImage)
+    e.dataTransfer.setDragImage(dragImage, 50, 20)
+    
+    // Nettoyer l'élément après un court délai
+    setTimeout(() => {
+      document.body.removeChild(dragImage)
+    }, 0)
   }
 
   function handleDragOver(e, tab) {
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
-    dragOverTab = tab
+    
+    // Pour les tabs, on ne gère que le drag over direct (pas les zones de bord)
+    dragDropService.setDragTarget(layoutNode.id, tab)
   }
 
-  function handleDragLeave(e, tab) {
-    if (dragOverTab === tab) {
-      dragOverTab = null
+  function handleDragLeave(e) {
+    // Vérifier si on quitte vraiment le groupe (pas juste un enfant)
+    const rect = e.currentTarget.getBoundingClientRect()
+    const { clientX, clientY } = e
+    
+    if (clientX < rect.left || clientX > rect.right || 
+        clientY < rect.top || clientY > rect.bottom) {
+      dragDropService.clearDragTarget()
     }
   }
 
   function handleDrop(e, targetTab) {
     e.preventDefault()
     
-    if (draggedTab && targetTab && draggedTab.id !== targetTab.id) {
-      const tabs = [...layoutNode.tabs]
-      const draggedIndex = tabs.findIndex(t => t.id === draggedTab.id)
-      const targetIndex = tabs.findIndex(t => t.id === targetTab.id)
+    const dragInfo = dragDropService.getDragInfo()
+    if (!dragInfo.draggedTab) return
+
+    const sourceGroupId = dragInfo.sourceGroup
+    const targetGroupId = layoutNode.id
+    const draggedTabId = dragInfo.draggedTab.id
+
+    // Vérifier si on drop sur une zone de bord pour créer un split
+    if (dragInfo.edgeDropZone && dragInfo.edgeDropZone.groupId === layoutNode.id) {
+      layoutService.createSplitFromEdgeDrop(
+        targetGroupId,
+        dragInfo.edgeDropZone.edge,
+        draggedTabId,
+        sourceGroupId
+      )
+    } else if (sourceGroupId === targetGroupId) {
+      // Drag & drop dans le même groupe (réorganisation)
+      if (targetTab && draggedTabId !== targetTab.id) {
+        const tabs = [...layoutNode.tabs]
+        const draggedIndex = tabs.findIndex(t => t.id === draggedTabId)
+        const targetIndex = tabs.findIndex(t => t.id === targetTab.id)
+        
+        const [removed] = tabs.splice(draggedIndex, 1)
+        tabs.splice(targetIndex, 0, removed)
+        
+        layoutService.reorderTabsInGroup(layoutNode.id, tabs)
+      }
+    } else {
+      // Drag & drop entre groupes différents
+      const targetPosition = targetTab 
+        ? layoutNode.tabs.findIndex(t => t.id === targetTab.id)
+        : -1
       
-      const [removed] = tabs.splice(draggedIndex, 1)
-      tabs.splice(targetIndex, 0, removed)
-      
-      ideStore.reorderTabs(tabs)
+      layoutService.moveTabBetweenGroups(
+        draggedTabId, 
+        sourceGroupId, 
+        targetGroupId, 
+        targetPosition
+      )
     }
     
-    draggedTab = null
-    dragOverTab = null
-    document.body.style.userSelect = ''
+    dragDropService.endDrag()
   }
 
   function handleDragEnd() {
-    draggedTab = null
-    dragOverTab = null
-    document.body.style.userSelect = ''
+    dragDropService.endDrag()
+  }
+
+  function handleTabGroupAreaDragOver(e) {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    
+    if (layoutNode.tabs.length > 0) {
+      const rect = e.currentTarget.getBoundingClientRect()
+      const edge = dragDropService.calculateEdgeZone(rect, e.clientX, e.clientY)
+      
+      if (edge) {
+        dragDropService.setEdgeDropZone(layoutNode.id, edge, e.clientX, e.clientY)
+      } else {
+        dragDropService.setDragTarget(layoutNode.id, null)
+      }
+    } else {
+      dragDropService.setDragTarget(layoutNode.id, null)
+    }
+  }
+
+  function handleTabGroupAreaDrop(e) {
+    e.preventDefault()
+    
+    const dragInfo = dragDropService.getDragInfo()
+    if (!dragInfo.draggedTab) return
+
+    const sourceGroupId = dragInfo.sourceGroup
+    const targetGroupId = layoutNode.id
+    const draggedTabId = dragInfo.draggedTab.id
+
+    // Vérifier si on drop sur une zone de bord pour créer un split
+    if (dragInfo.edgeDropZone && dragInfo.edgeDropZone.groupId === layoutNode.id) {
+      layoutService.createSplitFromEdgeDrop(
+        targetGroupId,
+        dragInfo.edgeDropZone.edge,
+        draggedTabId,
+        sourceGroupId
+      )
+    } else {
+      // Drop normal sur le groupe vide ou au centre
+      if (sourceGroupId !== targetGroupId) {
+        layoutService.moveTabBetweenGroups(
+          draggedTabId, 
+          sourceGroupId, 
+          targetGroupId, 
+          -1
+        )
+      }
+    }
+    
+    dragDropService.endDrag()
   }
 
   // Logique de redimensionnement simplifiée et corrigée
@@ -220,22 +326,37 @@
   </div>
 
 {:else if layoutNode.type === 'tabgroup'}
-  <!-- Groupe d'onglets -->
-  <div class="tabgroup">
+  <!-- Groupe d'onglets avec zones de drop sur les bords -->
+  <div 
+    class="tabgroup"
+    ondragover={handleTabGroupAreaDragOver}
+    ondrop={handleTabGroupAreaDrop}
+    ondragleave={() => dragDropService.clearDragTarget()}
+  >
+    <!-- Zones de drop pour créer des splits -->
+    {#if dragDropService.isDragging && layoutNode.tabs.length > 0}
+      <div class="edge-drop-zones">
+        <div class="edge-zone edge-top" class:active={dragDropService.getEdgeDropZone(layoutNode.id)?.edge === 'top'}></div>
+        <div class="edge-zone edge-bottom" class:active={dragDropService.getEdgeDropZone(layoutNode.id)?.edge === 'bottom'}></div>
+        <div class="edge-zone edge-left" class:active={dragDropService.getEdgeDropZone(layoutNode.id)?.edge === 'left'}></div>
+        <div class="edge-zone edge-right" class:active={dragDropService.getEdgeDropZone(layoutNode.id)?.edge === 'right'}></div>
+      </div>
+    {/if}
+
     {#if layoutNode.tabs.length > 0}
       <div class="tab-bar">
         {#each layoutNode.tabs as tab (tab.id)}
           <div 
             class="tab"
             class:active={tab.id === layoutNode.activeTab}
-            class:dragging={draggedTab?.id === tab.id}
-            class:drag-over={dragOverTab?.id === tab.id}
+            class:dragging={dragDropService.isTabBeingDragged(tab.id)}
+            class:drag-over={dragDropService.isTabDragTarget(tab.id)}
             data-context-menu
             onclick={() => selectTab(tab.id)}
             oncontextmenu={(e) => handleTabContextMenu(e, tab)}
             ondragstart={(e) => handleDragStart(e, tab)}
             ondragover={(e) => handleDragOver(e, tab)}
-            ondragleave={(e) => handleDragLeave(e, tab)}
+            ondragleave={handleDragLeave}
             ondrop={(e) => handleDrop(e, tab)}
             ondragend={handleDragEnd}
             draggable="true"
@@ -279,10 +400,20 @@
         {/if}
       </div>
     {:else}
-      <div class="empty-state">
+      <!-- Zone de drop pour tabgroup vide -->
+      <div 
+        class="empty-state"
+        class:drag-target={dragDropService.isGroupDragTarget(layoutNode.id)}
+        ondragover={handleTabGroupAreaDragOver}
+        ondrop={handleTabGroupAreaDrop}
+        ondragleave={() => dragDropService.clearDragTarget()}
+      >
         <div class="empty-content">
           <h2>Bienvenue</h2>
           <p>Sélectionner un outil pour commencer</p>
+          {#if dragDropService.isDragging}
+            <p class="drop-hint">📁 Déposer l'onglet ici</p>
+          {/if}
         </div>
       </div>
     {/if}
@@ -327,6 +458,73 @@
     flex-direction: column;
     min-width: 0;
     overflow: hidden;
+    position: relative;
+  }
+
+  /* Zones de drop sur les bords pour créer des splits */
+  .edge-drop-zones {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  .edge-zone {
+    position: absolute;
+    background: rgba(0, 122, 204, 0.2);
+    border: 2px dashed rgba(0, 122, 204, 0.5);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+  }
+
+  .edge-zone.active {
+    opacity: 1;
+    background: rgba(0, 122, 204, 0.3);
+    border-color: #007acc;
+    animation: pulse-edge 1s infinite;
+  }
+
+  .edge-top {
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 30px;
+  }
+
+  .edge-bottom {
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 30px;
+  }
+
+  .edge-left {
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 30px;
+  }
+
+  .edge-right {
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 30px;
+  }
+
+  @keyframes pulse-edge {
+    0%, 100% { 
+      background: rgba(0, 122, 204, 0.3);
+      border-color: #007acc;
+    }
+    50% { 
+      background: rgba(0, 122, 204, 0.5);
+      border-color: #4fc3f7;
+    }
   }
 
   .tab-bar {
@@ -373,11 +571,15 @@
   .tab.dragging {
     opacity: 0.5;
     transform: rotate(3deg);
+    transition: all 0.3s ease;
+    cursor: grabbing;
   }
 
   .tab.drag-over {
     background: #007acc;
     transform: scale(1.05);
+    transition: all 0.2s ease;
+    box-shadow: 0 0 10px rgba(0, 122, 204, 0.5);
   }
 
   .tab-title {
@@ -448,6 +650,27 @@
     align-items: center;
     justify-content: center;
     background: #1e1e1e;
+    transition: all 0.3s ease;
+    min-height: 100px;
+    border: 2px dashed transparent;
+  }
+
+  .empty-state.drag-target {
+    background: #2a4d3a;
+    border-color: #007acc;
+    box-shadow: 0 0 10px rgba(0, 122, 204, 0.3);
+    animation: pulse-empty 2s infinite;
+  }
+
+  @keyframes pulse-empty {
+    0%, 100% { 
+      background: #2a4d3a;
+      box-shadow: 0 0 10px rgba(0, 122, 204, 0.3);
+    }
+    50% { 
+      background: #2d5a3d;
+      box-shadow: 0 0 15px rgba(0, 122, 204, 0.5);
+    }
   }
 
   .empty-content {
@@ -465,5 +688,18 @@
   .empty-content p {
     font-size: 14px;
     opacity: 0.7;
+  }
+
+  .drop-hint {
+    font-size: 16px;
+    color: #007acc !important;
+    opacity: 1 !important;
+    margin-top: 8px;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
   }
 </style>

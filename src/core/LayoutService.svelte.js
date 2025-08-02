@@ -7,6 +7,31 @@ export class LayoutService {
       tabs: [],
       activeTab: null
     })
+
+    this._saveTimeout = null
+  }
+
+  // Méthode à appeler manuellement pour déclencher la sauvegarde
+  _triggerAutoSave() {
+    if (typeof window !== 'undefined') {
+      clearTimeout(this._saveTimeout)
+      this._saveTimeout = setTimeout(() => {
+        this._autoSave()
+      }, 500)
+    }
+  }
+
+  // Sauvegarde automatique
+  _autoSave() {
+    try {
+      const layoutData = {
+        layout: this.layout,
+        timestamp: Date.now()
+      }
+      localStorage.setItem('ide-layout', JSON.stringify(layoutData))
+    } catch (error) {
+      console.warn('Auto-sauvegarde échouée:', error)
+    }
   }
 
   // API SIMPLE pour gérer l'arbre de layout
@@ -27,6 +52,7 @@ export class LayoutService {
         targetGroup.tabs.push(tab)
       }
       targetGroup.activeTab = tab.id
+      this._triggerAutoSave()
     }
   }
 
@@ -45,6 +71,7 @@ export class LayoutService {
           ? group.tabs[group.tabs.length - 1].id 
           : null
       }
+      this._triggerAutoSave()
     }
     return tabId
   }
@@ -54,6 +81,7 @@ export class LayoutService {
     const group = this._findGroupContainingTab(this.layout, tabId)
     if (group) {
       group.activeTab = tabId
+      this._triggerAutoSave()
       return group.tabs.find(t => t.id === tabId)
     }
     return null
@@ -64,6 +92,135 @@ export class LayoutService {
     const group = this._findActiveGroup(this.layout) || this._findFirstGroup(this.layout)
     if (group) {
       group.tabs = newTabsOrder
+      this._triggerAutoSave()
+    }
+  }
+
+  // DRAG & DROP : Déplacer un tab entre groupes
+  moveTabBetweenGroups(tabId, sourceGroupId, targetGroupId, targetPosition = -1) {
+    const sourceGroup = this._findGroupById(this.layout, sourceGroupId)
+    const targetGroup = this._findGroupById(this.layout, targetGroupId)
+    
+    if (!sourceGroup || !targetGroup) return false
+
+    // Trouver et retirer le tab du groupe source
+    const tabIndex = sourceGroup.tabs.findIndex(t => t.id === tabId)
+    if (tabIndex === -1) return false
+
+    const [tab] = sourceGroup.tabs.splice(tabIndex, 1)
+
+    // Gérer l'activeTab du groupe source
+    if (sourceGroup.activeTab === tabId) {
+      sourceGroup.activeTab = sourceGroup.tabs.length > 0 
+        ? sourceGroup.tabs[Math.min(tabIndex, sourceGroup.tabs.length - 1)].id
+        : null
+    }
+
+    // Ajouter le tab au groupe cible
+    if (targetPosition === -1 || targetPosition >= targetGroup.tabs.length) {
+      targetGroup.tabs.push(tab)
+    } else {
+      targetGroup.tabs.splice(targetPosition, 0, tab)
+    }
+
+    // Activer le tab déplacé dans le groupe cible
+    targetGroup.activeTab = tab.id
+
+    // Nettoyer les groupes vides
+    this._cleanupEmptyGroups()
+    this._triggerAutoSave()
+
+    return true
+  }
+
+  // Réorganiser les tabs dans un groupe spécifique (pour drag & drop interne)
+  reorderTabsInGroup(groupId, newTabsOrder) {
+    const group = this._findGroupById(this.layout, groupId)
+    if (group && group.type === 'tabgroup') {
+      group.tabs = newTabsOrder
+      this._triggerAutoSave()
+    }
+  }
+
+  // DRAG & DROP : Créer un nouveau split en déposant sur les bords
+  createSplitFromEdgeDrop(targetGroupId, edge, draggedTabId, sourceGroupId) {
+    const targetGroup = this._findGroupById(this.layout, targetGroupId)
+    const sourceGroup = this._findGroupById(this.layout, sourceGroupId)
+    
+    if (!targetGroup || !sourceGroup) return false
+
+    // Trouver et retirer le tab du groupe source
+    const tabIndex = sourceGroup.tabs.findIndex(t => t.id === draggedTabId)
+    if (tabIndex === -1) return false
+
+    const [tab] = sourceGroup.tabs.splice(tabIndex, 1)
+
+    // Gérer l'activeTab du groupe source
+    if (sourceGroup.activeTab === draggedTabId) {
+      sourceGroup.activeTab = sourceGroup.tabs.length > 0 
+        ? sourceGroup.tabs[Math.min(tabIndex, sourceGroup.tabs.length - 1)].id
+        : null
+    }
+
+    // Créer le nouveau groupe pour le tab déplacé
+    const newGroup = {
+      type: 'tabgroup',
+      id: crypto.randomUUID(),
+      tabs: [tab],
+      activeTab: tab.id
+    }
+
+    // Déterminer la direction et l'ordre des enfants
+    const isHorizontal = edge === 'left' || edge === 'right'
+    const direction = isHorizontal ? 'horizontal' : 'vertical'
+    const newFirst = edge === 'left' || edge === 'top'
+
+    // Créer le nouveau container
+    const newContainer = {
+      type: 'container',
+      direction: direction,
+      id: crypto.randomUUID(),
+      children: newFirst ? [newGroup, { ...targetGroup }] : [{ ...targetGroup }, newGroup],
+      sizes: [50, 50]
+    }
+
+    // Remplacer le groupe cible par le nouveau container
+    this._replaceNode(this.layout, targetGroupId, newContainer)
+
+    // Nettoyer les groupes vides
+    this._cleanupEmptyGroups()
+    this._triggerAutoSave()
+
+    return true
+  }
+
+  // Nettoyer les groupes vides et simplifier l'arbre
+  _cleanupEmptyGroups() {
+    this._cleanupNode(this.layout)
+  }
+
+  _cleanupNode(node) {
+    if (node.type === 'container') {
+      // Nettoyer récursivement les enfants
+      node.children = node.children.filter(child => {
+        this._cleanupNode(child)
+        // Garder les containers non vides et les tabgroups avec des tabs
+        return (child.type === 'container' && child.children.length > 0) || 
+               (child.type === 'tabgroup' && child.tabs.length > 0)
+      })
+
+      // Si le container n'a qu'un seul enfant, on peut le simplifier
+      if (node.children.length === 1) {
+        const child = node.children[0]
+        // Remplacer ce container par son unique enfant
+        Object.assign(node, child)
+      }
+      
+      // Redistribuer les tailles si nécessaire
+      if (node.children.length > 0 && node.children.length !== node.sizes.length) {
+        const equalSize = 100 / node.children.length
+        node.sizes = new Array(node.children.length).fill(equalSize)
+      }
     }
   }
 
@@ -102,6 +259,7 @@ export class LayoutService {
 
     // Remplacer le groupe dans l'arbre
     this._replaceNode(this.layout, groupId, newContainer)
+    this._triggerAutoSave()
     return newContainer
   }
 
@@ -140,6 +298,7 @@ export class LayoutService {
 
     // Remplacer le groupe dans l'arbre
     this._replaceNode(this.layout, groupId, newContainer)
+    this._triggerAutoSave()
     return newContainer
   }
 
@@ -148,6 +307,7 @@ export class LayoutService {
     const container = this._findGroupById(this.layout, containerId)
     if (container && container.type === 'container') {
       container.sizes = newSizes
+      this._triggerAutoSave()
     }
   }
 

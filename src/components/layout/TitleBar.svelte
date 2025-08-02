@@ -50,7 +50,7 @@
   <div class="title">
     <h1>IDE Svelte</h1>
   </div>
-  
+
   <div class="user-section">
     {#if ideStore.user}
       <button class="user-btn" onclick={toggleUserMenu}>
@@ -239,6 +239,11 @@
 
   .logout-item:hover {
     background: #dc3545;
+    color: white;
+  }
+
+  .reset-item:hover {
+    background: #f0ad4e;
     color: white;
   }
 
