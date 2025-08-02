@@ -192,12 +192,6 @@
     
     const dragInfo = dragDropService.getDragInfo()
     
-    // Ne pas traiter le survol si on drag depuis le même groupe (réarrangement interne)
-    if (dragInfo.sourceGroup === layoutNode.id) {
-      dragDropService.clearDragTarget()
-      return
-    }
-    
     // Calculer et définir la zone de prévisualisation
     const rect = e.currentTarget.getBoundingClientRect()
     dragDropService.setDropPreview(layoutNode.id, rect, e.clientX, e.clientY)
@@ -215,14 +209,32 @@
 
     // Vérifier si on a une prévisualisation de drop
     if (dragInfo.dropPreview && dragInfo.dropPreview.groupId === layoutNode.id) {
+      const zone = dragInfo.dropPreview.zone
+      
+      // Si c'est un drag interne ET zone center, ne rien faire (pas utile)
+      if (sourceGroupId === targetGroupId && zone === 'center') {
+        dragDropService.endDrag()
+        return
+      }
+      
+      // Si c'est un drag interne avec split, vérifier qu'il y a assez d'onglets
+      if (sourceGroupId === targetGroupId && zone !== 'center') {
+        // Il faut au moins 2 onglets pour faire un split interne
+        if (layoutNode.tabs.length < 2) {
+          dragDropService.endDrag()
+          return
+        }
+      }
+      
+      // Procéder avec le split ou merge
       layoutService.createSplitFromDropZone(
         targetGroupId,
-        dragInfo.dropPreview.zone,
+        zone,
         draggedTabId,
         sourceGroupId
       )
     } else {
-      // Drop normal (fallback)
+      // Drop normal (fallback) - seulement pour les drags entre groupes différents
       if (sourceGroupId !== targetGroupId) {
         layoutService.moveTabBetweenGroups(
           draggedTabId, 
@@ -337,6 +349,9 @@
       <!-- Prévisualisation IntelliJ-style pour le drag & drop -->
       {#if dragDropService.hasDropPreview(layoutNode.id)}
         {@const preview = dragDropService.getDropPreview(layoutNode.id)}
+        {@const dragInfo = dragDropService.getDragInfo()}
+        {@const isInternal = dragInfo.sourceGroup === layoutNode.id}
+        {@const isInvalidInternal = isInternal && (preview.zone === 'center' || layoutNode.tabs.length < 2)}
         <div 
           class="drop-preview"
           class:center={preview.zone === 'center'}
@@ -344,6 +359,7 @@
           class:bottom={preview.zone === 'bottom'}
           class:left={preview.zone === 'left'}
           class:right={preview.zone === 'right'}
+          class:invalid={isInvalidInternal}
         ></div>
       {/if}
     {/if}
@@ -474,6 +490,11 @@
     pointer-events: none;
     z-index: 1000;
     transition: all 0.1s ease;
+  }
+
+  .drop-preview.invalid {
+    background: rgba(255, 0, 0, 0.2);
+    border: 2px solid rgba(255, 0, 0, 0.4);
   }
 
   .drop-preview.center {
