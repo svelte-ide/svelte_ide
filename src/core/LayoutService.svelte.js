@@ -27,13 +27,43 @@ export class LayoutService {
   // Sauvegarde automatique
   _autoSave() {
     try {
-      const layoutData = {
-        layout: this.layout,
-        timestamp: Date.now()
-      }
-      localStorage.setItem('ide-layout', JSON.stringify(layoutData))
+      // Import dynamique d'ideStore pour éviter les dépendances circulaires
+      import('@/stores/ideStore.svelte.js').then(({ ideStore }) => {
+        if (ideStore.user) {
+          // Sauvegarde spécifique à l'utilisateur
+          ideStore.saveUserLayout()
+        } else {
+          console.log('Pas de sauvegarde: aucun utilisateur connecte')
+        }
+      })
     } catch (error) {
-      console.warn('Auto-sauvegarde échouée:', error)
+      console.warn('Auto-sauvegarde echouee:', error)
+    }
+  }
+
+  // Créer une version sérialisable du layout
+  _createSerializableLayout(layout) {
+    if (!layout) {
+      return null
+    }
+    
+    return {
+      ...layout,
+      tabs: layout.tabs ? layout.tabs.map(tab => {
+        // Vérifier que le tab a la méthode getSerializableData
+        if (tab && typeof tab.getSerializableData === 'function') {
+          return tab.getSerializableData()
+        }
+        // Fallback pour les tabs qui n'ont pas la méthode
+        return {
+          id: tab.id,
+          title: tab.title,
+          closable: tab.closable,
+          icon: tab.icon,
+          descriptor: tab.descriptor || null
+        }
+      }) : [],
+      activeTab: layout.activeTab ? layout.activeTab.id : null
     }
   }
 
@@ -91,6 +121,17 @@ export class LayoutService {
       this._triggerAutoSave()
     }
     return tabId
+  }
+
+  // Vider tous les tabs du layout
+  clearAllTabs() {
+    this.layout = {
+      type: 'tabgroup',
+      id: 'main',
+      tabs: [],
+      activeTab: null
+    }
+    this._triggerAutoSave()
   }
 
   // Activer un tab

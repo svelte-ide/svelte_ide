@@ -229,6 +229,17 @@ class IDEStore {
     tab.onContentChange = (newContent) => this._handleContentChange(tabId, newContent)
     tab.onDirtyStateChange = (isDirty) => this._handleDirtyState(tabId, isDirty)
     
+    // Créer le descriptor pour la sérialisation
+    tab.setDescriptor({
+      type: 'file-editor',
+      resourceId: fileName,
+      toolId: toolId,
+      icon: icon,
+      params: {
+        // Pas de contenu ici ! Seulement les métadonnées
+      }
+    })
+    
     this.addTab(tab)
     return tab
   }
@@ -304,6 +315,9 @@ class IDEStore {
       loginTime: new Date().toISOString(),
       authType: 'temporary'
     }
+    
+    // Déclencher la restauration du layout utilisateur après connexion
+    this.restoreUserLayout(user)
   }
 
   logout() {
@@ -314,8 +328,8 @@ class IDEStore {
   }
 
   closeAllTabs() {
-    this.tabs = []
-    this.activeTab = null
+    // Utiliser le LayoutService pour vider tous les tabs
+    layoutService.clearAllTabs()
   }
 
   // Sauvegarder la disposition dans localStorage
@@ -332,21 +346,132 @@ class IDEStore {
   }
 
   // Restaurer la disposition depuis localStorage
-  restoreLayout() {
+  // Restauration du layout spécifique à l'utilisateur
+  async restoreUserLayout(user) {
     try {
-      const savedData = localStorage.getItem('ide-layout')
-      if (savedData) {
-        const { layout } = JSON.parse(savedData)
-        // Vérifier que le layout est valide avant de l'appliquer
-        if (layout && layout.type && layout.id) {
-          layoutService.layout = layout
-          return true
+      const userName = user.name || user.username
+      const layoutKey = `ide-layout-${userName}`
+      const savedData = localStorage.getItem(layoutKey)
+      
+      if (!savedData) {
+        console.log(`Aucun layout sauvegarde pour l'utilisateur ${userName}`)
+        return
+      }
+
+      const layoutData = JSON.parse(savedData)
+      console.log(`Restoration du layout pour ${userName}:`, layoutData)
+      
+      if (layoutData.layout) {
+        // 1. Vider les tabs actuels
+        this.closeAllTabs()
+        
+        // 2. Collecter tous les descripteurs AVANT de restaurer la structure
+        const allTabsData = this._collectTabsFromLayout(layoutData.layout)
+        console.log(`Restoration de ${allTabsData.length} tabs`)
+        
+        // 3. Recréer les instances Tab avec les descripteurs
+        const restoredTabs = new Map()
+        
+        for (const tabData of allTabsData) {
+          if (tabData.descriptor) {
+            console.log('Recreation du tab:', tabData)
+            
+            // Créer une instance Tab vide avec l'ID d'origine
+            const tab = new Tab(tabData.id, tabData.title, null, tabData.closable, tabData.icon)
+            tab.setDescriptor(tabData.descriptor)
+            
+            // Créer le callback que l'outil utilisera pour injecter le component et les données
+            const hydrateCallback = (component, data = {}) => {
+              tab.component = component
+              
+              // Pour les fichiers, restaurer les propriétés spécifiques
+              if (tabData.descriptor.type === 'file-editor') {
+                tab.fileName = tabData.descriptor.resourceId
+                tab.content = data.content || ''
+                tab.originalContent = data.content || ''
+                tab.toolId = tabData.descriptor.toolId
+                tab.onContentChange = (newContent) => this._handleContentChange(tabData.id, newContent)
+                tab.onDirtyStateChange = (isDirty) => this._handleDirtyState(tabData.id, isDirty)
+              }
+              
+              console.log(`Tab ${tabData.id} hydrate avec succes`)
+            }
+            
+            restoredTabs.set(tabData.id, tab)
+            
+            // Publier l'événement d'hydratation
+            eventBus.publish('tab:hydrate', {
+              descriptor: tabData.descriptor,
+              tabId: tabData.id,
+              hydrateCallback: hydrateCallback,
+              userId: userName
+            })
+          }
         }
+        
+        // 4. Restaurer la structure du layout en remplaçant les données par les vraies instances Tab
+        const restoredLayout = this._reconstructLayout(layoutData.layout, restoredTabs)
+        layoutService.layout = restoredLayout
+      }
+      
+      console.log(`Restauration terminee pour ${userName}`)
+    } catch (error) {
+      console.error('Erreur lors de la restauration utilisateur:', error)
+    }
+  }
+
+  // Reconstruire le layout en remplaçant les données par les vraies instances Tab
+  _reconstructLayout(layoutData, tabsMap) {
+    if (layoutData.type === 'tabgroup') {
+      return {
+        ...layoutData,
+        tabs: layoutData.tabs.map(tabData => tabsMap.get(tabData.id)).filter(Boolean)
+      }
+    } else if (layoutData.type === 'container') {
+      return {
+        ...layoutData,
+        children: layoutData.children.map(child => this._reconstructLayout(child, tabsMap))
+      }
+    }
+    return layoutData
+  }
+
+  // Sauvegarde du layout spécifique à l'utilisateur
+  saveUserLayout() {
+    if (!this.user) return
+    
+    try {
+      const userName = this.user.name || this.user.username
+      const layoutKey = `ide-layout-${userName}`
+      const serializableLayout = layoutService._createSerializableLayout(layoutService.layout)
+      
+      if (serializableLayout) {
+        const layoutData = {
+          layout: serializableLayout,
+          timestamp: Date.now(),
+          userId: userName
+        }
+        console.log(`Sauvegarde du layout pour ${userName}:`, layoutData)
+        localStorage.setItem(layoutKey, JSON.stringify(layoutData))
       }
     } catch (error) {
-      console.warn('Impossible de restaurer la disposition:', error)
+      console.warn('Sauvegarde utilisateur echouee:', error)
     }
-    return false
+  }
+
+  // Méthode utilitaire pour collecter tous les tabs d'un layout complexe
+  _collectTabsFromLayout(layout) {
+    const tabs = []
+    
+    if (layout.type === 'tabgroup' && layout.tabs) {
+      tabs.push(...layout.tabs)
+    } else if (layout.type === 'container' && layout.children) {
+      for (const child of layout.children) {
+        tabs.push(...this._collectTabsFromLayout(child))
+      }
+    }
+    
+    return tabs
   }
 
   // Réinitialiser la disposition

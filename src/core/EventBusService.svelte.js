@@ -1,7 +1,7 @@
 class EventBusService {
   constructor() {
     this.listeners = {}
-    this.debugMode = false
+    this.debugMode = true // Activé par défaut pour le debug
   }
 
   /**

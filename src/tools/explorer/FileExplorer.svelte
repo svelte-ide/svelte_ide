@@ -2,6 +2,7 @@
   import { ideStore } from '@/stores/ideStore.svelte.js'
   import FileViewer from '@tools/explorer/FileViewer.svelte'
   import { contextMenuService } from '@/core/ContextMenuService.svelte.js'
+  import { openFileInIDE } from './fileService.svelte.js'
 
   let { files = [], toolId } = $props()
   let selectedFileName = $state(null)
@@ -24,13 +25,8 @@
   }
 
   function handleFileDoubleClick(file) {
-    ideStore.openFile({
-      fileName: file.name,
-      content: file.content || 'Contenu par défaut',
-      component: FileViewer,
-      icon: getIconForFile(file.name),
-      toolId: toolId
-    })
+    // Utiliser la fonction partagée
+    openFileInIDE(file.name, ideStore, FileViewer)
     
     ideStore.addLog(`Fichier ${file.name} ouvert`, 'info', 'Explorateur')
     

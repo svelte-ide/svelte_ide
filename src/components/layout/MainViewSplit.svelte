@@ -5,11 +5,8 @@
   import LayoutContainer from '@/components/layout/LayoutContainer.svelte'
 
   // Restauration automatique au démarrage
-  $effect(() => {
-    if (typeof window !== 'undefined') {
-      ideStore.restoreLayout()
-    }
-  })
+  // Plus de restauration automatique au chargement !
+  // La restauration se fait uniquement à la connexion utilisateur
 
   // Surveillance des changements pour la sauvegarde automatique
   $effect(() => {
