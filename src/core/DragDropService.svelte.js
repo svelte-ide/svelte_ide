@@ -8,6 +8,9 @@ export class DragDropService {
     this.isDragging = $derived(() => this.draggedTab !== null)
     this.dropZones = $state([])
     
+    // Zone d'onglets comme cible
+    this.tabAreaTarget = $state(null)
+    
     // Nouveau système de prévisualisation IntelliJ-style
     this.dropPreview = $state(null) // { groupId, zone: 'center'|'top'|'bottom'|'left'|'right', rect }
   }
@@ -30,6 +33,23 @@ export class DragDropService {
     this.targetGroup = targetGroupId
     this.dragOverTab = targetTab
     this.dropPreview = null
+    this.tabAreaTarget = null
+  }
+
+  // Nouveau : Gérer la zone d'onglets comme cible
+  setTabAreaTarget(groupId) {
+    this.tabAreaTarget = groupId
+    this.targetGroup = null
+    this.dragOverTab = null
+    this.dropPreview = null
+  }
+
+  clearTabAreaTarget() {
+    this.tabAreaTarget = null
+  }
+
+  isTabAreaTarget(groupId) {
+    return this.tabAreaTarget === groupId
   }
 
   // Nouveau : Calculer et définir la zone de prévisualisation
@@ -53,6 +73,7 @@ export class DragDropService {
     this.targetGroup = null
     this.dragOverTab = null
     this.dropPreview = null
+    this.tabAreaTarget = null
   }
 
   // Terminer le drag
@@ -63,6 +84,7 @@ export class DragDropService {
     this.dragOverTab = null
     this.dropZones = []
     this.dropPreview = null
+    this.tabAreaTarget = null
     document.body.style.userSelect = ''
     document.body.style.cursor = ''
   }

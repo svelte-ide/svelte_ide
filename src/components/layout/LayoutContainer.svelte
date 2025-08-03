@@ -195,6 +195,88 @@
     dragDropService.endDrag()
   }
 
+  function handleTabAreaDragOver(e) {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    
+    const dragInfo = dragDropService.getDragInfo()
+    if (!dragInfo.draggedTab) return
+    
+    // Marquer la zone d'onglets comme cible de drop
+    dragDropService.setTabAreaTarget(layoutNode.id)
+    
+    // TODO: Animation de prévisualisation d'insertion dans les onglets
+  }
+
+  function handleTabAreaDrop(e) {
+    e.preventDefault()
+    
+    const dragInfo = dragDropService.getDragInfo()
+    if (!dragInfo.draggedTab) return
+
+    const sourceGroupId = dragInfo.sourceGroup
+    const targetGroupId = layoutNode.id
+    const draggedTabId = dragInfo.draggedTab.id
+
+    // Ajouter l'onglet au groupe existant (à la fin)
+    if (sourceGroupId !== targetGroupId) {
+      layoutService.moveTabBetweenGroups(
+        draggedTabId, 
+        sourceGroupId, 
+        targetGroupId, 
+        -1 // À la fin
+      )
+    }
+    
+    dragDropService.endDrag()
+  }
+
+  function handleContentAreaDragOver(e) {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    
+    const dragInfo = dragDropService.getDragInfo()
+    
+    // Calculer et définir la zone de prévisualisation pour split
+    const rect = e.currentTarget.getBoundingClientRect()
+    dragDropService.setDropPreview(layoutNode.id, rect, e.clientX, e.clientY)
+  }
+
+  function handleContentAreaDrop(e) {
+    e.preventDefault()
+    
+    const dragInfo = dragDropService.getDragInfo()
+    if (!dragInfo.draggedTab) return
+
+    const sourceGroupId = dragInfo.sourceGroup
+    const targetGroupId = layoutNode.id
+    const draggedTabId = dragInfo.draggedTab.id
+
+    // Vérifier si on a une prévisualisation de drop pour split
+    if (dragInfo.dropPreview && dragInfo.dropPreview.groupId === layoutNode.id) {
+      const zone = dragInfo.dropPreview.zone
+      
+      // Si c'est un drag interne avec split, vérifier qu'il y a assez d'onglets
+      if (sourceGroupId === targetGroupId && zone !== 'center') {
+        // Il faut au moins 2 onglets pour faire un split interne
+        if (layoutNode.tabs.length < 2) {
+          dragDropService.endDrag()
+          return
+        }
+      }
+
+      // Procéder avec le split ou merge
+      layoutService.createSplitFromDropZone(
+        targetGroupId,
+        zone,
+        draggedTabId,
+        sourceGroupId
+      )
+    }
+    
+    dragDropService.endDrag()
+  }
+
   function handleTabGroupAreaDragOver(e) {
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
@@ -346,35 +428,18 @@
   </div>
 
 {:else if layoutNode.type === 'tabgroup'}
-  <!-- Groupe d'onglets avec zones de drop sur les bords -->
-  <div 
-    class="tabgroup"
-    ondragover={handleTabGroupAreaDragOver}
-    ondrop={handleTabGroupAreaDrop}
-    ondragleave={() => dragDropService.clearDragTarget()}
-  >
-    <!-- Zones de drop pour créer des splits -->
-    {#if dragDropService.isDragging && layoutNode.tabs.length > 0}
-      <!-- Prévisualisation IntelliJ-style pour le drag & drop -->
-      {#if dragDropService.hasDropPreview(layoutNode.id)}
-        {@const preview = dragDropService.getDropPreview(layoutNode.id)}
-        {@const dragInfo = dragDropService.getDragInfo()}
-        {@const isInternal = dragInfo.sourceGroup === layoutNode.id}
-        {@const isInvalidInternal = isInternal && (preview.zone === 'center' || layoutNode.tabs.length < 2)}
-        <div 
-          class="drop-preview"
-          class:center={preview.zone === 'center'}
-          class:top={preview.zone === 'top'}
-          class:bottom={preview.zone === 'bottom'}
-          class:left={preview.zone === 'left'}
-          class:right={preview.zone === 'right'}
-          class:invalid={isInvalidInternal}
-        ></div>
-      {/if}
-    {/if}
-
+  <!-- Groupe d'onglets avec zones de drop séparées -->
+  <div class="tabgroup">
     {#if layoutNode.tabs.length > 0}
-      <TabScrollContainer bind:this={tabScrollContainer}>
+      <!-- Zone d'onglets - DROP pour ajouter au groupe -->
+      <div 
+        class="tab-area"
+        class:drag-over={dragDropService.isTabAreaTarget(layoutNode.id)}
+        ondragover={handleTabAreaDragOver}
+        ondrop={handleTabAreaDrop}
+        ondragleave={() => dragDropService.clearTabAreaTarget()}
+      >
+        <TabScrollContainer bind:this={tabScrollContainer}>
         {#each layoutNode.tabs as tab (tab.id)}
           <div 
             class="tab"
@@ -413,9 +478,36 @@
             {/if}
           </div>
         {/each}
-      </TabScrollContainer>
+        </TabScrollContainer>
+      </div>
       
-      <div class="tab-content">
+      <!-- Zone de contenu - DROP pour split -->
+      <div 
+        class="tab-content"
+        ondragover={handleContentAreaDragOver}
+        ondrop={handleContentAreaDrop}
+        ondragleave={() => dragDropService.clearDragTarget()}
+      >
+        <!-- Zones de drop pour créer des splits -->
+        {#if dragDropService.isDragging}
+          <!-- Prévisualisation IntelliJ-style pour le drag & drop -->
+          {#if dragDropService.hasDropPreview(layoutNode.id)}
+            {@const preview = dragDropService.getDropPreview(layoutNode.id)}
+            {@const dragInfo = dragDropService.getDragInfo()}
+            {@const isInternal = dragInfo.sourceGroup === layoutNode.id}
+            {@const isInvalidInternal = isInternal && (preview.zone === 'center' || layoutNode.tabs.length < 2)}
+            <div 
+              class="drop-preview"
+              class:center={preview.zone === 'center'}
+              class:top={preview.zone === 'top'}
+              class:bottom={preview.zone === 'bottom'}
+              class:left={preview.zone === 'left'}
+              class:right={preview.zone === 'right'}
+              class:invalid={isInvalidInternal}
+            ></div>
+          {/if}
+        {/if}
+
         {#if activeTabData && activeTabData.component}
           {@const Component = activeTabData.component}
           {#if activeTabData.fileContent}
@@ -491,56 +583,16 @@
     position: relative;
   }
 
-  /* Prévisualisation de drop IntelliJ-style */
-  .drop-preview {
-    position: absolute;
-    background: rgba(255, 255, 255, 0.3);
-    border: 2px solid rgba(255, 255, 255, 0.6);
-    pointer-events: none;
-    z-index: 1000;
-    transition: all 0.1s ease;
+  .tab-area {
+    flex-shrink: 0;
+    background: #2d2d30;
+    border-bottom: 1px solid #3e3e42;
+    position: relative;
   }
 
-  .drop-preview.invalid {
-    background: rgba(255, 0, 0, 0.2);
-    border: 2px solid rgba(255, 0, 0, 0.4);
-  }
-
-  .drop-preview.center {
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(255, 255, 255, 0.2);
-    border: 2px solid rgba(255, 255, 255, 0.4);
-  }
-
-  .drop-preview.top {
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 50%;
-  }
-
-  .drop-preview.bottom {
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 50%;
-  }
-
-  .drop-preview.left {
-    top: 0;
-    left: 0;
-    bottom: 0;
-    width: 50%;
-  }
-
-  .drop-preview.right {
-    top: 0;
-    right: 0;
-    bottom: 0;
-    width: 50%;
+  .tab-area.drag-over {
+    background: rgba(0, 122, 204, 0.1);
+    border-bottom: 2px solid #007acc;
   }
 
   .tab {
@@ -632,6 +684,59 @@
     flex: 1;
     overflow: auto;
     background: #1e1e1e;
+    position: relative;
+  }
+
+  /* Prévisualisation de drop limitée à la zone de contenu */
+  .tab-content .drop-preview {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.6);
+    pointer-events: none;
+    z-index: 1000;
+    transition: all 0.1s ease;
+  }
+
+  .tab-content .drop-preview.invalid {
+    background: rgba(255, 0, 0, 0.2);
+    border: 2px solid rgba(255, 0, 0, 0.4);
+  }
+
+  .tab-content .drop-preview.center {
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.4);
+  }
+
+  .tab-content .drop-preview.top {
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+  }
+
+  .tab-content .drop-preview.bottom {
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+  }
+
+  .tab-content .drop-preview.left {
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 50%;
+  }
+
+  .tab-content .drop-preview.right {
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 50%;
   }
 
   .placeholder {
