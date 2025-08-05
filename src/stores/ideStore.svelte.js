@@ -5,9 +5,6 @@ import { layoutService } from '@/core/LayoutService.svelte.js'
 class IDEStore {
   constructor() {
     this.tools = $state([])
-    // ANCIEN SYSTÈME : on garde pour compatibilité mais on délègue au LayoutService
-    this._tabs = $state([])
-    this._activeTab = $state(null)
     
     this.statusMessage = $state('')
     this.user = $state(null)
@@ -42,7 +39,6 @@ class IDEStore {
     this._updateToolLists()
   }
 
-  // WRAPPER DE COMPATIBILITÉ : API identique mais délègue au LayoutService
   get tabs() {
     return layoutService.tabs
   }
@@ -196,7 +192,6 @@ class IDEStore {
   }
 
   addTab(tab) {
-    // DÉLÉGATION : on utilise le LayoutService mais on garde les events
     layoutService.addTab(tab)
   }
 
@@ -229,15 +224,12 @@ class IDEStore {
     tab.onContentChange = (newContent) => this._handleContentChange(tabId, newContent)
     tab.onDirtyStateChange = (isDirty) => this._handleDirtyState(tabId, isDirty)
     
-    // Créer le descriptor pour la sérialisation
     tab.setDescriptor({
       type: 'file-editor',
       resourceId: fileName,
       toolId: toolId,
       icon: icon,
-      params: {
-        // Pas de contenu ici ! Seulement les métadonnées
-      }
+      params: {}
     })
     
     this.addTab(tab)
@@ -245,7 +237,6 @@ class IDEStore {
   }
 
   closeTab(tabId) {
-    // DÉLÉGATION : on utilise le LayoutService mais on garde les events
     const closedTabId = layoutService.closeTab(tabId)
     if (closedTabId) {
       eventBus.publish('tabs:closed', { tabId: closedTabId })
@@ -253,12 +244,10 @@ class IDEStore {
   }
 
   reorderTabs(newTabsOrder) {
-    // DÉLÉGATION : on utilise le LayoutService
     layoutService.reorderTabs(newTabsOrder)
   }
 
   setActiveTab(tabId) {
-    // DÉLÉGATION : on utilise le LayoutService mais on garde les events
     const tab = layoutService.setActiveTab(tabId)
     if (tab) {
       eventBus.publish('tabs:activated', tab)
@@ -268,12 +257,10 @@ class IDEStore {
   }
 
   getTabById(tabId) {
-    // DÉLÉGATION : on utilise le LayoutService
     return layoutService.getTabById(tabId)
   }
 
   setTabModified(tabId, modified) {
-    // DÉLÉGATION : on utilise le LayoutService mais on garde les events
     const success = layoutService.setTabModified(tabId, modified)
     if (success) {
       eventBus.publish('tabs:modified', { tabId, modified })
@@ -316,7 +303,6 @@ class IDEStore {
       authType: 'temporary'
     }
     
-    // Déclencher la restauration du layout utilisateur après connexion
     this.restoreUserLayout(user)
   }
 
@@ -328,25 +314,9 @@ class IDEStore {
   }
 
   closeAllTabs() {
-    // Utiliser le LayoutService pour vider tous les tabs
     layoutService.clearAllTabs()
   }
 
-  // Sauvegarder la disposition dans localStorage
-  saveLayout() {
-    try {
-      const layoutData = {
-        layout: layoutService.layout,
-        timestamp: Date.now()
-      }
-      localStorage.setItem('ide-layout', JSON.stringify(layoutData))
-    } catch (error) {
-      console.warn('Impossible de sauvegarder la disposition:', error)
-    }
-  }
-
-  // Restaurer la disposition depuis localStorage
-  // Restauration du layout spécifique à l'utilisateur
   async restoreUserLayout(user) {
     try {
       const userName = user.name || user.username
@@ -354,12 +324,10 @@ class IDEStore {
       const savedData = localStorage.getItem(layoutKey)
       
       if (!savedData) {
-        console.log(`Aucun layout sauvegarde pour l'utilisateur ${userName}`)
         return
       }
 
       const layoutData = JSON.parse(savedData)
-      console.log(`Restoration du layout pour ${userName}:`, layoutData)
       
       if (layoutData.layout) {
         // 1. Vider les tabs actuels
@@ -367,24 +335,18 @@ class IDEStore {
         
         // 2. Collecter tous les descripteurs AVANT de restaurer la structure
         const allTabsData = this._collectTabsFromLayout(layoutData.layout)
-        console.log(`Restoration de ${allTabsData.length} tabs`)
         
-        // 3. Recréer les instances Tab avec les descripteurs
         const restoredTabs = new Map()
         
         for (const tabData of allTabsData) {
           if (tabData.descriptor) {
-            console.log('Recreation du tab:', tabData)
             
-            // Créer une instance Tab vide avec l'ID d'origine
             const tab = new Tab(tabData.id, tabData.title, null, tabData.closable, tabData.icon)
             tab.setDescriptor(tabData.descriptor)
             
-            // Créer le callback que l'outil utilisera pour injecter le component et les données
             const hydrateCallback = (component, data = {}) => {
               tab.component = component
               
-              // Pour les fichiers, restaurer les propriétés spécifiques
               if (tabData.descriptor.type === 'file-editor') {
                 tab.fileName = tabData.descriptor.resourceId
                 tab.content = data.content || ''
@@ -393,13 +355,10 @@ class IDEStore {
                 tab.onContentChange = (newContent) => this._handleContentChange(tabData.id, newContent)
                 tab.onDirtyStateChange = (isDirty) => this._handleDirtyState(tabData.id, isDirty)
               }
-              
-              console.log(`Tab ${tabData.id} hydrate avec succes`)
             }
             
             restoredTabs.set(tabData.id, tab)
             
-            // Publier l'événement d'hydratation
             eventBus.publish('tab:hydrate', {
               descriptor: tabData.descriptor,
               tabId: tabData.id,
@@ -409,18 +368,15 @@ class IDEStore {
           }
         }
         
-        // 4. Restaurer la structure du layout en remplaçant les données par les vraies instances Tab
         const restoredLayout = this._reconstructLayout(layoutData.layout, restoredTabs)
         layoutService.layout = restoredLayout
       }
       
-      console.log(`Restauration terminee pour ${userName}`)
     } catch (error) {
       console.error('Erreur lors de la restauration utilisateur:', error)
     }
   }
 
-  // Reconstruire le layout en remplaçant les données par les vraies instances Tab
   _reconstructLayout(layoutData, tabsMap) {
     if (layoutData.type === 'tabgroup') {
       return {
@@ -436,7 +392,6 @@ class IDEStore {
     return layoutData
   }
 
-  // Sauvegarde du layout spécifique à l'utilisateur
   saveUserLayout() {
     if (!this.user) return
     
@@ -451,7 +406,6 @@ class IDEStore {
           timestamp: Date.now(),
           userId: userName
         }
-        console.log(`Sauvegarde du layout pour ${userName}:`, layoutData)
         localStorage.setItem(layoutKey, JSON.stringify(layoutData))
       }
     } catch (error) {
@@ -459,7 +413,6 @@ class IDEStore {
     }
   }
 
-  // Méthode utilitaire pour collecter tous les tabs d'un layout complexe
   _collectTabsFromLayout(layout) {
     const tabs = []
     
@@ -474,7 +427,6 @@ class IDEStore {
     return tabs
   }
 
-  // Réinitialiser la disposition
   resetLayout() {
     layoutService.layout = {
       type: 'tabgroup',
@@ -482,7 +434,7 @@ class IDEStore {
       tabs: [],
       activeTab: null
     }
-    this.saveLayout()
+    this.saveUserLayout()
   }
 }
 

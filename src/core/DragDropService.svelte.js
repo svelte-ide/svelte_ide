@@ -5,7 +5,6 @@ export class DragDropService {
     this.sourceGroup = $state(null)
     this.targetGroup = $state(null)
     this.dragOverTab = $state(null)
-    this.isDragging = $derived(() => this.draggedTab !== null)
     this.dropZones = $state([])
     
     // Zone d'onglets comme cible
@@ -13,6 +12,11 @@ export class DragDropService {
     
     // Nouveau système de prévisualisation IntelliJ-style
     this.dropPreview = $state(null) // { groupId, zone: 'center'|'top'|'bottom'|'left'|'right', rect }
+  }
+  
+  // Calculer isDragging manuellement quand nécessaire
+  get isDragging() {
+    return this.draggedTab !== null
   }
 
   // Démarrer un drag

@@ -5,9 +5,15 @@
 
   const isLeft = position === 'left'
 
-  let topTools = $derived(isLeft ? ideStore.topLeftTools : ideStore.topRightTools)
-  let bottomTools = $derived(isLeft ? ideStore.bottomLeftTools : ideStore.bottomRightTools)
-  let sharedBottomTools = $derived(isLeft ? ideStore.bottomTools : [])
+  let topTools = $state([])
+  let bottomTools = $state([])
+  let sharedBottomTools = $state([])
+  
+  $effect(() => {
+    topTools = isLeft ? ideStore.topLeftTools : ideStore.topRightTools
+    bottomTools = isLeft ? ideStore.bottomLeftTools : ideStore.bottomRightTools
+    sharedBottomTools = isLeft ? ideStore.bottomTools : []
+  })
 
   const topTarget = isLeft ? 'topLeft' : 'topRight'
   const bottomTarget = isLeft ? 'bottomLeft' : 'bottomRight'

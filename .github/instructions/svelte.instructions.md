@@ -1,7 +1,7 @@
 ---
 applyTo: '**'
 ---
-# Instructions Principales pour l'IA
+# Instructions Principales
 
 Ce document contient les règles fondamentales et non négociables pour ce projet.
 
@@ -61,6 +61,43 @@ Ces règles s'appliquent à **tout** le code que tu écris ou modifies, sans exc
 -   **Refactoring :** Lorsque tu changes un comportement existant, assure-toi de supprimer tout le code relié à l'ancien comportement et de vérifier que le reste du code fonctionne correctement.
 
 -   **console minimale :** Utiliser `console.log` uniquement pour le débogage temporaire. Ne pas laisser de logs dans le code final.
+
+-   **Architecture :** Le nettoyage de code inclut l'identification et la suppression de systèmes redondants, classes inutilisées, ou patterns architecturaux obsolètes.
+
+### 4.1. RÈGLE CRITIQUE : Ménage Profond du Code
+
+**IMPORTANT : Le nettoyage ne se limite pas au cosmétique.**
+
+#### ⚠️ PÉRIMÈTRE ÉTENDU DU NETTOYAGE ⚠️
+
+- **Niveau cosmétique** : console.log, commentaires, formatage
+- **Niveau structural** : code mort, classes inutilisées, imports non utilisés
+- **Niveau architectural** : systèmes redondants, patterns obsolètes, abstractions inutiles
+
+#### Exemples de Problèmes Complexes
+
+```javascript
+// ❌ SYSTÈME REDONDANT - Deux implémentations pour la même fonctionnalité
+class OldTabManager { /* utilisé nulle part */ }
+class NewTabService { /* fait la même chose */ }
+
+// ❌ ABSTRACTION INUTILE - Wrapper sans valeur ajoutée  
+class ApiWrapper {
+  get(url) { return fetch(url) } // Juste un proxy inutile
+}
+
+// ❌ PATTERN OBSOLÈTE - Architecture remplacée mais pas supprimée
+// Ancien système avec EventBus custom
+// Nouveau système avec stores Svelte
+// → Garder seulement le nouveau
+```
+
+#### Principe de Nettoyage Profond
+
+1. **Identifier les doublons** : Deux systèmes qui font la même chose
+2. **Traquer le code mort** : Classes, méthodes, fichiers non référencés
+3. **Simplifier l'architecture** : Supprimer les couches d'abstraction inutiles
+4. **Éliminer les patterns obsolètes** : Code legacy non migré
 
 ## 5. RÈGLE CRITIQUE : Stratégie de Modification Efficiente
 

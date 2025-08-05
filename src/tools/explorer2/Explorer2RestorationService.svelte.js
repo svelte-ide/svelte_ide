@@ -8,39 +8,27 @@ class Explorer2RestorationService {
   }
 
   init() {
-    // ✅ L'outil Explorer2 s'enregistre pour les fichiers "V2:"
-    eventBus.subscribe('tab:restore-request', (restoreEvent) => {
-      const { descriptor } = restoreEvent
-      
-      // Explorer2 gère les fichiers qui commencent par "V2:"
-      if (descriptor.type === 'file-editor' && descriptor.resourceId.startsWith('V2:')) {
-        this.handleRestore(restoreEvent)
+    eventBus.subscribe('tab:hydrate', (hydrateEvent) => {
+      if (hydrateEvent.descriptor.type === 'file-editor' && 
+          hydrateEvent.descriptor.resourceId.startsWith('V2:')) {
+        this.handleHydrate(hydrateEvent)
       }
     })
   }
 
-  async handleRestore(restoreEvent) {
-    const { descriptor, resolve, reject } = restoreEvent
+  handleHydrate(hydrateEvent) {
+    const { descriptor, tabId, hydrateCallback, userId } = hydrateEvent
     
     try {
-      restoreEvent.handled = true
-      
-      // Extraire le vrai nom du fichier (enlever "V2:")
       const realFileName = descriptor.resourceId.replace('V2: ', '')
       const content = this._getFileContent(realFileName)
       
-      const restoredTab = ideStore.openFile({
-        fileName: descriptor.resourceId, // Garder "V2:" dans le titre
-        content: content,
-        component: FileViewer,
-        icon: descriptor.icon || '📄',
-        toolId: descriptor.toolId
+      hydrateCallback(FileViewer, {
+        content: content
       })
       
-      resolve(restoredTab)
-      
     } catch (error) {
-      reject(error)
+      console.error('Erreur hydratation fichier V2:', error)
     }
   }
 

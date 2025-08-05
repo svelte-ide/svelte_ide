@@ -4,10 +4,6 @@
   import WelcomeScreen from '@/components/layout/WelcomeScreen.svelte'
   import LayoutContainer from '@/components/layout/LayoutContainer.svelte'
 
-  // Restauration automatique au démarrage
-  // Plus de restauration automatique au chargement !
-  // La restauration se fait uniquement à la connexion utilisateur
-
   // Surveillance des changements pour la sauvegarde automatique
   $effect(() => {
     if (layoutService.layout) {

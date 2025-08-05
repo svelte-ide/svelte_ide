@@ -2,7 +2,11 @@
   import { ideStore } from '@/stores/ideStore.svelte.js'
 
   let { position } = $props()
-  let activeTool = $derived(ideStore.activeToolsByPosition[position])
+  let activeTool = $state(null)
+  
+  $effect(() => {
+    activeTool = ideStore.activeToolsByPosition[position]
+  })
 </script>
 
 {#if activeTool}
