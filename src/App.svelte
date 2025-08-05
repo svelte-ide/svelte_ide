@@ -62,10 +62,6 @@
     window.toolManager = toolManager
     ideStore.setStatusMessage('Chargement des outils système...')
     
-    // Activation du mode de débogage de l'EventBus
-    eventBus.setDebugMode(true)
-
-    // Enregistrement des outils système
     const console = new ConsoleTool()
     toolManager.registerTool(console)
     toolManager.registerTool(new NotificationsTool())

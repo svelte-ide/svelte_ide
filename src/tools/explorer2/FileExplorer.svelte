@@ -56,8 +56,7 @@
         label: 'Hello V2',
         icon: '🚀',
         action: (context) => {
-          console.log(`Hello V2 action sur: ${context.name}`)
-          ideStore.addLog(`Action Hello V2 exécutée sur ${context.name}`, 'info', 'Menu contextuel V2')
+          ideStore.addLog(`Hello V2 action sur ${context.name}`, 'info', 'Menu contextuel V2')
         }
       },
       {

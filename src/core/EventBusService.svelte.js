@@ -1,22 +1,9 @@
 class EventBusService {
   constructor() {
     this.listeners = {}
-    this.debugMode = true // Activé par défaut pour le debug
+    this.debugMode = false
   }
 
-  /**
-   * Active ou désactive le mode de débogage.
-   * @param {boolean} enabled
-   */
-  setDebugMode(enabled) {
-    this.debugMode = !!enabled
-  }
-
-  /**
-   * Publie un événement à tous les abonnés.
-   * @param {string} eventName - Le nom de l'événement.
-   * @param {*} [data] - Les données à transmettre avec l'événement.
-   */
   publish(eventName, data) {
     if (this.debugMode) {
       console.log(

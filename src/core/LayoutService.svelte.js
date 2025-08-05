@@ -30,10 +30,7 @@ export class LayoutService {
       // Import dynamique d'ideStore pour éviter les dépendances circulaires
       import('@/stores/ideStore.svelte.js').then(({ ideStore }) => {
         if (ideStore.user) {
-          // Sauvegarde spécifique à l'utilisateur
           ideStore.saveUserLayout()
-        } else {
-          console.log('Pas de sauvegarde: aucun utilisateur connecte')
         }
       })
     } catch (error) {
