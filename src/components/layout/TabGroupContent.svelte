@@ -1,0 +1,130 @@
+<script>
+  import { layoutService } from '@/core/LayoutService.svelte.js'
+  import { dragDropService } from '@/core/DragDropService.svelte.js'
+
+  let { layoutNode } = $props()
+
+  let activeTabData = $state(null)
+
+  $effect(() => {
+    activeTabData = layoutNode.tabs.find(tab => tab.id === layoutNode.activeTab)
+  })
+
+  function handleEmptyAreaDragOver(e) {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    
+    const dragInfo = dragDropService.getDragInfo()
+    if (!dragInfo.draggedTab) return
+    
+    dragDropService.setTabAreaTarget(layoutNode.id)
+  }
+
+  function handleEmptyAreaDrop(e) {
+    e.preventDefault()
+    
+    const dragInfo = dragDropService.getDragInfo()
+    if (!dragInfo.draggedTab) return
+
+    const sourceGroupId = dragInfo.sourceGroup
+    const targetGroupId = layoutNode.id
+    const draggedTabId = dragInfo.draggedTab.id
+
+    if (sourceGroupId !== targetGroupId) {
+      layoutService.moveTabBetweenGroups(
+        draggedTabId,
+        sourceGroupId,
+        targetGroupId,
+        -1
+      )
+    }
+    
+    dragDropService.endDrag()
+  }
+</script>
+
+{#if activeTabData && activeTabData.component}
+  {@const Component = activeTabData.component}
+  {#if activeTabData.fileContent}
+    <Component 
+      content={activeTabData.fileContent} 
+      fileName={activeTabData.fileName}
+      {...activeTabData}
+    />
+  {:else}
+    <Component {...activeTabData} />
+  {/if}
+{:else if activeTabData}
+  <div class="placeholder">
+    <h3>{activeTabData.title}</h3>
+    <p>Contenu à implémenter</p>
+  </div>
+{:else}
+  <!-- Zone de drop pour tabgroup vide -->
+  <div 
+    class="empty-tabgroup"
+    class:drag-over={dragDropService.isTabAreaTarget(layoutNode.id)}
+    ondragover={handleEmptyAreaDragOver}
+    ondrop={handleEmptyAreaDrop}
+    ondragleave={() => dragDropService.clearTabAreaTarget()}
+    role="region"
+    aria-label="Zone de dépôt vide"
+  >
+    <div class="empty-message">
+      <span class="empty-icon">📄</span>
+      <p>Glissez un onglet ici</p>
+    </div>
+  </div>
+{/if}
+
+<style>
+  .placeholder {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #858585;
+    padding: 20px;
+  }
+
+  .placeholder h3 {
+    margin: 0 0 10px 0;
+    color: #cccccc;
+  }
+
+  .empty-tabgroup {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #1e1e1e;
+    border: 2px dashed #3e3e42;
+    margin: 8px;
+    border-radius: 8px;
+    transition: all 0.15s ease;
+    min-height: 200px;
+  }
+
+  .empty-tabgroup.drag-over {
+    border-color: #007acc;
+    background: rgba(0, 122, 204, 0.1);
+  }
+
+  .empty-message {
+    text-align: center;
+    color: #858585;
+  }
+
+  .empty-icon {
+    font-size: 48px;
+    display: block;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+
+  .empty-message p {
+    margin: 0;
+    font-size: 14px;
+  }
+</style>
