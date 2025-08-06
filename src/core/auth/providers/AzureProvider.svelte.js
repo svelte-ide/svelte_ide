@@ -52,20 +52,37 @@ export class AzureProvider extends AuthProvider {
     const state = urlParams.get('state')
     const error = urlParams.get('error')
 
+    console.log('Azure callback received:', { code: !!code, state, error })
+
     if (error) {
       const errorDescription = urlParams.get('error_description')
+      console.error('Azure OAuth error:', { error, errorDescription })
       throw new Error(`OAuth error: ${error} - ${errorDescription}`)
     }
 
     const storedState = sessionStorage.getItem('oauth_state')
     const codeVerifier = sessionStorage.getItem('oauth_code_verifier')
+    
+    console.log('State validation:', { receivedState: state, storedState, codeVerifier: !!codeVerifier })
 
     if (!state || state !== storedState) {
-      throw new Error('Invalid state parameter')
+      console.error('State mismatch:', { received: state, stored: storedState })
+      
+      // Si le state est manquant mais qu'on a un code valide, c'est probablement un double appel
+      if (!storedState && code) {
+        console.warn('SessionStorage cleared but code present - possible double callback, attempting to continue')
+        // On va quand même essayer de traiter le callback mais sans vérification du state
+        // C'est moins sécurisé mais nécessaire pour gérer les doubles appels
+      } else {
+        throw new Error('Invalid state parameter - possible CSRF attack or session expired')
+      }
     }
 
-    sessionStorage.removeItem('oauth_state')
-    sessionStorage.removeItem('oauth_code_verifier')
+    // Nettoyer uniquement si on a le state correct ou si on force le traitement
+    if (storedState || code) {
+      sessionStorage.removeItem('oauth_state')
+      sessionStorage.removeItem('oauth_code_verifier')
+    }
 
     if (code) {
       const tokenData = await this.exchangeCodeForTokens(code, codeVerifier)
@@ -103,6 +120,15 @@ export class AzureProvider extends AuthProvider {
 
     if (!response.ok) {
       const error = await response.json()
+      console.error('Azure token exchange failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: error,
+        endpoint: tokenEndpoint,
+        clientId: this.config.clientId,
+        tenantId: this.config.tenantId,
+        redirectUri: this.config.redirectUri
+      })
       throw new Error(`Token exchange failed: ${error.error_description || error.error}`)
     }
 

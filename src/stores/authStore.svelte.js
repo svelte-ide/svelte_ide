@@ -89,12 +89,88 @@ function createAuthStore() {
         initializeAuthProviders(authManager)
         await authManager.initializeProviders()
         
+        // Vérifier si on est dans un callback OAuth
+        if (window.location.pathname === '/auth/callback' || window.location.search.includes('code=')) {
+          await this.handleOAuthCallback()
+        }
+        
         initialized = true
         availableProviders = authManager.getAvailableProviders()
       } catch (err) {
         error = err.message
       } finally {
         isLoading = false
+      }
+    },
+
+    async handleOAuthCallback() {
+      // Empêcher les appels multiples
+      if (this._handlingCallback) {
+        console.log('OAuth callback already in progress, skipping')
+        return
+      }
+      
+      this._handlingCallback = true
+      
+      try {
+        console.log('Handling OAuth callback:', { 
+          pathname: window.location.pathname,
+          search: window.location.search,
+          hash: window.location.hash 
+        })
+        
+        // Trouver le provider qui peut gérer ce callback
+        for (const [id, provider] of authManager.providers) {
+          if (provider.id === 'azure' && window.location.search.includes('code=')) {
+            console.log('Found Azure provider for callback')
+            const result = await provider.handleCallback()
+            
+            if (result) {
+              console.log('Azure callback successful:', { userInfo: result.userInfo })
+              
+              authManager.tokenManager.setTokens(
+                result.accessToken,
+                result.refreshToken,
+                result.expiresIn,
+                result.userInfo
+              )
+              authManager.activeProvider = provider
+              authManager._isAuthenticated = true
+              authManager._currentUser = result.userInfo
+              
+              // Forcer la mise à jour réactive
+              isAuthenticated = true
+              currentUser = result.userInfo
+              
+              // Nettoyer l'URL en redirigeant vers la racine
+              window.history.replaceState({}, document.title, '/')
+              
+              return
+            }
+          }
+        }
+        
+        throw new Error('No provider found to handle callback')
+      } catch (err) {
+        console.error('OAuth callback error:', err)
+        error = err.message
+        
+        // Nettoyer l'URL en redirigeant vers la racine même en cas d'erreur
+        window.history.replaceState({}, document.title, '/')
+        
+        // S'assurer que l'état de loading est réinitialisé
+        isLoading = false
+        
+        // En cas d'erreur state, nettoyer les sessions
+        if (err.message.includes('Invalid state parameter')) {
+          sessionStorage.removeItem('oauth_state')
+          sessionStorage.removeItem('oauth_code_verifier')
+          console.log('Cleared OAuth session storage due to state error')
+        }
+        
+        throw err
+      } finally {
+        this._handlingCallback = false
       }
     },
 

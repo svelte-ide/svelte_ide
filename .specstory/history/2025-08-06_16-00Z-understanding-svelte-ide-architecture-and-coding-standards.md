@@ -2080,6 +2080,468 @@ La condition est **hardcodée à `false`** ! Il faut utiliser l'état d'authenti
 
 ```
 
+```
+
+```
+## ✅ **Problème Résolu !**
+
+J'ai corrigé les 3 points essentiels :
+
+1. **Import du authStore** : `import { getAuthStore } from `authStore.svelte.js`'`
+2. **Initialisation** : `const authStore = getAuthStore()` et `await authStore.initialize()`
+3. **Condition réactive** : `{#if authStore.isAuthenticated}` au lieu de `{#if false}`
+
+Maintenant l'interface principale devrait apparaître automatiquement quand tu es connecté !
+
+**Test :**
+- Si tu es déjà connecté, l'interface principale devrait s'afficher immédiatement
+- Si tu te déconnectes, tu verras l'AuthPanel
+- Si tu te reconnectes, l'interface principale réapparaîtra
+
+---
+
+_**User**_
+
+maintenant je veux tester azure. où ajouter mes variables?
+
+---
+
+_**Assistant**_
+
+## 🔧 **Configuration Azure OAuth**
+
+Pour tester Azure, tu dois créer un fichier `.env` à la racine du projet pour tes variables d'environnement. Je ne peux pas créer le `.env` directement, mais voici ce que tu dois faire :
+
+## 📋 **Étapes pour Configurer Azure :**
+
+### 1. **Créer le fichier `.env`**
+Crée manuellement un fichier `.env` à la racine (`c:\src\svelte_ide\.env`) avec :
+
+```env
+# Configuration Authentication
+VITE_AUTH_PROVIDERS=azure
+
+# Azure Active Directory / Microsoft Entra ID
+VITE_AZURE_CLIENT_ID=your-azure-client-id-here
+VITE_AZURE_TENANT_ID=your-azure-tenant-id-here
+VITE_AZURE_REDIRECT_URI=http://localhost:5173/auth/callback
+```
+
+### 2. **Obtenir les Identifiants Azure :**
+
+1. **Portail Azure** → **Azure Active Directory** → **App registrations**
+2. **New registration** :
+   - **Name** : `Svelte IDE`
+   - **Redirect URI** : `Single-page application (SPA)` → `http://localhost:5173/auth/callback`
+3. **Copier** :
+   - **Application (client) ID** → `VITE_AZURE_CLIENT_ID`
+   - **Directory (tenant) ID** → `VITE_AZURE_TENANT_ID`
+
+### 3. **Configurer les Permissions :**
+Dans ton app Azure :
+- **API permissions** → **Add permission** → **Microsoft Graph**
+- **Delegated permissions** : `User.Read`, `profile`, `openid`, `email`
+
+### 4. **Redémarrer Vite :** 
+
+---
+
+_**User**_
+
+ok je me connecte avec azure, je recois un callback (voir bar d'adresse) mais rien ne se passe ensuite
+
+---
+
+_**Assistant**_
+
+## 🚨 **Problème : Callback OAuth Non Géré**
+
+Je vois que tu reçois le callback Azure (`localhost:5173/auth/callback?code=1.AScA1Yt3Vj9q0...`) mais rien ne se passe ensuite. Le problème est que notre application n'a pas de gestionnaire pour traiter ce callback.
+
+Vérifions d'abord si l'`AzureProvider` gère correctement le callback : ## 🚨 **Problème Identifié : Callback Non Résolu**
+
+Le `AzureProvider` a une méthode `handleCallback()` mais elle n'est jamais appelée ! Le provider fait `window.location.href = authUrl` ce qui redirige vers Azure, mais quand Azure nous renvoie avec le callback, personne ne traite le retour.
+
+## 🔧 **Solution : Initialiser les Providers et Gérer le Callback**
+
+Modifions le `authStore` pour initialiser les providers et gérer les callbacks : 
+```
+
+```
+## ✅ **Correction Appliquée**
+
+Maintenant l'application :
+
+1. **Détecte les callbacks OAuth** : Vérifie si l'URL contient `/auth/callback` ou `code=`
+2. **Traite le callback Azure** : Appelle `provider.handleCallback()` pour échanger le code contre des tokens
+3. **Met à jour l'état** : Force la réactivité et nettoie l'URL
+4. **Redirige proprement** : Remet l'URL à `/` après traitement
+
+**Test maintenant :**
+1. Rafraîchis la page pour relancer l'initialisation
+2. Clique sur "Se connecter via Microsoft Azure AD"
+3. Après authentification Azure, tu devrais être redirigé et automatiquement connecté !
+
+L'interface principale devrait apparaître avec ton nom d'utilisateur Azure dans la barre de titre.
+
+---
+
+_**User**_
+
+quand il y a une erreur de config, l'icone reste en chargement.... au lieu de revenir à connecter
+
+---
+
+_**Assistant**_
+
+## 🚨 **Problème : État de Loading Non Réinitialisé**
+
+Je vois dans la console qu'il y a une erreur 400 (Bad Request) lors de l'échange du code Azure, mais l'interface reste en état de chargement au lieu de revenir à l'état "Se connecter".
+
+Le problème est que dans `handleOAuthCallback()`, on n'appelle pas `isLoading = false` dans le `finally` block.
+
+## 🔧 **Correction :** 
+```
+
+```
+## 🔧 **Amélioration du Debugging :**
+
+Ajoutons aussi un meilleur log pour voir exactement quelle erreur Azure renvoie : 
+```
+
+```
+## ✅ **Corrections Appliquées**
+
+1. **État de loading réinitialisé** : `isLoading = false` dans le catch de `handleOAuthCallback()`
+2. **Meilleur logging** : Console détaillée des erreurs Azure pour diagnostiquer le problème 400
+
+**Maintenant :**
+- L'icône de chargement disparaîtra même en cas d'erreur
+- Tu verras exactement pourquoi Azure renvoie l'erreur 400 dans la console
+- L'interface reviendra à l'état "Se connecter" après une erreur
+
+**Pour diagnostiquer l'erreur 400 :**
+Regarde la console après une tentative de connexion - elle affichera tous les détails de la requête ratée (endpoint, clientId, tenantId, etc.) pour t'aider à identifier le problème de configuration.
+
+---
+
+_**User**_
+
+voici les erreurs:
+client:495 [vite] connecting...
+client:618 [vite] connected.
+authStore.svelte.js:138 OAuth callback error: Error: Invalid state parameter
+    at AzureProvider.handleCallback (AzureProvider.svelte.js:63:43)
+    at Object.handleOAuthCallback (authStore.svelte.js:111:43)
+    at Object.initialize (authStore.svelte.js:94:22)
+handleOAuthCallback @ authStore.svelte.js:138
+await in handleOAuthCallback
+initialize @ authStore.svelte.js:94
+await in initialize
+$effect @ AuthUserMenu.svelte:11
+update_reaction @ chunk-OGH3SU7K.js?v=23e257d7:1744
+update_effect @ chunk-OGH3SU7K.js?v=23e257d7:1872
+flush_queued_effects @ chunk-OGH3SU7K.js?v=23e257d7:1965
+flush_queued_root_effects @ chunk-OGH3SU7K.js?v=23e257d7:1944
+AzureProvider.svelte.js:96  POST https://login.microsoftonline.com/56778bd5-6a3f-4bd3-a265-93163e4d5bfe/oauth2/v2.0/token 400 (Bad Request)
+exchangeCodeForTokens @ AzureProvider.svelte.js:96
+handleCallback @ AzureProvider.svelte.js:71
+handleOAuthCallback @ authStore.svelte.js:111
+initialize @ authStore.svelte.js:94
+await in initialize
+(anonyme) @ App.svelte:69
+App @ App.svelte:83
+(anonyme) @ chunk-ETUTA3KZ.js?v=23e257d7:297
+update_reaction @ chunk-OGH3SU7K.js?v=23e257d7:1744
+update_effect @ chunk-OGH3SU7K.js?v=23e257d7:1872
+create_effect @ chunk-OGH3SU7K.js?v=23e257d7:2294
+branch @ chunk-OGH3SU7K.js?v=23e257d7:2452
+(anonyme) @ chunk-ETUTA3KZ.js?v=23e257d7:291
+update_reaction @ chunk-OGH3SU7K.js?v=23e257d7:1744
+update_effect @ chunk-OGH3SU7K.js?v=23e257d7:1872
+create_effect @ chunk-OGH3SU7K.js?v=23e257d7:2294
+block @ chunk-OGH3SU7K.js?v=23e257d7:2445
+wrapper @ chunk-ETUTA3KZ.js?v=23e257d7:284
+(anonyme) @ chunk-HZPQH2EM.js?v=23e257d7:666
+update_reaction @ chunk-OGH3SU7K.js?v=23e257d7:1744
+update_effect @ chunk-OGH3SU7K.js?v=23e257d7:1872
+create_effect @ chunk-OGH3SU7K.js?v=23e257d7:2294
+branch @ chunk-OGH3SU7K.js?v=23e257d7:2452
+(anonyme) @ chunk-HZPQH2EM.js?v=23e257d7:646
+update_reaction @ chunk-OGH3SU7K.js?v=23e257d7:1744
+update_effect @ chunk-OGH3SU7K.js?v=23e257d7:1872
+create_effect @ chunk-OGH3SU7K.js?v=23e257d7:2294
+component_root @ chunk-OGH3SU7K.js?v=23e257d7:2371
+_mount @ chunk-HZPQH2EM.js?v=23e257d7:644
+mount @ chunk-HZPQH2EM.js?v=23e257d7:566
+(anonyme) @ main.js:5
+AzureProvider.svelte.js:106 Azure token exchange failed: {status: 400, statusText: '', error: {…}, endpoint: 'https://login.microsoftonline.com/56778bd5-6a3f-4bd3-a265-93163e4d5bfe/oauth2/v2.0/token', clientId: '436fddc9-7503-41a0-90af-b9de51bb66e6', …}
+exchangeCodeForTokens @ AzureProvider.svelte.js:106
+await in exchangeCodeForTokens
+handleCallback @ AzureProvider.svelte.js:71
+handleOAuthCallback @ authStore.svelte.js:111
+initialize @ authStore.svelte.js:94
+await in initialize
+(anonyme) @ App.svelte:69
+App @ App.svelte:83
+(anonyme) @ chunk-ETUTA3KZ.js?v=23e257d7:297
+update_reaction @ chunk-OGH3SU7K.js?v=23e257d7:1744
+update_effect @ chunk-OGH3SU7K.js?v=23e257d7:1872
+create_effect @ chunk-OGH3SU7K.js?v=23e257d7:2294
+branch @ chunk-OGH3SU7K.js?v=23e257d7:2452
+(anonyme) @ chunk-ETUTA3KZ.js?v=23e257d7:291
+update_reaction @ chunk-OGH3SU7K.js?v=23e257d7:1744
+update_effect @ chunk-OGH3SU7K.js?v=23e257d7:1872
+create_effect @ chunk-OGH3SU7K.js?v=23e257d7:2294
+block @ chunk-OGH3SU7K.js?v=23e257d7:2445
+wrapper @ chunk-ETUTA3KZ.js?v=23e257d7:284
+(anonyme) @ chunk-HZPQH2EM.js?v=23e257d7:666
+update_reaction @ chunk-OGH3SU7K.js?v=23e257d7:1744
+update_effect @ chunk-OGH3SU7K.js?v=23e257d7:1872
+create_effect @ chunk-OGH3SU7K.js?v=23e257d7:2294
+branch @ chunk-OGH3SU7K.js?v=23e257d7:2452
+(anonyme) @ chunk-HZPQH2EM.js?v=23e257d7:646
+update_reaction @ chunk-OGH3SU7K.js?v=23e257d7:1744
+update_effect @ chunk-OGH3SU7K.js?v=23e257d7:1872
+create_effect @ chunk-OGH3SU7K.js?v=23e257d7:2294
+component_root @ chunk-OGH3SU7K.js?v=23e257d7:2371
+_mount @ chunk-HZPQH2EM.js?v=23e257d7:644
+mount @ chunk-HZPQH2EM.js?v=23e257d7:566
+(anonyme) @ main.js:5
+authStore.svelte.js:138 OAuth callback error: Error: Token exchange failed: AADSTS9002326: Cross-origin token redemption is permitted only for the 'Single-Page Application' client-type. Request origin: 'http://localhost:5173'. Trace ID: e2bacb22-644a-4254-a97d-17b3fe711600 Correlation ID: 55605dba-82a7-43a9-9dcd-e4d3e53baf8d Timestamp: 2025-08-06 18:52:06Z
+    at AzureProvider.exchangeCodeForTokens (AzureProvider.svelte.js:113:45)
+    at async AzureProvider.handleCallback (AzureProvider.svelte.js:71:22)
+    at async Object.handleOAuthCallback (authStore.svelte.js:111:25)
+    at async Object.initialize (authStore.svelte.js:93:105)
+    at async App.svelte:67:61
+handleOAuthCallback @ authStore.svelte.js:138
+await in handleOAuthCallback
+initialize @ authStore.svelte.js:94
+await in initialize
+(anonyme) @ App.svelte:69
+App @ App.svelte:83
+(anonyme) @ chunk-ETUTA3KZ.js?v=23e257d7:297
+update_reaction @ chunk-OGH3SU7K.js?v=23e257d7:1744
+update_effect @ chunk-OGH3SU7K.js?v=23e257d7:1872
+create_effect @ chunk-OGH3SU7K.js?v=23e257d7:2294
+branch @ chunk-OGH3SU7K.js?v=23e257d7:2452
+(anonyme) @ chunk-ETUTA3KZ.js?v=23e257d7:291
+update_reaction @ chunk-OGH3SU7K.js?v=23e257d7:1744
+update_effect @ chunk-OGH3SU7K.js?v=23e257d7:1872
+create_effect @ chunk-OGH3SU7K.js?v=23e257d7:2294
+block @ chunk-OGH3SU7K.js?v=23e257d7:2445
+wrapper @ chunk-ETUTA3KZ.js?v=23e257d7:284
+(anonyme) @ chunk-HZPQH2EM.js?v=23e257d7:666
+update_reaction @ chunk-OGH3SU7K.js?v=23e257d7:1744
+update_effect @ chunk-OGH3SU7K.js?v=23e257d7:1872
+create_effect @ chunk-OGH3SU7K.js?v=23e257d7:2294
+branch @ chunk-OGH3SU7K.js?v=23e257d7:2452
+(anonyme) @ chunk-HZPQH2EM.js?v=23e257d7:646
+update_reaction @ chunk-OGH3SU7K.js?v=23e257d7:1744
+update_effect @ chunk-OGH3SU7K.js?v=23e257d7:1872
+create_effect @ chunk-OGH3SU7K.js?v=23e257d7:2294
+component_root @ chunk-OGH3SU7K.js?v=23e257d7:2371
+_mount @ chunk-HZPQH2EM.js?v=23e257d7:644
+mount @ chunk-HZPQH2EM.js?v=23e257d7:566
+(anonyme) @ main.js:5
+
+
+---
+
+_**Assistant**_
+
+## 🚨 **2 Problèmes Identifiés :**
+
+### 1. **Erreur Azure : "Cross-origin token redemption"**
+L'erreur principale est :
+> `AADSTS9002326: Cross-origin token redemption is permitted only for the 'Single-Page Application' client-type`
+
+**Solution :** Dans ton app Azure, assure-toi que le type d'application est bien configuré comme **"Single-page application (SPA)"** et non pas "Web application".
+
+### 2. **Erreur "Invalid state parameter"**
+Le paramètre `state` OAuth est invalide, probablement parce qu'il est perdu lors du rechargement/callback.
+
+## 🔧 **Corrections :**
+
+### A. Améliorer la Gestion du State OAuth 
+```
+
+```
+### B. Gérer le Cas où le State est Perdu 
+```
+
+```
+## 📋 **Action Requise dans Azure :**
+
+1. **Portail Azure** → **Azure Active Directory** → **App registrations** → **Ton app**
+2. **Authentication** → **Platform configurations**
+3. **Assure-toi que tu as une configuration "Single-page application"** avec :
+   - **Redirect URI** : `http://localhost:5173/auth/callback`
+   - **PAS** de configuration "Web" avec un client secret
+
+4. **Si tu as une config "Web"**, supprime-la et crée une config "Single-page application"
+
+## ✅ **Améliorations Appliquées :**
+
+- **Meilleur logging** : Tu verras exactement ce qui se passe dans le callback
+- **Gestion des erreurs state** : Nettoyage automatique du sessionStorage
+- **Diagnostic détaillé** : Logs pour identifier le problème
+
+**Test maintenant avec les logs :**
+Regarde la console pour voir exactement où ça échoue et si le state est bien présent.
+
+---
+
+_**User**_
+
+client:495 [vite] connecting...
+client:618 [vite] connected.
+authStore.svelte.js:108 Handling OAuth callback: {pathname: '/auth/callback', search: '?code=1.AScA1Yt3Vj9q00uiZZMWPk1b_sndb0MDdaBBkK-53l…ession_state=006f6b89-58f9-60fa-b10c-4bee80bf074a', hash: ''}
+authStore.svelte.js:117 Found Azure provider for callback
+AzureProvider.svelte.js:55 Azure callback received: {code: true, state: 'f7m9xvekahtys5k4on8cdl', error: null}
+AzureProvider.svelte.js:66 State validation: {receivedState: 'f7m9xvekahtys5k4on8cdl', storedState: 'f7m9xvekahtys5k4on8cdl', codeVerifier: true}
+authStore.svelte.js:108 Handling OAuth callback: {pathname: '/auth/callback', search: '?code=1.AScA1Yt3Vj9q00uiZZMWPk1b_sndb0MDdaBBkK-53l…ession_state=006f6b89-58f9-60fa-b10c-4bee80bf074a', hash: ''}
+authStore.svelte.js:117 Found Azure provider for callback
+AzureProvider.svelte.js:55 Azure callback received: {code: true, state: 'f7m9xvekahtys5k4on8cdl', error: null}
+AzureProvider.svelte.js:66 State validation: {receivedState: 'f7m9xvekahtys5k4on8cdl', storedState: null, codeVerifier: false}
+AzureProvider.svelte.js:69 State mismatch: {received: 'f7m9xvekahtys5k4on8cdl', stored: null}
+handleCallback @ AzureProvider.svelte.js:69
+handleOAuthCallback @ authStore.svelte.js:118
+initialize @ authStore.svelte.js:94
+await in initialize
+$effect @ AuthUserMenu.svelte:11
+update_reaction @ chunk-OGH3SU7K.js?v=23e257d7:1744
+update_effect @ chunk-OGH3SU7K.js?v=23e257d7:1872
+flush_queued_effects @ chunk-OGH3SU7K.js?v=23e257d7:1965
+flush_queued_root_effects @ chunk-OGH3SU7K.js?v=23e257d7:1944
+authStore.svelte.js:147 OAuth callback error: Error: Invalid state parameter - possible CSRF attack or session expired
+    at AzureProvider.handleCallback (AzureProvider.svelte.js:69:78)
+    at Object.handleOAuthCallback (authStore.svelte.js:118:43)
+    at Object.initialize (authStore.svelte.js:94:22)
+handleOAuthCallback @ authStore.svelte.js:147
+await in handleOAuthCallback
+initialize @ authStore.svelte.js:94
+await in initialize
+$effect @ AuthUserMenu.svelte:11
+update_reaction @ chunk-OGH3SU7K.js?v=23e257d7:1744
+update_effect @ chunk-OGH3SU7K.js?v=23e257d7:1872
+flush_queued_effects @ chunk-OGH3SU7K.js?v=23e257d7:1965
+flush_queued_root_effects @ chunk-OGH3SU7K.js?v=23e257d7:1944
+authStore.svelte.js:160 Cleared OAuth session storage due to state error
+AzureProvider.svelte.js:102  POST https://login.microsoftonline.com/56778bd5-6a3f-4bd3-a265-93163e4d5bfe/oauth2/v2.0/token 400 (Bad Request)
+exchangeCodeForTokens @ AzureProvider.svelte.js:102
+handleCallback @ AzureProvider.svelte.js:77
+handleOAuthCallback @ authStore.svelte.js:118
+initialize @ authStore.svelte.js:94
+await in initialize
+(anonyme) @ App.svelte:69
+App @ App.svelte:83
+(anonyme) @ chunk-ETUTA3KZ.js?v=23e257d7:297
+update_reaction @ chunk-OGH3SU7K.js?v=23e257d7:1744
+update_effect @ chunk-OGH3SU7K.js?v=23e257d7:1872
+create_effect @ chunk-OGH3SU7K.js?v=23e257d7:2294
+branch @ chunk-OGH3SU7K.js?v=23e257d7:2452
+(anonyme) @ chunk-ETUTA3KZ.js?v=23e257d7:291
+update_reaction @ chunk-OGH3SU7K.js?v=23e257d7:1744
+update_effect @ chunk-OGH3SU7K.js?v=23e257d7:1872
+create_effect @ chunk-OGH3SU7K.js?v=23e257d7:2294
+block @ chunk-OGH3SU7K.js?v=23e257d7:2445
+wrapper @ chunk-ETUTA3KZ.js?v=23e257d7:284
+(anonyme) @ chunk-HZPQH2EM.js?v=23e257d7:666
+update_reaction @ chunk-OGH3SU7K.js?v=23e257d7:1744
+update_effect @ chunk-OGH3SU7K.js?v=23e257d7:1872
+create_effect @ chunk-OGH3SU7K.js?v=23e257d7:2294
+branch @ chunk-OGH3SU7K.js?v=23e257d7:2452
+(anonyme) @ chunk-HZPQH2EM.js?v=23e257d7:646
+update_reaction @ chunk-OGH3SU7K.js?v=23e257d7:1744
+update_effect @ chunk-OGH3SU7K.js?v=23e257d7:1872
+create_effect @ chunk-OGH3SU7K.js?v=23e257d7:2294
+component_root @ chunk-OGH3SU7K.js?v=23e257d7:2371
+_mount @ chunk-HZPQH2EM.js?v=23e257d7:644
+mount @ chunk-HZPQH2EM.js?v=23e257d7:566
+(anonyme) @ main.js:5
+AzureProvider.svelte.js:112 Azure token exchange failed: {status: 400, statusText: '', error: {…}, endpoint: 'https://login.microsoftonline.com/56778bd5-6a3f-4bd3-a265-93163e4d5bfe/oauth2/v2.0/token', clientId: '436fddc9-7503-41a0-90af-b9de51bb66e6', …}
+exchangeCodeForTokens @ AzureProvider.svelte.js:112
+await in exchangeCodeForTokens
+handleCallback @ AzureProvider.svelte.js:77
+handleOAuthCallback @ authStore.svelte.js:118
+initialize @ authStore.svelte.js:94
+await in initialize
+(anonyme) @ App.svelte:69
+App @ App.svelte:83
+(anonyme) @ chunk-ETUTA3KZ.js?v=23e257d7:297
+update_reaction @ chunk-OGH3SU7K.js?v=23e257d7:1744
+update_effect @ chunk-OGH3SU7K.js?v=23e257d7:1872
+create_effect @ chunk-OGH3SU7K.js?v=23e257d7:2294
+branch @ chunk-OGH3SU7K.js?v=23e257d7:2452
+(anonyme) @ chunk-ETUTA3KZ.js?v=23e257d7:291
+update_reaction @ chunk-OGH3SU7K.js?v=23e257d7:1744
+update_effect @ chunk-OGH3SU7K.js?v=23e257d7:1872
+create_effect @ chunk-OGH3SU7K.js?v=23e257d7:2294
+block @ chunk-OGH3SU7K.js?v=23e257d7:2445
+wrapper @ chunk-ETUTA3KZ.js?v=23e257d7:284
+(anonyme) @ chunk-HZPQH2EM.js?v=23e257d7:666
+update_reaction @ chunk-OGH3SU7K.js?v=23e257d7:1744
+update_effect @ chunk-OGH3SU7K.js?v=23e257d7:1872
+create_effect @ chunk-OGH3SU7K.js?v=23e257d7:2294
+branch @ chunk-OGH3SU7K.js?v=23e257d7:2452
+(anonyme) @ chunk-HZPQH2EM.js?v=23e257d7:646
+update_reaction @ chunk-OGH3SU7K.js?v=23e257d7:1744
+update_effect @ chunk-OGH3SU7K.js?v=23e257d7:1872
+create_effect @ chunk-OGH3SU7K.js?v=23e257d7:2294
+component_root @ chunk-OGH3SU7K.js?v=23e257d7:2371
+_mount @ chunk-HZPQH2EM.js?v=23e257d7:644
+mount @ chunk-HZPQH2EM.js?v=23e257d7:566
+(anonyme) @ main.js:5
+authStore.svelte.js:147 OAuth callback error: Error: Token exchange failed: AADSTS9002326: Cross-origin token redemption is permitted only for the 'Single-Page Application' client-type. Request origin: 'http://localhost:5173'. Trace ID: 0517e55b-90b2-4744-9ff6-3c0a45650100 Correlation ID: 27f3417a-3cc5-4183-b48d-a24691d342ca Timestamp: 2025-08-06 18:53:50Z
+    at AzureProvider.exchangeCodeForTokens (AzureProvider.svelte.js:119:45)
+    at async AzureProvider.handleCallback (AzureProvider.svelte.js:77:22)
+    at async Object.handleOAuthCallback (authStore.svelte.js:118:25)
+    at async Object.initialize (authStore.svelte.js:93:105)
+    at async App.svelte:67:61
+handleOAuthCallback @ authStore.svelte.js:147
+await in handleOAuthCallback
+initialize @ authStore.svelte.js:94
+await in initialize
+(anonyme) @ App.svelte:69
+App @ App.svelte:83
+(anonyme) @ chunk-ETUTA3KZ.js?v=23e257d7:297
+update_reaction @ chunk-OGH3SU7K.js?v=23e257d7:1744
+update_effect @ chunk-OGH3SU7K.js?v=23e257d7:1872
+create_effect @ chunk-OGH3SU7K.js?v=23e257d7:2294
+branch @ chunk-OGH3SU7K.js?v=23e257d7:2452
+(anonyme) @ chunk-ETUTA3KZ.js?v=23e257d7:291
+update_reaction @ chunk-OGH3SU7K.js?v=23e257d7:1744
+update_effect @ chunk-OGH3SU7K.js?v=23e257d7:1872
+create_effect @ chunk-OGH3SU7K.js?v=23e257d7:2294
+block @ chunk-OGH3SU7K.js?v=23e257d7:2445
+wrapper @ chunk-ETUTA3KZ.js?v=23e257d7:284
+(anonyme) @ chunk-HZPQH2EM.js?v=23e257d7:666
+update_reaction @ chunk-OGH3SU7K.js?v=23e257d7:1744
+update_effect @ chunk-OGH3SU7K.js?v=23e257d7:1872
+create_effect @ chunk-OGH3SU7K.js?v=23e257d7:2294
+branch @ chunk-OGH3SU7K.js?v=23e257d7:2452
+(anonyme) @ chunk-HZPQH2EM.js?v=23e257d7:646
+update_reaction @ chunk-OGH3SU7K.js?v=23e257d7:1744
+update_effect @ chunk-OGH3SU7K.js?v=23e257d7:1872
+create_effect @ chunk-OGH3SU7K.js?v=23e257d7:2294
+component_root @ chunk-OGH3SU7K.js?v=23e257d7:2371
+_mount @ chunk-HZPQH2EM.js?v=23e257d7:644
+mount @ chunk-HZPQH2EM.js?v=23e257d7:566
+(anonyme) @ main.js:5
+
+
+---
+
+_**Assistant**_
+
+## 🚨 **Problèmes Identifiés :**
+
+1. **Double Exécution** : Le callback OAuth s'exécute **DEUX FOIS** (voir les logs dupliqués)
+2. **SessionStorage Effacé** : Au 2ème appel, le `storedState` est `null` et `codeVerifier` est `false`
+3. **Configuration Azure** : Tu as toujours l'erreur "Cross-origin token redemption" - il faut **supprimer les configurations "Web"** et garder seulement "Single-page application"
+
+## 🔧 **Solution 1 : Empêcher la Double Exécution** 
 
 ---
 
