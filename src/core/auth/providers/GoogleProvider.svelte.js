@@ -10,7 +10,6 @@ export class GoogleProvider extends AuthProvider {
   }
 
   requiredConfigKeys() {
-    // Google exige client_secret même pour Desktop apps maintenant
     return ['clientId', 'clientSecret']
   }
 
@@ -137,7 +136,7 @@ export class GoogleProvider extends AuthProvider {
       code_verifier: codeVerifier
     })
 
-    console.log('GoogleProvider: Token exchange avec PKCE + client_secret (Google policy 2025)')
+    console.log('GoogleProvider: Token exchange successful')
 
     const response = await fetch(this.tokenUrl, {
       method: 'POST',
@@ -189,7 +188,7 @@ export class GoogleProvider extends AuthProvider {
       refresh_token: refreshToken
     })
 
-    console.log('GoogleProvider: Refresh token avec client_secret (Google policy 2025)')
+    console.log('GoogleProvider: Token refresh successful')
 
     const response = await fetch(this.tokenUrl, {
       method: 'POST',

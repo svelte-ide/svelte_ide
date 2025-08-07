@@ -40,7 +40,41 @@ $effect(() => {
 })
 ```
 
-## 3. Documents de Référence
+## 3. RÈGLE CRITIQUE : INTERDICTION DES IMPORTS RELATIFS
+
+**IMPORTANT : Cette règle assure la cohérence et la maintenabilité du code.**
+
+### ⚠️ INTERDICTION STRICTE DES IMPORTS RELATIFS ⚠️
+
+- **JAMAIS** utiliser d'imports avec des chemins relatifs (`../`, `./`)
+- **TOUJOURS** utiliser des imports absolus via la configuration `jsconfig.json`
+- **MÊME** pour des fichiers dans le même dossier
+
+### Pourquoi cette interdiction ?
+
+Les imports relatifs créent un couplage fort et rendent le code difficile à refactoriser. Ils cassent lors des déplacements de fichiers et nuisent à la lisibilité.
+
+### Pattern Obligatoire
+
+```javascript
+// ❌ INTERDIT - Imports relatifs
+import { AuthProvider } from '../AuthProvider.svelte.js'
+import { someUtil } from './utils.js'
+import { Component } from '../../components/Component.svelte'
+
+// ✅ OBLIGATOIRE - Imports absolus via @
+import { AuthProvider } from '@/core/auth/AuthProvider.svelte.js'
+import { someUtil } from '@/core/auth/providers/utils.js'
+import { Component } from '@/components/Component.svelte'
+```
+
+### Configuration
+
+Le projet utilise `jsconfig.json` pour définir les alias :
+- `@/*` → `src/*`
+- `@tools/*` → `src/tools/*`
+
+## 4. Documents de Référence
 
 Les détails de l'architecture et les normes de codage sont externalisés dans des fichiers dédiés. Tu dois adhérer à leurs principes.
 
@@ -48,7 +82,7 @@ Les détails de l'architecture et les normes de codage sont externalisés dans d
 
 -   **`SVELTE5.md`** : C'est ton guide obligatoire pour toutes les règles de syntaxe Svelte 5, les patterns de réactivité (`$state`, `$effect` vs `$derived`) et les anti-patterns à éviter.
 
-## 4. Normes de Codage Générales et Invariables
+## 5. Normes de Codage Générales et Invariables
 
 Ces règles s'appliquent à **tout** le code que tu écris ou modifies, sans exception.
 
@@ -64,7 +98,7 @@ Ces règles s'appliquent à **tout** le code que tu écris ou modifies, sans exc
 
 -   **Architecture :** Le nettoyage de code inclut l'identification et la suppression de systèmes redondants, classes inutilisées, ou patterns architecturaux obsolètes.
 
-### 4.1. RÈGLE CRITIQUE : Ménage Profond du Code
+### 5.1. RÈGLE CRITIQUE : Ménage Profond du Code
 
 **IMPORTANT : Le nettoyage ne se limite pas au cosmétique.**
 
@@ -99,7 +133,7 @@ class ApiWrapper {
 3. **Simplifier l'architecture** : Supprimer les couches d'abstraction inutiles
 4. **Éliminer les patterns obsolètes** : Code legacy non migré
 
-## 5. RÈGLE CRITIQUE : Stratégie de Modification Efficiente
+## 6. RÈGLE CRITIQUE : Stratégie de Modification Efficiente
 
 **IMPORTANT : Cette règle vise à optimiser l'utilisation des outils de modification de code.**
 
