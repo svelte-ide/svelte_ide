@@ -5580,6 +5580,28 @@ Maintenant je vais faire la même correction dans le MetadataPanel d'explorer2 :
 
 ```
 
+```
+
+```
+Maintenant, vérifions les erreurs de compilation : Maintenant je vais vérifier le serveur de développement : Parfait ! Maintenant, testons si le système fonctionne. Je vais également ajouter du debug pour comprendre ce qui se passe. Regardons d'abord dans la console Chrome via le browser : 
+
+---
+
+_**User**_
+
+quand je un outil est ouvert ex explorer et que je clique à nouveau sur son icon, le panneau reste visible au lieu de toggle
+
+---
+
+_**Assistant**_
+
+Je vois le problème ! L'outil Explorer reste visible au lieu de se fermer quand on clique à nouveau sur son icône. Cela indique un problème avec la logique de toggle dans le système de panneaux.
+
+Regardons d'abord comment le toggle fonctionne actuellement dans ideStore : Je vois que le code `toggleTool` dans ideStore utilise l'ancienne logique avec `activeToolsByPosition`. Mais maintenant nous utilisons le nouveau système `panelsManager`. Il faut vérifier comment les outils sont activés.
+
+Regardons comment les outils s'enregistrent et comment ils sont activés. Vérifions d'abord comment l'Explorer s'enregistre : Maintenant regardons comment Tool active/désactive via le système panelsManager : Je vois le problème ! Les méthodes `activate()` et `deactivate()` dans la classe Tool ne font que changer la propriété `active` mais n'interagissent pas avec le `panelsManager`. Il faut vérifier comment le toggle fonctionne réellement.
+
+Regardons comment les icônes d'outils appellent toggleTool. Vérifions le composant Toolbar : 
 
 ---
 

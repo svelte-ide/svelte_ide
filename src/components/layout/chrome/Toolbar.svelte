@@ -32,7 +32,7 @@
         return
       }
       
-      // L'outil est déjà enregistré par ToolManager, on l'active juste
+      // L'outil est déjà enregistré par ToolManager, on utilise toggle pour permettre de fermer
       let panelId = `tool-${tool.id}`
       
       // Cas spéciaux pour les outils système
@@ -40,14 +40,14 @@
         panelId = `console-${tool.id}`
       }
       
-      const success = panelsManager.activatePanel(panelId, tool.component)
+      const success = panelsManager.togglePanel(panelId, tool.component)
       
       if (!success) {
-        console.warn(`⚠️ Échec activation ${tool.name}`)
+        console.warn(`⚠️ Échec toggle ${tool.name}`)
       }
       
     } catch (error) {
-      console.error('❌ Erreur activation outil:', error)
+      console.error('❌ Erreur toggle outil:', error)
     }
   }
 
