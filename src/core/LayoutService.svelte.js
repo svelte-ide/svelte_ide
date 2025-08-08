@@ -8,6 +8,9 @@ export class LayoutService {
       activeTab: null
     })
 
+    // Focus global : seul un tab peut avoir le focus à la fois dans toute l'IDE
+    this.globalFocusedTab = $state(null)
+
     // Store séparé pour les statuts modified des fichiers (par fileName, pas tabId)
     this.fileModifiedStates = $state({})
 
@@ -43,7 +46,7 @@ export class LayoutService {
       return null
     }
     
-    return {
+    const serializableLayout = {
       ...layout,
       tabs: layout.tabs ? layout.tabs.map(tab => {
         // Vérifier que le tab a la méthode getSerializableData
@@ -61,6 +64,11 @@ export class LayoutService {
       }) : [],
       activeTab: layout.activeTab ? layout.activeTab.id : null
     }
+    
+    // Ajouter le focus global au layout sérialisé
+    serializableLayout.globalFocusedTab = this.globalFocusedTab
+    
+    return serializableLayout
   }
 
   // ===== SECTION 2: API SIMPLE - GESTION DES TABS =====
@@ -70,6 +78,10 @@ export class LayoutService {
   }
 
   get activeTab() {
+    // Retourner le tab avec le focus global
+    if (this.globalFocusedTab) {
+      return this.getTabById(this.globalFocusedTab)
+    }
     return this._findActiveTab(this.layout)
   }
 
@@ -83,9 +95,12 @@ export class LayoutService {
       if (!existing) {
         targetGroup.tabs.push(tab)
         targetGroup.activeTab = tab.id
+        // Définir le focus global sur ce nouveau tab
+        this.globalFocusedTab = tab.id
       } else {
         // Activer l'onglet existant au lieu d'en créer un nouveau
         targetGroup.activeTab = existing.id
+        this.globalFocusedTab = existing.id
       }
       this._triggerAutoSave()
     }
@@ -106,11 +121,24 @@ export class LayoutService {
           : null
       }
 
+      // Gérer le focus global
+      if (this.globalFocusedTab === tabId) {
+        // Si on ferme le tab avec le focus global, donner le focus au nouveau activeTab du groupe
+        if (group.activeTab) {
+          this.globalFocusedTab = group.activeTab
+        } else {
+          // Sinon, essayer de trouver un autre tab actif dans un autre groupe
+          const nextActiveTab = this._findActiveTab(this.layout)
+          this.globalFocusedTab = nextActiveTab ? nextActiveTab.id : null
+        }
+      }
+
       // Nettoyer les groupes vides après la fermeture
       this._cleanupEmptyGroups()
       
-      // Si plus aucun tab nulle part, reset au layout initial
+      // Si plus aucun tab nulle part, reset le focus global aussi
       if (this.tabs.length === 0) {
+        this.globalFocusedTab = null
         this.layout = {
           type: 'tabgroup',
           id: 'main',
@@ -142,6 +170,7 @@ export class LayoutService {
       group.activeTab = null
     })
 
+    this.globalFocusedTab = null
     this._triggerAutoSave()
   }
 
@@ -149,6 +178,8 @@ export class LayoutService {
     const group = this._findGroupContainingTab(this.layout, tabId)
     if (group) {
       group.activeTab = tabId
+      // Définir le focus global
+      this.globalFocusedTab = tabId
       this._triggerAutoSave()
       return group.tabs.find(t => t.id === tabId)
     }
@@ -211,6 +242,7 @@ export class LayoutService {
     if (existing) {
       // Activer l'onglet existant au lieu de créer un doublon
       targetGroup.activeTab = existing.id
+      this.globalFocusedTab = existing.id
       // Remettre le tab dans le groupe source puisqu'on ne le déplace pas
       sourceGroup.tabs.splice(tabIndex, 0, tab)
       return true
@@ -232,6 +264,7 @@ export class LayoutService {
 
     // Activer le tab déplacé dans le groupe cible
     targetGroup.activeTab = tab.id
+    this.globalFocusedTab = tab.id
 
     // Nettoyer les groupes vides
     this._cleanupEmptyGroups()
@@ -280,6 +313,9 @@ export class LayoutService {
       tabs: [tab],
       activeTab: tab.id
     }
+
+    // Définir le focus global sur le tab déplacé
+    this.globalFocusedTab = tab.id
 
     // Déterminer la direction et l'ordre des enfants selon la zone
     let direction, newFirst
@@ -357,6 +393,9 @@ export class LayoutService {
       sizes: [50, 50] // Tailles égales par défaut
     }
 
+    // Définir le focus global sur le tab déplacé
+    this.globalFocusedTab = activeTab.id
+
     // Remplacer le groupe dans l'arbre
     this._replaceNode(this.layout, groupId, newContainer)
     this._triggerAutoSave()
@@ -394,6 +433,9 @@ export class LayoutService {
       ],
       sizes: [50, 50] // Tailles égales par défaut
     }
+
+    // Définir le focus global sur le tab déplacé
+    this.globalFocusedTab = activeTab.id
 
     // Remplacer le groupe dans l'arbre
     this._replaceNode(this.layout, groupId, newContainer)
@@ -540,6 +582,64 @@ export class LayoutService {
       }
     }
     return false
+  }
+
+  // ===== SECTION 10: GESTION DU FOCUS GLOBAL =====
+
+  setGlobalFocus(tabId) {
+    // Vérifier que le tab existe
+    const tab = this.getTabById(tabId)
+    if (tab) {
+      this.globalFocusedTab = tabId
+      // S'assurer que le tab est aussi actif dans son groupe
+      const group = this._findGroupContainingTab(this.layout, tabId)
+      if (group) {
+        group.activeTab = tabId
+      }
+      this._triggerAutoSave()
+      return true
+    }
+    return false
+  }
+
+  restoreGlobalFocus(tabId) {
+    // Méthode pour restaurer le focus sans trigger de sauvegarde (utilisée lors de la restauration)
+    const tab = this.getTabById(tabId)
+    if (tab) {
+      this.globalFocusedTab = tabId
+      const group = this._findGroupContainingTab(this.layout, tabId)
+      if (group) {
+        group.activeTab = tabId
+      }
+      return true
+    }
+    return false
+  }
+
+  clearGlobalFocus() {
+    this.globalFocusedTab = null
+    this._triggerAutoSave()
+  }
+
+  // Méthodes pour le StateProviderService
+  saveState() {
+    return {
+      globalFocusedTab: this.globalFocusedTab,
+      fileModifiedStates: { ...this.fileModifiedStates }
+    }
+  }
+
+  restoreState(state) {
+    if (!state) return
+
+    if (state.globalFocusedTab !== undefined) {
+      // Ne pas utiliser restoreGlobalFocus ici car les tabs ne sont peut-être pas encore créés
+      this.globalFocusedTab = state.globalFocusedTab
+    }
+
+    if (state.fileModifiedStates) {
+      this.fileModifiedStates = { ...state.fileModifiedStates }
+    }
   }
 }
 

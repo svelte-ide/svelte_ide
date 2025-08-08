@@ -7,7 +7,17 @@
   let activeTabData = $state(null)
 
   $effect(() => {
-    activeTabData = layoutNode.tabs.find(tab => tab.id === layoutNode.activeTab)
+    // Priorité au focus global s'il correspond à un tab de ce groupe
+    const globalFocusedTab = layoutService.globalFocusedTab
+    const globalTabInThisGroup = globalFocusedTab ? 
+      layoutNode.tabs.find(tab => tab.id === globalFocusedTab) : null
+    
+    if (globalTabInThisGroup) {
+      activeTabData = globalTabInThisGroup
+    } else {
+      // Sinon, utiliser l'activeTab local du groupe
+      activeTabData = layoutNode.tabs.find(tab => tab.id === layoutNode.activeTab)
+    }
   })
 
   function handleEmptyAreaDragOver(e) {

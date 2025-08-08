@@ -170,7 +170,7 @@
     {#each layoutNode.tabs as tab (tab.id)}
       <Tab 
         {tab}
-        isActive={tab.id === layoutNode.activeTab}
+        isActive={tab.id === layoutService.globalFocusedTab}
         groupId={layoutNode.id}
         {layoutNode}
         onSelect={selectTab}

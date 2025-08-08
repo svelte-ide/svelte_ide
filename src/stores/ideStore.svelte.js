@@ -45,6 +45,7 @@ class IdeStore {
     
     // Sauvegarder automatiquement quand l'état change
     stateProviderService.registerProvider('layout', this)
+    stateProviderService.registerProvider('layoutService', layoutService)
     this.panelsManager.addChangeCallback(() => {
       this.saveUserLayout()
     })
@@ -400,6 +401,11 @@ class IdeStore {
         }
         
         layoutService.layout = restoredLayout
+        
+        // Restaurer le focus global si disponible
+        if (layoutData.layout.globalFocusedTab) {
+          layoutService.restoreGlobalFocus(layoutData.layout.globalFocusedTab)
+        }
       }
       
       // Restaurer tous les états via le service de fournisseurs
