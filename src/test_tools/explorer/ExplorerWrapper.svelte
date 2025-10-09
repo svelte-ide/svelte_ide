@@ -1,5 +1,5 @@
 <script>
-  import FileExplorer from '@tools/explorer/FileExplorer.svelte'
+  import FileExplorer from './FileExplorer.svelte'
   import { getFileList } from './fileService.svelte.js'
 
   let { toolId } = $props()

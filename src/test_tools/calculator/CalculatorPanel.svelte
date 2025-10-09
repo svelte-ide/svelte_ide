@@ -1,5 +1,5 @@
 <script>
-  import Calculator from '@tools/calculator/Calculator.svelte'
+  import Calculator from './Calculator.svelte'
   import { panelsManager } from '@/core/PanelsManager.svelte.js'
 
   let { panelId } = $props()

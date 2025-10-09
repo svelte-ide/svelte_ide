@@ -1,5 +1,5 @@
 <script>
-  import ExplorerWrapper from '@tools/explorer2/ExplorerWrapper.svelte'
+  import ExplorerWrapper from './ExplorerWrapper.svelte'
   import { panelsManager } from '@/core/PanelsManager.svelte.js'
 
   let { panelId } = $props()

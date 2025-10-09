@@ -2,7 +2,7 @@
   import { ideStore } from '@/stores/ideStore.svelte.js'
   import { eventBus } from '@/core/EventBusService.svelte.js'
   import { layoutService } from '@/core/LayoutService.svelte.js'
-  import FileViewer from '@tools/explorer2/FileViewer.svelte'
+  import FileViewer from './FileViewer.svelte'
 
   let metadata = $state(null)
 

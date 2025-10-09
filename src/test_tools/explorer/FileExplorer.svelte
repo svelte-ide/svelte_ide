@@ -1,6 +1,6 @@
 <script>
   import { ideStore } from '@/stores/ideStore.svelte.js'
-  import FileViewer from '@tools/explorer/FileViewer.svelte'
+  import FileViewer from './FileViewer.svelte'
   import { contextMenuService } from '@/core/ContextMenuService.svelte.js'
   import { openFileInIDE } from './fileService.svelte.js'
 
