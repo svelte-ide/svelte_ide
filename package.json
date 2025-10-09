@@ -15,5 +15,16 @@
   },
   "dependencies": {
     "lucide-svelte": "^0.455.0"
+  },
+  "main": "src/public-api.js",
+  "module": "src/public-api.js",
+  "svelte": "src/App.svelte",
+  "exports": {
+    ".": {
+      "import": "./src/public-api.js",
+      "default": "./src/public-api.js"
+    },
+    "./public-api": "./src/public-api.js",
+    "./App.svelte": "./src/App.svelte"
   }
 }

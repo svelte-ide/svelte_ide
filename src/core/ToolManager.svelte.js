@@ -1,4 +1,4 @@
-﻿import { ideStore } from '@/stores/ideStore.svelte.js'
+import { ideStore } from '@/stores/ideStore.svelte.js'
 
 class ToolManagerSvelte {
   constructor() {
@@ -12,20 +12,15 @@ class ToolManagerSvelte {
 
     this.registeredTools.set(tool.id, tool)
     tool.initialize()
-    
-    // NOUVEAU : Enregistrement direct dans le nouveau systÃ¨me
     this._registerToolInNewSystem(tool)
-    
     ideStore.addTool(tool)
   }
-  
+
   _registerToolInNewSystem(tool) {
     const panelsManager = ideStore.panelsManager
     if (!panelsManager || !tool.component) return
-    
-    // Mapper les outils systÃ¨me spÃ©ciaux
+
     if (tool.name === 'Console') {
-      // Console va en bottom
       panelsManager.registerPanel({
         id: `console-${tool.id}`,
         position: 'bottom',
@@ -36,7 +31,6 @@ class ToolManagerSvelte {
         toolId: tool.id
       })
     } else {
-      // Autres outils selon leur position
       panelsManager.registerPanel({
         id: `tool-${tool.id}`,
         position: tool.position,
@@ -60,6 +54,45 @@ class ToolManagerSvelte {
     ideStore.removeTool(toolId)
     this.registeredTools.delete(toolId)
     ideStore.addLog(`Tool ${tool.name} unregistered`, 'info')
+  }
+
+  async registerExternalTools(entries) {
+    if (!entries) {
+      return
+    }
+
+    const list = Array.isArray(entries) ? entries : [entries]
+
+    for (const entry of list) {
+      if (!entry) {
+        continue
+      }
+
+      let candidate = entry
+      if (typeof candidate === 'function') {
+        candidate = candidate(this)
+      }
+
+      if (candidate && typeof candidate.then === 'function') {
+        candidate = await candidate
+      }
+
+      if (!candidate) {
+        continue
+      }
+
+      if (typeof candidate.register === 'function') {
+        const result = candidate.register(this)
+        if (result && typeof result.then === 'function') {
+          await result
+        }
+        continue
+      }
+
+      if (candidate.id && candidate.name) {
+        this.registerTool(candidate)
+      }
+    }
   }
 
   async loadTools() {
@@ -86,7 +119,7 @@ class ToolManagerSvelte {
       }
 
       const toolModules = import.meta.glob('../**/index.svelte.js')
-      
+
       for (const path in toolModules) {
         if (!path.startsWith(normalizedRoot)) {
           continue
@@ -96,8 +129,7 @@ class ToolManagerSvelte {
           if (module.default) {
             if (typeof module.default.register === 'function') {
               module.default.register(this)
-            } 
-            else if (module.default.id && module.default.name) {
+            } else if (module.default.id && module.default.name) {
               this.registerTool(module.default)
             }
           }
@@ -112,4 +144,3 @@ class ToolManagerSvelte {
 }
 
 export const toolManager = new ToolManagerSvelte()
-

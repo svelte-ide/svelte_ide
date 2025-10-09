@@ -17,11 +17,12 @@
 
   const authStore = getAuthStore()
 
+  let { externalTools = [] } = $props()
+
   let leftPanelWidth = $state(250)
   let rightPanelWidth = $state(250)
   let bottomPanelHeight = $state(200)
   
-  // États réactifs pour les zones de panneaux
   let hasTopLeft = $state(false)
   let hasBottomLeft = $state(false)
   let hasTopRight = $state(false)
@@ -69,26 +70,24 @@
     }
   }
 
-  // Initialisation unique à la création du composant
   (async () => {
     window.toolManager = toolManager
-    ideStore.setStatusMessage('Initialisation du système...')
+    ideStore.setStatusMessage('Initialisation du systeme...')
     
     await authStore.initialize()
     
-    ideStore.setStatusMessage('Chargement des outils système...')
+    ideStore.setStatusMessage('Chargement des outils systeme...')
     
     const consoleTool = new ConsoleTool()
     toolManager.registerTool(consoleTool)
     toolManager.registerTool(new NotificationsTool())
 
-    // Activation de la console par défaut
     ideStore.toggleTool(consoleTool.id)
 
     ideStore.setStatusMessage('Chargement des outils externes...')
     await toolManager.loadTools()
+    await toolManager.registerExternalTools(externalTools)
     
-    // Restaurer le layout utilisateur après le chargement des outils
     if (authStore.isAuthenticated && authStore.currentUser) {
       try {
         await ideStore.restoreUserLayout(authStore.currentUser)
@@ -97,14 +96,12 @@
       }
     }
     
-    ideStore.setStatusMessage('IDE prêt')
+    ideStore.setStatusMessage('IDE pret')
   })()
   
-  // Surveillance réactive des changements de panneaux
   $effect(() => {
     const panelsManager = ideStore.panelsManager
     if (panelsManager) {
-      // Ajouter un callback pour mettre à jour les états
       const updateZoneStates = () => {
         hasTopLeft = panelsManager.hasActivePanelsInPosition('topLeft')
         hasBottomLeft = panelsManager.hasActivePanelsInPosition('bottomLeft')
@@ -114,7 +111,7 @@
       }
       
       panelsManager.addChangeCallback(updateZoneStates)
-      updateZoneStates() // État initial
+      updateZoneStates()
     }
   })
 </script>
@@ -129,7 +126,7 @@
       
       <div class="content-area">
         <div class="panels-wrapper">
-          <!-- Zones conditionnelles basées sur les états réactifs -->
+          
           <div class="side-panel-container left" style:width="{leftPanelWidth}px" style:display="{hasTopLeft || hasBottomLeft ? 'flex' : 'none'}">
             <ToolPanel position="topLeft" />
             <ToolPanel position="bottomLeft" />
