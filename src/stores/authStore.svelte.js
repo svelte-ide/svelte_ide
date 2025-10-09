@@ -80,19 +80,13 @@ function createAuthStore() {
   let initialized = $state(false)
   let initializing = $state(false)
 
-  $effect(() => {
+  function syncFromManager(forceProviders = false) {
     isAuthenticated = authManager.isAuthenticated
-  })
-
-  $effect(() => {
     currentUser = authManager.currentUser
-  })
-
-  $effect(() => {
-    if (initialized) {
+    if (forceProviders || initialized) {
       availableProviders = authManager.getAvailableProviders()
     }
-  })
+  }
 
   return {
     get isAuthenticated() { return isAuthenticated },
@@ -122,10 +116,8 @@ function createAuthStore() {
           const result = await authManager.handleCallback()
           
           if (result.success) {
-            // Forcer la mise à jour réactive
-            isAuthenticated = authManager.isAuthenticated
-            currentUser = authManager.currentUser
-            
+            syncFromManager()
+
             // Restaurer le layout utilisateur après une authentification réussie
             if (currentUser) {
               try {
@@ -143,12 +135,11 @@ function createAuthStore() {
         // Après l'initialisation, vérifier si l'utilisateur est déjà authentifié (reload de page)
         // La restauration du layout sera faite plus tard via App.svelte après le chargement des outils
         if (authManager.isAuthenticated && authManager.currentUser) {
-          isAuthenticated = authManager.isAuthenticated
-          currentUser = authManager.currentUser
+          syncFromManager()
         }
         
         initialized = true
-        availableProviders = authManager.getAvailableProviders()
+        syncFromManager(true)
       } catch (err) {
         console.error('AuthStore: Initialization error:', err)
         error = err.message
@@ -173,9 +164,7 @@ function createAuthStore() {
         }
         
         if (result.success) {
-          // Forcer la mise à jour réactive pour les providers synchrones (comme MockProvider)
-          isAuthenticated = authManager.isAuthenticated
-          currentUser = authManager.currentUser
+          syncFromManager()
           console.log(`AuthStore: Login successful with ${providerId}`)
           
           // Restaurer le layout utilisateur après une authentification réussie
@@ -209,9 +198,7 @@ function createAuthStore() {
         console.log('AuthStore: Starting logout')
         const result = await authManager.logout()
         
-        // Forcer la mise à jour réactive
-        isAuthenticated = authManager.isAuthenticated
-        currentUser = authManager.currentUser
+        syncFromManager()
         
         console.log('AuthStore: Logout completed')
         return result
@@ -235,9 +222,7 @@ function createAuthStore() {
         
         if (!result.success) {
           error = result.error
-          // Forcer la mise à jour réactive si la session a expiré
-          isAuthenticated = authManager.isAuthenticated
-          currentUser = authManager.currentUser
+          syncFromManager()
         }
         
         return result
@@ -251,7 +236,7 @@ function createAuthStore() {
     registerProvider(provider) {
       authManager.registerProvider(provider)
       if (initialized) {
-        availableProviders = authManager.getAvailableProviders()
+        syncFromManager(true)
       }
     },
 
