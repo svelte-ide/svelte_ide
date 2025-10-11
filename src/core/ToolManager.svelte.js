@@ -20,29 +20,22 @@ class ToolManagerSvelte {
     const panelsManager = ideStore.panelsManager
     if (!panelsManager || !tool.component) return
 
-    if (tool.name === 'Console') {
-      panelsManager.registerPanel({
-        id: `console-${tool.id}`,
-        position: 'bottom',
-        persistent: true,
-        title: tool.name,
-        icon: tool.icon,
-        component: tool.component,
-        toolId: tool.id
-      })
-    } else {
-      panelsManager.registerPanel({
-        id: `tool-${tool.id}`,
-        position: tool.position,
-        persistent: true,
-        title: tool.name,
-        icon: tool.icon,
-        component: tool.component,
-        toolId: tool.id
-      })
-    }
-  }
+    const prefix = tool.name === 'Console' ? 'console-' : 'tool-'
+    const panelId = prefix + tool.id
+    const position = tool.name === 'Console' ? 'bottom' : tool.position
+    tool.panelId = panelId
 
+    panelsManager.registerPanel({
+      id: panelId,
+      position,
+      persistent: true,
+      title: tool.name,
+      icon: tool.icon,
+      component: tool.component,
+      toolId: tool.id,
+      tool
+    })
+  }
   unregisterTool(toolId) {
     const tool = this.registeredTools.get(toolId)
     if (!tool) {

@@ -4,7 +4,7 @@ import Notifications from '@/components/system/notifications/Notifications.svelt
 
 export class ConsoleTool extends Tool {
   constructor() {
-    super('Console', '>', 'bottom')
+    super('Console', '>', 'bottom', 'console')
   }
 
   initialize() {
@@ -14,7 +14,7 @@ export class ConsoleTool extends Tool {
 
 export class NotificationsTool extends Tool {
   constructor() {
-    super('Notifications', '🔔', 'topRight')
+    super('Notifications', '🔔', 'topRight', 'notifications')
   }
 
   initialize() {

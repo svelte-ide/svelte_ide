@@ -6,7 +6,7 @@ import './Explorer2RestorationService.svelte.js'
 
 class MetadataV2Tool extends Tool {
   constructor() {
-    super('Métadonnées V2', '🔍', 'topRight')
+    super('Métadonnées V2', '🔍', 'topRight', 'explorer2-metadata')
   }
 
   initialize() {
@@ -27,7 +27,7 @@ export class Explorer2Tool extends Tool {
 
 class Explorer2MainTool extends Tool {
   constructor() {
-    super('Explorateur V2', '🔍', 'topLeft')
+    super('Explorateur V2', '🔍', 'topLeft', 'explorer2')
   }
 
   initialize() {
