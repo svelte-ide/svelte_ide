@@ -57,6 +57,12 @@
     updatePanels()
   }
 
+  function focusPanel(panelId) {
+    const manager = ideStore.panelsManager
+    if (!manager) return
+    manager.focusPanel(panelId)
+  }
+
   $effect(() => {
     const manager = ideStore.panelsManager
 
@@ -95,7 +101,12 @@
 {#if activePanels.length > 0}
   <div class="tool-panels-container">
     {#each activePanels as panel (panel.id)}
-      <div class="panel-wrapper" data-panel-id={panel.id}>
+      <div
+        class="panel-wrapper"
+        data-panel-id={panel.id}
+        onfocusin={() => focusPanel(panel.id)}
+        onmousedown={() => focusPanel(panel.id)}
+      >
         {#if loadedComponents.has(panel.id)}
           {@const PanelComponent = loadedComponents.get(panel.id)}
           <div class="component-wrapper">
