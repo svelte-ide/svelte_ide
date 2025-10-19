@@ -106,6 +106,29 @@
     overflow: auto;
     min-height: 0;
     height: 100%;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+  }
+
+  .tab-scroll-surface::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .tab-scroll-surface::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .tab-scroll-surface::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+  }
+
+  .tab-scroll-surface::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  .tab-scroll-surface::-webkit-scrollbar-thumb:active {
+    background: rgba(255, 255, 255, 0.4);
   }
 
   .placeholder {
