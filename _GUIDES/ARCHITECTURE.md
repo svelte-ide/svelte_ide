@@ -10,12 +10,12 @@ L'architecture repose sur une **séparation stricte** entre le **cœur de l'IDE*
     1.  Fournir une structure d'interface (panneaux, barres d'outils, onglets).
     2.  Gérer l'état global de l'application (quel outil est actif, quels onglets sont ouverts, etc.).
     3.  Exposer des services (API) que les outils peuvent consommer (ex: "ajoute un onglet", "envoie une notification").
-    4.  Charger dynamiquement les outils disponibles dans le dossier `src/test_tools`.
+    4.  Enregistrer les outils fournis au démarrage (prop `externalTools`, configuration `VITE_TOOL_ROOT`, etc.) via le `ToolManager`.
 
 -   **Les Outils** : Ce sont des modules indépendants et isolés qui implémentent des fonctionnalités spécifiques (par exemple, un explorateur de fichiers, un terminal, une calculatrice).
     1.  Ils sont "ignorants" de l'architecture globale de l'IDE.
     2.  Ils consomment les services fournis par l'IDE pour s'intégrer à l'interface.
-    3.  Un outil peut être ajouté ou supprimé du dossier `src/test_tools` sans jamais casser le cœur de l'IDE.
+    3.  Un outil peut être ajouté ou supprimé sans jamais casser le cœur de l'IDE, qu'il soit chargé depuis `src/test_tools` (racine configurée) ou injecté via le point d'entrée applicatif.
 
 Cette séparation garantit une **modularité** et une **extensibilité** maximales.
 
@@ -26,6 +26,7 @@ Cette séparation garantit une **modularité** et une **extensibilité** maximal
 Les responsabilités sont clairement délimitées par la structure des dossiers :
 
 -   `src/core/` : Le moteur de l'IDE. Contient les classes et services de base.
+    -   Sous-dossier `layout/` : Registre des zones et configuration du chrome.
 -   `src/stores/` : L'état global et réactif de l'application.
 -   `src/components/layout/` : Les composants Svelte qui constituent l'interface de l'IDE.
 -   `src/test_tools/` : Le répertoire où les développeurs créent leurs propres outils.
@@ -51,6 +52,7 @@ C'est le fichier le plus important pour comprendre le fonctionnement de l'IDE. I
     -   `ideStore.addNotification(...)` : Pour afficher une notification.
     -   `ideStore.addLog(...)` : Pour écrire dans la console système.
     -   `ideStore.moveTool(...)` : Pour déplacer un outil entre les zones d'affichage.
+    -   Toutes les opérations sur les onglets (activation, splits, fermeture) s'appuient sur `layoutService`, garantissant un layout cohérent quelle que soit la complexité de l'interface.
 
  Le store expose également `panelsManager`, utilisé pour l'ouverture, la fermeture, le focus et le déplacement des panneaux via les identifiants (`panelId`) attribués à chaque outil par `ToolManager`.
 
@@ -85,8 +87,11 @@ Pour la communication découplée entre les outils, ou entre l'IDE et les outils
 Ce dossier contient la logique "métier" de l'IDE lui-même.
 
 -   `Tool.svelte.js` : La classe de base que tous les outils doivent étendre. Elle définit les propriétés fondamentales d'un outil : `id`, `name`, `icon`, `position`, et son état `active`.
--   `ToolManager.svelte.js` : Le service responsable du chargement des outils. Au démarrage de l'application, il scanne le répertoire `src/test_tools` à la recherche de fichiers `index.svelte.js`, les importe dynamiquement, appelle leur fonction `register` et attribue un `panelId` stable à chaque outil avant de l'enregistrer auprès du `PanelsManager`.
+-   `ToolManager.svelte.js` : Le service responsable du chargement des outils. Au démarrage de l'application, il enregistre l'ensemble des outils fournis (prop `externalTools`, modules trouvés via `VITE_TOOL_ROOT`, etc.), appelle leur fonction `register` et attribue un `panelId` stable à chaque outil avant de l'enregistrer auprès du `PanelsManager`.
 -   `Tab.svelte.js` : La classe de base pour les onglets, définissant leurs propriétés (ID, titre, composant à rendre, etc.).
+-   `GenericLayoutService.svelte.js` : Gestion centralisée des zones du chrome (toolbars, panels) et de leur persistance.
+-   `DragDropService.svelte.js` : Service unique gérant le drag & drop entre tabgroups (prévisualisations, zones de drop).
+-   `StateProviderService.svelte.js` : Orchestrateur de la persistance multi-services (layout, panneaux, stores spécialisés).
 
 ### 4. `src/components/layout/` : L'Interface de l'IDE
 
@@ -94,7 +99,7 @@ Ce dossier contient les composants Svelte qui forment la structure visuelle de l
 
 -   `Toolbar.svelte` : Lit la liste des outils depuis `ideStore` et affiche les icônes correspondantes.
 -   `ToolPanel.svelte` : Utilise `panelsManager` et les `panelId` fournis par chaque outil pour récupérer et afficher le composant actif de la zone ciblée.
--   `MainView.svelte` : Lit la liste des onglets (`ideStore.tabs`) pour afficher la barre d'onglets et rend le composant de l'onglet actif (`ideStore.activeTab`).
+-   `MainView.svelte` et ses sous-composants (`TabBar`, `TabGroupContent`, etc.) consomment directement `layoutService` (et son arbre de tabgroups) pour gérer les splits, le focus global et le drag & drop.
 
 Ces composants ne contiennent aucune logique métier. Ils sont uniquement responsables du rendu de l'état.
 
@@ -102,9 +107,20 @@ Ces composants ne contiennent aucune logique métier. Ils sont uniquement respon
 
 C'est le composant racine qui assemble toutes les pièces du puzzle.
 
--   **Initialisation** : Au montage, il lance le chargement des outils via `toolManager.loadTools()`.
+-   **Initialisation** : Au montage, il instancie les outils système (console, notifications, etc.), les enregistre via `toolManager`, puis lance le chargement des outils externes (prop `externalTools`, racine `VITE_TOOL_ROOT`).
 -   **Assemblage de l'interface** : Il intègre tous les composants `layout` (`TitleBar`, `Toolbar`, `MainView`, etc.) pour former l'application complète.
 -   **Logique de l'interface globale** : Il gère des interactions qui affectent toute l'interface, comme le redimensionnement des panneaux.
+
+### 6. `LayoutService.svelte.js` : Gestion avancée des onglets
+
+-   Maintient un arbre de layout composé de tabgroups et de containers (splits horizontaux/verticaux).
+-   Gère un focus global unique (navigation clavier, synchronisation avec `TabBar`).
+-   Fournit toutes les opérations de haut niveau (ajout d'onglet, splits par drag & drop, réordonnancement, fermeture).
+-   Automatise la persistance (autosave + restauration) via `stateProviderService`.
+
+### 7. Outils système
+
+Le cœur installe un ensemble réduit d'outils "système" (Console, Notifications, etc.) qui offrent des services transverses à l'IDE. Ils sont enregistrés comme n'importe quel outil mais sont fournis par défaut pour garantir l'expérience de base.
 
 ---
 
@@ -118,6 +134,8 @@ C'est le composant racine qui assemble toutes les pièces du puzzle.
 6.  **Interaction** : Depuis son composant ou sa classe, il peut appeler les méthodes de `ideStore` (ex: `ideStore.addTab(...)`) pour interagir avec le reste de l'IDE.
 
 En suivant ce modèle, l'outil est automatiquement découvert et intégré à l'IDE au démarrage, tout en restant complètement découplé du code du cœur.
+
+> ℹ️ Les projets consommateurs peuvent également injecter des outils dynamiquement (ex: `mount(App, { props: { externalTools }})`). L'IDE ne fait aucune hypothèse sur leur provenance tant qu'ils respectent l'API `Tool`.
 
 ## Principes transverses
 - Observer en priorité les conventions déjà présentes dans la base de code avant d’appliquer de nouvelles règles
