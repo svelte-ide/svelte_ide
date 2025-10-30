@@ -1,12 +1,13 @@
-import { Tab } from '@/core/Tab.svelte.js'
 import { eventBus } from '@/core/EventBusService.svelte.js'
 import { layoutService } from '@/core/LayoutService.svelte.js'
-import { getAuthStore } from './authStore.svelte.js'
-import { preferencesService } from '@/core/PreferencesService.svelte.js'
+import { MODAL_CANCELLED_BY_X, modalService } from '@/core/ModalService.svelte.js'
 import { panelsManager } from '@/core/PanelsManager.svelte.js'
-import { stateProviderService } from '@/core/StateProviderService.svelte.js'
-import { SCROLL_MODES } from '@/core/ScrollModes.svelte.js'
 import { persistenceRegistry } from '@/core/PersistenceRegistry.svelte.js'
+import { preferencesService } from '@/core/PreferencesService.svelte.js'
+import { SCROLL_MODES } from '@/core/ScrollModes.svelte.js'
+import { stateProviderService } from '@/core/StateProviderService.svelte.js'
+import { Tab } from '@/core/Tab.svelte.js'
+import { getAuthStore } from './authStore.svelte.js'
 
 const buildUserStorageKey = (user) => {
   if (!user) return null
@@ -268,13 +269,80 @@ class IdeStore {
     return tab
   }
 
-  closeTab(tabId) {
+  async closeTab(tabId) {
+    const tab = layoutService.getTabById(tabId)
+    if (!tab) {
+      return false
+    }
+    if (tab.closable === false) {
+      return false
+    }
+
+    if (layoutService.isTabModified(tabId)) {
+      const confirmResult = await modalService.confirm({
+        icon: '💾',
+        question: `Enregistrer les modifications de "${tab.title}" ?`,
+        description: 'Cet onglet contient des changements non enregistres. Que souhaitez-vous faire ?',
+        buttons: [
+          { id: 'save', label: 'Enregistrer' },
+          { id: 'discard', label: 'Jeter' },
+          { id: 'cancel', label: 'Annuler' }
+        ]
+      })
+
+      const actionId = typeof confirmResult === 'string'
+        ? confirmResult
+        : confirmResult?.actionId
+
+      if (!actionId || actionId === MODAL_CANCELLED_BY_X || actionId === 'cancel') {
+        return false
+      }
+
+      if (actionId === 'save') {
+        if (typeof tab.onSave === 'function') {
+          try {
+            const saveResult = await tab.onSave()
+            if (saveResult === false) {
+              return false
+            }
+          } catch (error) {
+            console.error(`ideStore.closeTab: erreur lors de la sauvegarde de l'onglet ${tab.id}`, error)
+            return false
+          }
+        } else {
+          console.warn(`ideStore.closeTab: aucun gestionnaire de sauvegarde pour l'onglet ${tab.id}`)
+          return false
+        }
+        if (layoutService.isTabModified(tabId)) {
+          layoutService.setTabModified(tabId, false)
+        }
+      } else if (actionId === 'discard') {
+        if (typeof tab.onDiscard === 'function') {
+          try {
+            const discardResult = await tab.onDiscard()
+            if (discardResult === false) {
+              return false
+            }
+          } catch (error) {
+            console.error(`ideStore.closeTab: erreur lors de l'abandon des changements de l'onglet ${tab.id}`, error)
+            return false
+          }
+        } else if (tab.fileName) {
+          layoutService.setTabModified(tabId, false)
+        }
+      } else {
+        return false
+      }
+    }
+
     const closedTabId = layoutService.closeTab(tabId)
     if (closedTabId) {
       eventBus.publish('tabs:closed', { tabId: closedTabId })
       eventBus.publish('tabs:activated', layoutService.activeTab)
       this.saveUserLayout()
+      return true
     }
+    return false
   }
 
   reorderTabs(newTabsOrder) {

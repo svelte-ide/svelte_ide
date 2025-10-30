@@ -19,19 +19,23 @@
     ideStore.setActiveTab(tabId)
   }
 
-  function closeTab(e, tabId) {
+  async function closeTab(e, tabId) {
     e.stopPropagation()
-    ideStore.closeTab(tabId)
+    await ideStore.closeTab(tabId)
   }
 
-  function closeOtherTabs(currentTabId) {
+  async function closeOtherTabs(currentTabId) {
     const tabsToClose = layoutNode.tabs.filter(tab => tab.id !== currentTabId && tab.closable)
-    tabsToClose.forEach(tab => ideStore.closeTab(tab.id))
+    for (const tab of tabsToClose) {
+      await ideStore.closeTab(tab.id)
+    }
   }
 
-  function closeAllTabs() {
+  async function closeAllTabs() {
     const closableTabs = layoutNode.tabs.filter(tab => tab.closable)
-    closableTabs.forEach(tab => ideStore.closeTab(tab.id))
+    for (const tab of closableTabs) {
+      await ideStore.closeTab(tab.id)
+    }
   }
 
   function handleTabContextMenu(e, tab) {
@@ -42,9 +46,9 @@
         id: 'close-tab',
         label: 'Fermer l\'onglet',
         icon: '✕',
-        action: () => {
+        action: async () => {
           if (tab.closable) {
-            ideStore.closeTab(tab.id)
+            await ideStore.closeTab(tab.id)
           }
         },
         disabled: !tab.closable
@@ -57,14 +61,18 @@
         id: 'close-other-tabs',
         label: 'Fermer les autres onglets',
         icon: '📄',
-        action: () => closeOtherTabs(tab.id),
+        action: async () => {
+          await closeOtherTabs(tab.id)
+        },
         disabled: layoutNode.tabs.filter(t => t.id !== tab.id && t.closable).length === 0
       },
       {
         id: 'close-all-tabs',
         label: 'Fermer tous les onglets',
         icon: '🗂️',
-        action: () => closeAllTabs(),
+        action: async () => {
+          await closeAllTabs()
+        },
         disabled: layoutNode.tabs.filter(t => t.closable).length === 0
       },
       {

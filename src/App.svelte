@@ -10,6 +10,7 @@
   import StatusBar from '@/components/layout/chrome/StatusBar.svelte'
   import MainViewSplit from '@/components/layout/containers/MainViewSplit.svelte'
   import ContextMenu from '@/components/layout/ui/ContextMenu.svelte'
+  import ModalHost from '@/components/layout/ui/ModalHost.svelte'
   import ResizeHandle from '@/components/layout/containers/ResizeHandle.svelte'
   import AuthPanel from '@/components/layout/ui/AuthPanel.svelte'
   import WelcomeScreen from '@/components/layout/ui/WelcomeScreen.svelte'
@@ -132,6 +133,7 @@
 
 <div class="app">
   <ContextMenu />
+  <ModalHost />
   <TitleBar />
 
   {#if authStore.isAuthenticated}

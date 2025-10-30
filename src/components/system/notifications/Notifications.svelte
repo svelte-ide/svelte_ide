@@ -1,5 +1,6 @@
 <script>
-  import { ideStore } from '@/stores/ideStore.svelte.js'
+import { ideStore } from '@/stores/ideStore.svelte.js'
+import { modalService } from '@/core/ModalService.svelte.js'
 
   function formatTime(timestamp) {
     const now = new Date()
@@ -45,8 +46,21 @@
     ideStore.markAllNotificationsAsRead()
   }
 
-  function handleClearAll() {
-    ideStore.clearAllNotifications()
+  async function handleClearAll() {
+    const result = await modalService.confirm({
+      icon: '🗑️',
+      question: 'Supprimer toutes les notifications ?',
+      description: 'Cette action est définitive et effacera l’historique des notifications.',
+      buttons: [
+        { id: 'confirm_clear', label: 'Supprimer' },
+        { id: 'cancel', label: 'Annuler' }
+      ]
+    })
+
+    const actionId = typeof result === 'string' ? result : result?.actionId
+    if (actionId === 'confirm_clear') {
+      ideStore.clearAllNotifications()
+    }
   }
 </script>
 

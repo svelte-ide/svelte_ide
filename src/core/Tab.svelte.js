@@ -10,6 +10,8 @@ export class Tab {
     this.modified = (false)
     this.scrollMode = scrollMode
     this.descriptor = null
+    this.onSave = null
+    this.onDiscard = null
   }
 
   setModified(modified) {

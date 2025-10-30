@@ -1,6 +1,6 @@
 import { eventBus } from '@/core/EventBusService.svelte.js'
-import { ideStore } from '@/stores/ideStore.svelte.js'
 import FileViewer from './FileViewer.svelte'
+import { getFileContentV2 } from './fileService.svelte.js'
 
 class Explorer2RestorationService {
   constructor() {
@@ -21,27 +21,16 @@ class Explorer2RestorationService {
     
     try {
       const realFileName = descriptor.resourceId.replace('V2: ', '')
-      const content = this._getFileContent(realFileName)
-      
+      const content = getFileContentV2(realFileName)
+
       hydrateCallback(FileViewer, {
-        content: content
+        content: content,
+        fileName: realFileName
       })
-      
+
     } catch (error) {
       console.error('Erreur hydratation fichier V2:', error)
     }
-  }
-
-  _getFileContent(fileName) {
-    // Même source de données mais avec contenu V2
-    const mockFiles = [
-      { name: 'demo1.txt', content: 'Contenu V2 du fichier demo1.txt\nLigne 2 V2\nLigne 3 V2' },
-      { name: 'demo2.md', content: '# Fichier Markdown V2\n\nCeci est un **fichier markdown V2**.' },
-      { name: 'demo3.js', content: 'console.log("Hello from demo3.js V2");\nfunction testV2() {\n  return "test V2";\n}' }
-    ]
-    
-    const fileData = mockFiles.find(file => file.name === fileName)
-    return fileData ? fileData.content : 'Contenu par défaut V2'
   }
 }
 
