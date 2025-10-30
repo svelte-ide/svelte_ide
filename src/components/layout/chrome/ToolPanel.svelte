@@ -63,6 +63,12 @@
     manager.focusPanel(panelId)
   }
 
+  function handlePointerDown(event, panelId) {
+    const wrapper = event.currentTarget
+    wrapper.focus()
+    focusPanel(panelId)
+  }
+
   $effect(() => {
     const manager = ideStore.panelsManager
 
@@ -104,7 +110,9 @@
       <div
         class="panel-wrapper"
         data-panel-id={panel.id}
+        tabindex="-1"
         onfocusin={() => focusPanel(panel.id)}
+        onpointerdown={(event) => handlePointerDown(event, panel.id)}
         role="region"
         aria-label={panel.title ? `Outil ${panel.title}` : 'Outil actif'}
       >
