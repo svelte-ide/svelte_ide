@@ -1,8 +1,14 @@
 import { ideStore } from '@/stores/ideStore.svelte.js'
+import { panelsManager } from '@/core/PanelsManager.svelte.js'
+import { eventBus } from '@/core/EventBusService.svelte.js'
 
 class ToolManagerSvelte {
   constructor() {
     this.registeredTools = new Map()
+    this._capturePanelStates = this._capturePanelStates.bind(this)
+    this._handleTabActivated = this._handleTabActivated.bind(this)
+    this._unsubscribeTabActivated = eventBus.subscribe('tabs:activated', this._handleTabActivated)
+    panelsManager.addChangeCallback(this._capturePanelStates)
   }
 
   registerTool(tool) {
@@ -14,6 +20,8 @@ class ToolManagerSvelte {
     tool.initialize()
     this._registerToolInNewSystem(tool)
     ideStore.addTool(tool)
+    this._applyVisibilityForTool(tool, ideStore.activeTab)
+    this._capturePanelStates()
   }
 
   _registerToolInNewSystem(tool) {
@@ -35,6 +43,8 @@ class ToolManagerSvelte {
       toolId: tool.id,
       tool
     })
+
+    tool._lastActiveState = false
   }
 
   unregisterTool(toolId) {
@@ -134,6 +144,74 @@ class ToolManagerSvelte {
     } catch (error) {
       console.error('Failed to load tools:', error)
     }
+  }
+
+  _getPanelForTool(tool) {
+    if (!tool.panelId) return null
+    return panelsManager.getPanel(tool.panelId)
+  }
+
+  _capturePanelStates() {
+    this.registeredTools.forEach(tool => {
+      if (tool._autoHidden) return
+      const panel = this._getPanelForTool(tool)
+      if (panel) {
+        tool._lastActiveState = panel.isActive
+      }
+    })
+  }
+
+  _handleTabActivated(activeTab) {
+    this.registeredTools.forEach(tool => {
+      this._applyVisibilityForTool(tool, activeTab)
+    })
+  }
+
+  _applyVisibilityForTool(tool, activeTab) {
+    if (!tool.isContextual()) {
+      if (tool.visible === false) {
+        this._showTool(tool)
+      }
+      tool._autoHidden = false
+      return
+    }
+
+    const compatible = tool.isTabCompatible(activeTab)
+
+    if (compatible) {
+      if (tool._autoHidden) {
+        const becameVisible = this._showTool(tool)
+        if (becameVisible && tool._lastActiveState && tool.panelId) {
+          panelsManager.activatePanel(tool.panelId, tool.component)
+        }
+      } else if (tool.visible === false) {
+        this._showTool(tool)
+      }
+      tool._autoHidden = false
+    } else {
+      if (!tool._autoHidden) {
+        const panel = this._getPanelForTool(tool)
+        if (panel) {
+          tool._lastActiveState = panel.isActive
+          if (panel.isActive) {
+            panelsManager.deactivatePanel(panel.id)
+          }
+        } else {
+          tool._lastActiveState = false
+        }
+        this._hideTool(tool)
+        tool._autoHidden = true
+      }
+    }
+  }
+
+  _showTool(tool) {
+    const changed = ideStore.setToolVisibility(tool.id, true)
+    return changed
+  }
+
+  _hideTool(tool) {
+    return ideStore.setToolVisibility(tool.id, false)
   }
 }
 

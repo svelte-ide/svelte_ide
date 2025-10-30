@@ -7,6 +7,7 @@ class CalculatorTool extends Tool {
   }
 
   initialize() {
+    this.setVisibilityMode('always')
     this.setComponent(Calculator)
   }
 }
