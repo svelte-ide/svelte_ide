@@ -98,10 +98,6 @@
     toolManager.registerTool(consoleTool)
     toolManager.registerTool(new NotificationsTool())
 
-    if (consoleTool.panelId) {
-      ideStore.panelsManager.togglePanel(consoleTool.panelId, consoleTool.component)
-    }
-
     ideStore.setStatusMessage('Chargement des outils externes...')
     await toolManager.loadTools()
     await toolManager.registerExternalTools(externalTools)

@@ -6,7 +6,15 @@ import { preferencesService } from '@/core/PreferencesService.svelte.js'
 import { panelsManager } from '@/core/PanelsManager.svelte.js'
 import { stateProviderService } from '@/core/StateProviderService.svelte.js'
 import { SCROLL_MODES } from '@/core/ScrollModes.svelte.js'
-import { namespacedKey } from '@/core/config/appKey.js'
+import { persistenceRegistry } from '@/core/PersistenceRegistry.svelte.js'
+
+const buildUserStorageKey = (user) => {
+  if (!user) return null
+  const provider = user.provider || 'default'
+  const identifier = user.email || user.id || user.name
+  if (!identifier) return null
+  return `${provider}-${identifier}`
+}
 
 class IdeStore {
   constructor() {
@@ -35,6 +43,9 @@ class IdeStore {
     this._updateToolLists()
     
     this.panelsManager = panelsManager
+    this.layoutPersister = persistenceRegistry.getPersister('user-layout')
+    this._lastRestoredUserKey = null
+    this._restorationAttemptedUsers = new Set()
     
     // Sauvegarder automatiquement quand l'état change
     stateProviderService.registerProvider('layout', this)
@@ -315,16 +326,19 @@ class IdeStore {
 
   async restoreUserLayout(user) {
     try {
-      const userKey = `${user.provider}-${user.email}`
-      const layoutKey = namespacedKey(`ide-layout-${userKey}`)
-      const savedData = localStorage.getItem(layoutKey)
+      const userKey = buildUserStorageKey(user)
+      if (!userKey) {
+        console.warn('restoreUserLayout: utilisateur invalide, restauration ignorée')
+        return
+      }
+      const storageKey = `user-${userKey}`
+      const layoutData = this.layoutPersister.load(storageKey)
+      this._restorationAttemptedUsers.add(userKey)
       
-      if (!savedData) {
+      if (!layoutData) {
         return
       }
 
-      const layoutData = JSON.parse(savedData)
-      
       if (layoutData.layout) {
         this.closeAllTabs()
         
@@ -376,6 +390,7 @@ class IdeStore {
         }
         
         layoutService.layout = restoredLayout
+        this._lastRestoredUserKey = userKey
         
         // Restaurer le focus global si disponible
         if (layoutData.layout.globalFocusedTab) {
@@ -390,6 +405,11 @@ class IdeStore {
       
     } catch (error) {
       console.error('Error restoring user layout:', error)
+    } finally {
+      const userKey = buildUserStorageKey(user)
+      if (userKey) {
+        this._restorationAttemptedUsers.add(userKey)
+      }
     }
   }
 
@@ -413,8 +433,18 @@ class IdeStore {
     if (!this.isAuthenticated || !this.user) return
     
     try {
-      const userKey = `${this.user.provider}-${this.user.email}`
-      const layoutKey = namespacedKey(`ide-layout-${userKey}`)
+      const userKey = buildUserStorageKey(this.user)
+      if (!userKey) {
+        console.warn('saveUserLayout: utilisateur invalide, sauvegarde ignorée')
+        return
+      }
+      const storageKey = `user-${userKey}`
+      
+      if (!this._restorationAttemptedUsers.has(userKey) && this.layoutPersister.exists(storageKey)) {
+        return
+      }
+      
+      this._restorationAttemptedUsers.add(userKey)
       const serializableLayout = layoutService._createSerializableLayout(layoutService.layout)
       
       if (serializableLayout) {
@@ -425,7 +455,8 @@ class IdeStore {
           version: '1.0'
         }
         
-        localStorage.setItem(layoutKey, JSON.stringify(layoutData))
+        this.layoutPersister.save(storageKey, layoutData)
+        this._lastRestoredUserKey = userKey
       }
     } catch (error) {
       console.error('Error saving user layout:', error)

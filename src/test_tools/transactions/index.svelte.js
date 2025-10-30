@@ -1,5 +1,6 @@
 import { Tool } from '@/core/Tool.svelte.js'
 import TransactionsPanel from './TransactionsPanel.svelte'
+import './TransactionsRestorationService.svelte.js'
 
 class TransactionsTool extends Tool {
   constructor() {

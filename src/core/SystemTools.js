@@ -14,7 +14,7 @@ export class ConsoleTool extends Tool {
 
 export class NotificationsTool extends Tool {
   constructor() {
-    super('Notifications', '🔔', 'topRight', 'notifications')
+    super('Notifications', '🔔', 'bottomRight', 'notifications')
   }
 
   initialize() {
