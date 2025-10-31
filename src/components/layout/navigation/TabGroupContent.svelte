@@ -2,6 +2,7 @@
   import { layoutService } from '@/core/LayoutService.svelte.js'
   import { dragDropService } from '@/core/DragDropService.svelte.js'
   import { eventBus } from '@/core/EventBusService.svelte.js'
+  import { panelsManager } from '@/core/PanelsManager.svelte.js'
   import { SCROLL_MODES } from '@/core/ScrollModes.svelte.js'
 
   let { layoutNode } = $props()
@@ -62,6 +63,9 @@
     const changed = layoutService.setGlobalFocus(tab.id)
     if (changed) {
       eventBus.publish('tabs:focus-changed', { tab })
+    }
+    if (panelsManager) {
+      panelsManager.clearFocus()
     }
   }
 </script>
