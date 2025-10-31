@@ -6,6 +6,7 @@ export class DragDropService {
     this.targetGroup = $state(null)
     this.dragOverTab = $state(null)
     this.dropZones = $state([])
+    this.tabTargetPosition = $state(null)
     
     // Nouveau système de prévisualisation IntelliJ-style
     this.dropPreview = $state(null) // { groupId, zone: 'center'|'top'|'bottom'|'left'|'right', rect }
@@ -30,10 +31,30 @@ export class DragDropService {
   }
 
   // Définir la cible de drag over
-  setDragTarget(targetGroupId, targetTab = null) {
+  setDragTarget(targetGroupId, targetTab = null, position = 'before') {
     this.targetGroup = targetGroupId
     this.dragOverTab = targetTab
-    this.dropPreview = null
+    if (this.dropPreview?.zone !== 'tabbar') {
+      this.dropPreview = null
+    }
+    if (targetTab) {
+      const nextPosition = {
+        groupId: targetGroupId,
+        tabId: targetTab.id,
+        position
+      }
+      const current = this.tabTargetPosition
+      if (
+        !current ||
+        current.groupId !== nextPosition.groupId ||
+        current.tabId !== nextPosition.tabId ||
+        current.position !== nextPosition.position
+      ) {
+        this.tabTargetPosition = nextPosition
+      }
+    } else {
+      this.tabTargetPosition = null
+    }
     this.tabAreaTarget = null
   }
 
@@ -51,6 +72,7 @@ export class DragDropService {
     // Nettoyer les anciens états
     this.targetGroup = null
     this.dragOverTab = null
+    this.tabTargetPosition = null
   }
 
   // Nouvelle méthode : Définir une zone de prévisualisation spécifique (pour tabbar)
@@ -64,13 +86,18 @@ export class DragDropService {
     // Nettoyer les anciens états
     this.targetGroup = null
     this.dragOverTab = null
+    this.tabTargetPosition = null
   }
 
   // Nettoyer le drag target
-  clearDragTarget() {
+  clearDragTarget(options = {}) {
+    const { preservePreview = false } = options
     this.targetGroup = null
     this.dragOverTab = null
-    this.dropPreview = null
+    this.tabTargetPosition = null
+    if (!preservePreview) {
+      this.dropPreview = null
+    }
     this.tabAreaTarget = null
   }
 
@@ -82,6 +109,7 @@ export class DragDropService {
     this.dragOverTab = null
     this.dropZones = []
     this.dropPreview = null
+    this.tabTargetPosition = null
     document.body.style.userSelect = ''
     document.body.style.cursor = ''
   }
@@ -155,6 +183,12 @@ export class DragDropService {
     return this.dragOverTab?.id === tabId
   }
 
+  getTabTargetPosition(tabId) {
+    return this.tabTargetPosition?.tabId === tabId
+      ? this.tabTargetPosition.position
+      : null
+  }
+
   // Vérifier si un groupe est la cible actuelle
   isGroupDragTarget(groupId) {
     return this.targetGroup === groupId
@@ -184,7 +218,8 @@ export class DragDropService {
       sourceGroup: this.sourceGroup,
       targetGroup: this.targetGroup,
       isDragging: this.isDragging,
-      dropPreview: this.dropPreview
+      dropPreview: this.dropPreview,
+      tabTargetPosition: this.tabTargetPosition
     }
   }
 }

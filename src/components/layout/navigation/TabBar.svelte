@@ -100,6 +100,33 @@
     contextMenuService.show(e.clientX, e.clientY, tab, menuItems)
   }
 
+  function getTabbarPreviewState() {
+    const preview = dragDropService.getDropPreview(layoutNode.id)
+    if (!preview || preview.zone !== 'tabbar') {
+      return { active: false, invalid: false }
+    }
+
+    const dragInfo = dragDropService.getDragInfo()
+    const draggedTab = dragInfo.draggedTab
+    if (!draggedTab) {
+      return { active: true, invalid: false }
+    }
+
+    const isInternal = dragInfo.sourceGroup === layoutNode.id
+    if (isInternal) {
+      return { active: true, invalid: false }
+    }
+
+    const hasMatchingTab = layoutNode.tabs.some(tab =>
+      tab.id === draggedTab.id || (draggedTab.fileName && tab.fileName === draggedTab.fileName)
+    )
+
+    return {
+      active: true,
+      invalid: hasMatchingTab
+    }
+  }
+
   function handleDragStart(e, tab) {
     dragDropService.startDrag(tab, layoutNode.id)
     e.dataTransfer.effectAllowed = 'move'
@@ -164,6 +191,16 @@
     dragDropService.endDrag()
   }
 
+  function handleTabAreaDragLeave(e) {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const { clientX, clientY } = e
+    if (clientX >= rect.left && clientX <= rect.right &&
+        clientY >= rect.top && clientY <= rect.bottom) {
+      return
+    }
+    dragDropService.clearDragTarget()
+  }
+
   function handleKeyNavigation(e) {
     if (!['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key)) {
       return
@@ -206,9 +243,11 @@
 <div 
   class="tab-area"
   class:drag-over={dragDropService.hasDropPreview(layoutNode.id) && dragDropService.getDropPreview(layoutNode.id)?.zone === 'tabbar'}
+  class:tabbar-preview={getTabbarPreviewState().active}
+  class:tabbar-preview-invalid={getTabbarPreviewState().invalid}
   ondragover={handleTabAreaDragOver}
   ondrop={handleTabAreaDrop}
-  ondragleave={() => dragDropService.clearDragTarget()}
+  ondragleave={handleTabAreaDragLeave}
   role="tablist"
   aria-label="Barre des onglets"
   tabindex="0"
@@ -241,7 +280,22 @@
   }
 
   .tab-area.drag-over {
-    background: #094771;
     box-shadow: inset 0 0 0 2px #007acc;
+  }
+
+  .tab-area.tabbar-preview::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 122, 204, 0.12);
+    border: 2px solid rgba(0, 122, 204, 0.4);
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .tab-area.tabbar-preview-invalid::before {
+    background: rgba(255, 68, 68, 0.12);
+    border-color: rgba(255, 68, 68, 0.5);
   }
 </style>

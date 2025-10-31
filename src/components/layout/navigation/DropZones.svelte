@@ -89,25 +89,23 @@
       {@const preview = dragDropService.getDropPreview(layoutNode.id)}
       {@const dragInfo = dragDropService.getDragInfo()}
       {@const isInternal = dragInfo.sourceGroup === layoutNode.id}
-      {@const hasExistingFile = (preview.zone === 'center' || preview.zone === 'tabbar') && layoutNode.tabs.some(t => 
+      {@const hasMatchingTab = layoutNode.tabs.some(t => 
         t.id === dragInfo.draggedTab.id || (dragInfo.draggedTab.fileName && t.fileName === dragInfo.draggedTab.fileName)
       )}
+      {@const hasExistingFile = (preview.zone === 'center' || preview.zone === 'tabbar') && !isInternal && hasMatchingTab}
       {@const isInvalidInternal = isInternal && (preview.zone === 'center' || layoutNode.tabs.length < 2)}
       {@const isInvalid = isInvalidInternal || hasExistingFile}
-      <div 
-        class="drop-preview"
-        class:center={preview.zone === 'center'}
-        class:top={preview.zone === 'top'}
-        class:bottom={preview.zone === 'bottom'}
-        class:left={preview.zone === 'left'}
-        class:right={preview.zone === 'right'}
-        class:tabbar={preview.zone === 'tabbar'}
-        class:invalid={isInvalid}
-        style:left={preview.zone === 'tabbar' ? `${preview.rect.left}px` : ''}
-        style:top={preview.zone === 'tabbar' ? `${preview.rect.top}px` : ''}
-        style:width={preview.zone === 'tabbar' ? `${preview.rect.width}px` : ''}
-        style:height={preview.zone === 'tabbar' ? `${preview.rect.height}px` : ''}
-      ></div>
+      {#if preview.zone !== 'tabbar'}
+        <div 
+          class="drop-preview"
+          class:center={preview.zone === 'center'}
+          class:top={preview.zone === 'top'}
+          class:bottom={preview.zone === 'bottom'}
+          class:left={preview.zone === 'left'}
+          class:right={preview.zone === 'right'}
+          class:invalid={isInvalid}
+        ></div>
+      {/if}
     {/if}
   {/if}
 
@@ -173,15 +171,5 @@
     width: 50%;
   }
 
-  .drop-preview.tabbar {
-    position: fixed;
-    background: rgba(0, 122, 204, 0.3);
-    border-color: rgba(0, 122, 204, 0.6);
-    z-index: 1001;
-  }
-
-  .drop-preview.tabbar.invalid {
-    background: rgba(255, 68, 68, 0.3);
-    border-color: rgba(255, 68, 68, 0.6);
-  }
+  /* La prévisualisation de la tabbar est gérée directement dans TabBar.svelte */
 </style>

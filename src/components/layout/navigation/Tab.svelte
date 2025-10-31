@@ -46,7 +46,9 @@
     const dragInfo = dragDropService.getDragInfo()
     if (!dragInfo.draggedTab || dragInfo.draggedTab.id === targetTab.id) return
     
-    dragDropService.setDragTarget(groupId, targetTab)
+    const rect = e.currentTarget.getBoundingClientRect()
+    const dropAfter = e.clientX > rect.left + rect.width / 2
+    dragDropService.setDragTarget(groupId, targetTab, dropAfter ? 'after' : 'before')
   }
 
   function handleDragLeave(e) {
@@ -55,7 +57,7 @@
     
     if (clientX < rect.left || clientX > rect.right || 
         clientY < rect.top || clientY > rect.bottom) {
-      dragDropService.clearDragTarget()
+      dragDropService.clearDragTarget({ preservePreview: true })
     }
   }
 
@@ -70,16 +72,33 @@
     const draggedTabId = dragInfo.draggedTab.id
 
     if (sourceGroupId === targetGroupId) {
-      const draggedIndex = dragInfo.draggedIndex
-      const targetIndex = targetTab.index || 0
+      const tabs = [...layoutNode.tabs]
+      const draggedIndex = tabs.findIndex(t => t.id === draggedTabId)
+      const targetIndex = tabs.findIndex(t => t.id === targetTab.id)
       
-      if (draggedIndex !== targetIndex) {
-        const tabs = [...layoutNode.tabs]
-        const [draggedTab] = tabs.splice(draggedIndex, 1)
-        tabs.splice(targetIndex, 0, draggedTab)
-        
-        layoutService.reorderTabsInGroup(targetGroupId, tabs)
+      if (draggedIndex === -1 || targetIndex === -1 || draggedIndex === targetIndex) {
+        dragDropService.endDrag()
+        return
       }
+
+      const rect = e.currentTarget.getBoundingClientRect()
+      const dropAfter = e.clientX > rect.left + rect.width / 2
+
+      const [draggedTab] = tabs.splice(draggedIndex, 1)
+      let insertIndex = targetIndex
+
+      if (draggedIndex < targetIndex) {
+        insertIndex -= 1
+      }
+
+      if (dropAfter) {
+        insertIndex += 1
+      }
+
+      insertIndex = Math.max(0, Math.min(insertIndex, tabs.length))
+      tabs.splice(insertIndex, 0, draggedTab)
+      
+      layoutService.reorderTabsInGroup(targetGroupId, tabs)
     } else {
       layoutService.moveTabBetweenGroups(
         draggedTabId,
@@ -102,6 +121,8 @@
   class:active={isActive}
   class:dragging={dragDropService.isTabBeingDragged(tab.id)}
   class:drag-over={dragDropService.isTabDragTarget(tab.id)}
+  class:reorder-before={dragDropService.getTabTargetPosition(tab.id) === 'before'}
+  class:reorder-after={dragDropService.getTabTargetPosition(tab.id) === 'after'}
   data-context-menu
   data-tab-id={tab.id}
   onclick={handleClick}
@@ -154,8 +175,9 @@
     white-space: nowrap;
     min-width: 0;
     flex-shrink: 0;
-    transition: background-color 0.15s ease, color 0.15s ease;
+    transition: background-color 0.15s ease, color 0.15s ease, margin 0.12s ease;
     position: relative;
+    z-index: 1;
     font-size: 12px;
     line-height: 1.2;
   }
@@ -179,6 +201,14 @@
   .tab.drag-over {
     background: #094771;
     border-left: 2px solid #007acc;
+  }
+
+  .tab.reorder-before {
+    margin-left: 14px;
+  }
+
+  .tab.reorder-after {
+    margin-right: 14px;
   }
 
   .tab-title {
