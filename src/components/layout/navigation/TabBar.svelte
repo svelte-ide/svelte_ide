@@ -237,7 +237,7 @@
     border-bottom: 1px solid #3e3e42;
     overflow: hidden;
     position: relative;
-    min-height: 35px;
+    min-height: 28px;
   }
 
   .tab-area.drag-over {

@@ -182,7 +182,7 @@
 
 <style>
   .toolbar {
-    width: 48px;
+    width: 36px;
     background: #2d2d30;
     display: flex;
     flex-direction: column;
@@ -200,15 +200,15 @@
   .tools-section {
     display: flex;
     flex-direction: column;
-    padding: 8px 0;
+    padding: 4px 0;
     flex: 1;
   }
 
   .quadrant-group {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    min-height: 40px;
+    gap: 2px;
+    min-height: 24px;
     transition: background-color 0.2s ease;
   }
 
@@ -224,12 +224,12 @@
     display: flex;
     flex-direction: column;
     border-top: 1px solid #3e3e42;
-    padding: 8px 0;
+    padding: 4px 0;
   }
 
   .tool-button {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     background: transparent;
     border: none;
     color: #cccccc;
@@ -238,7 +238,7 @@
     align-items: center;
     justify-content: center;
     position: relative;
-    margin: 2px 8px;
+    margin: 2px 4px;
     border-radius: 3px;
     transition: opacity 0.2s ease;
   }
@@ -261,7 +261,7 @@
   }
 
   .icon {
-    font-size: 16px;
+    font-size: 14px;
     font-style: normal;
   }
 </style>

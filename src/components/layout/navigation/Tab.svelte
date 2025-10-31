@@ -145,7 +145,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 12px;
+    padding: 4px 10px;
     background: #2d2d30;
     color: #cccccc;
     border-right: 1px solid #3e3e42;
@@ -156,6 +156,8 @@
     flex-shrink: 0;
     transition: background-color 0.15s ease, color 0.15s ease;
     position: relative;
+    font-size: 12px;
+    line-height: 1.2;
   }
 
   .tab:hover {
@@ -182,38 +184,41 @@
   .tab-title {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     min-width: 0;
     flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
+    font-weight: 500;
   }
 
   .tab-icon {
     flex-shrink: 0;
     font-size: 12px;
+    line-height: 1;
   }
 
   .modified-indicator {
     color: #f48771;
     font-weight: bold;
     flex-shrink: 0;
+    font-size: 11px;
   }
 
   .close-tab-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
     background: none;
     border: none;
     color: #858585;
     cursor: pointer;
     border-radius: 2px;
-    margin-left: 8px;
+    margin-left: 6px;
     flex-shrink: 0;
-    font-size: 14px;
+    font-size: 12px;
     line-height: 1;
     transition: background-color 0.15s ease, color 0.15s ease;
   }
