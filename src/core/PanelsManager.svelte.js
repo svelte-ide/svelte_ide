@@ -70,7 +70,7 @@ export class PanelsManager {
         return zone
     }
 
-    activatePanel(panelId, component = null) {
+    activatePanel(panelId, component = null, options = {}) {
         const panel = this.panels.get(panelId)
         if (!panel) {
             console.warn(`❌ Panel ${panelId} non trouvé dans panels:`, Array.from(this.panels.keys()))
@@ -83,13 +83,14 @@ export class PanelsManager {
         }
 
         const content = component || panel.component
-        const success = genericLayoutService.activateZone(panel.zoneId, content)
-        
+        const { focus = true } = options ?? {}
+        const success = genericLayoutService.activateZone(panel.zoneId, content, { focus })
+
         if (success) {
             panel.isActive = true
             if (panel.tool && typeof panel.tool.activate === 'function') panel.tool.activate()
             this.activePanelsByPosition.set(panel.position, panel)
-            this.focusedPanel = panelId
+            this.focusedPanel = focus ? panelId : null
             this._notifyChange()
         } else {
             console.warn(`❌ Échec activation zone ${panel.zoneId}`)
@@ -343,5 +344,3 @@ export class PanelsManager {
 }
 
 export const panelsManager = new PanelsManager()
-
-

@@ -49,7 +49,7 @@ export class GenericLayoutService {
         return zone
     }
 
-    activateZone(zoneId, content = null) {
+    activateZone(zoneId, content = null, options = {}) {
         const zone = this.zones.get(zoneId)
         if (!zone) return false
 
@@ -58,11 +58,15 @@ export class GenericLayoutService {
             this.deactivateZone(currentActive.id)
         }
 
+        const { focus = true } = options ?? {}
+
         zone.isActive = true
         zone.content = content
         this.activeZonesByType.set(zone.type, zone)
-        this.focusedZone = zoneId
-        
+        if (focus) {
+            this.focusedZone = zoneId
+        }
+
         this._saveZoneState(zone)
         this._notifyChange()
         return true

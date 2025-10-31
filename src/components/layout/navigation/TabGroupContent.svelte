@@ -68,6 +68,13 @@
       eventBus.publish('tabs:focus-changed', { tab })
     }
   }
+
+  function handleTabPointerDown(event, tab) {
+    focusTabContent(tab)
+    if (event?.currentTarget?.focus) {
+      event.currentTarget.focus({ preventScroll: true })
+    }
+  }
 </script>
 
 {#if activeTabData && activeTabData.component}
@@ -85,8 +92,9 @@
   {/snippet}
   <div
     class="tab-content-root"
+    tabindex="-1"
     onfocusin={() => focusTabContent(activeTabData)}
-    onpointerdown={() => focusTabContent(activeTabData)}
+    onpointerdown={event => handleTabPointerDown(event, activeTabData)}
   >
     {#if activeTabScrollMode === SCROLL_MODES.tool}
       {@render renderComponent()}

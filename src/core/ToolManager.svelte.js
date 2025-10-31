@@ -170,7 +170,7 @@ class ToolManagerSvelte {
 
     if (!panel.isActive) {
       const component = panel.component ?? tool.component
-      manager.activatePanel(panel.id, component)
+      manager.activatePanel(panel.id, component, { focus: false })
     }
     // Ne pas forcer le focus visuel : on laisse le panneau actif mais pas focalisé.
   }
