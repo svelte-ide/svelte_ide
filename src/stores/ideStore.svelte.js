@@ -7,6 +7,7 @@ import { preferencesService } from '@/core/PreferencesService.svelte.js'
 import { SCROLL_MODES } from '@/core/ScrollModes.svelte.js'
 import { stateProviderService } from '@/core/StateProviderService.svelte.js'
 import { Tab } from '@/core/Tab.svelte.js'
+import { toolFocusCoordinator } from '@/core/ToolFocusCoordinator.svelte.js'
 import { getAuthStore } from './authStore.svelte.js'
 
 const buildUserStorageKey = (user) => {
@@ -40,6 +41,7 @@ class IdeStore {
     this.topRightTools = $state([])
     this.bottomRightTools = $state([])
     this.bottomTools = $state([])
+    this.currentFocusGroup = $state(null)
     
     this._updateToolLists()
     
@@ -52,7 +54,12 @@ class IdeStore {
     stateProviderService.registerProvider('layout', this)
     stateProviderService.registerProvider('layoutService', layoutService)
     this.panelsManager.addChangeCallback(() => {
+      this._updateToolLists()
       this.saveUserLayout()
+    })
+
+    eventBus.subscribe('tools:focus-group-changed', ({ groupId }) => {
+      this._setCurrentFocusGroup(groupId)
     })
   }
 
@@ -79,11 +86,103 @@ class IdeStore {
   }
 
   _updateToolLists() {
-    this.topLeftTools = this.tools.filter(t => t.position === 'topLeft')
-    this.bottomLeftTools = this.tools.filter(t => t.position === 'bottomLeft')
-    this.topRightTools = this.tools.filter(t => t.position === 'topRight')
-    this.bottomRightTools = this.tools.filter(t => t.position === 'bottomRight')
-    this.bottomTools = this.tools.filter(t => t.position === 'bottom')
+    const buckets = {
+      topLeft: [],
+      bottomLeft: [],
+      topRight: [],
+      bottomRight: [],
+      bottom: []
+    }
+
+    for (const tool of this.tools) {
+      if (!tool) continue
+      const position = tool.position
+      if (!position || !buckets[position]) {
+        continue
+      }
+      buckets[position].push(tool)
+    }
+
+    this.topLeftTools = this._filterVisibleTools(buckets.topLeft)
+    this.bottomLeftTools = this._filterVisibleTools(buckets.bottomLeft)
+    this.topRightTools = this._filterVisibleTools(buckets.topRight)
+    this.bottomRightTools = this._filterVisibleTools(buckets.bottomRight)
+    this.bottomTools = this._filterVisibleTools(buckets.bottom)
+  }
+
+  _filterVisibleTools(tools = []) {
+    if (!Array.isArray(tools) || tools.length === 0) {
+      return []
+    }
+
+    const focusGroup = this.currentFocusGroup
+    return tools.filter(tool => {
+      if (!tool) {
+        return false
+      }
+
+      if (tool.visibilityMode !== 'contextual') {
+        return true
+      }
+
+      if (this._isToolPanelActive(tool)) {
+        return true
+      }
+
+      const toolGroup = this._getToolFocusGroup(tool)
+      return focusGroup && toolGroup && toolGroup === focusGroup
+    })
+  }
+
+  _isToolPanelActive(tool) {
+    if (!tool || !tool.panelId) {
+      return false
+    }
+    const manager = this.panelsManager
+    if (!manager || typeof manager.getPanel !== 'function') {
+      return false
+    }
+    const panel = manager.getPanel(tool.panelId)
+    return !!(panel && panel.isActive)
+  }
+
+  _getToolFocusGroup(tool) {
+    if (!tool) {
+      return null
+    }
+    if (typeof tool.focusGroup === 'string') {
+      const normalized = tool.focusGroup.trim()
+      if (normalized) {
+        return normalized
+      }
+    }
+    const registeredGroup = toolFocusCoordinator.getGroupForTool(tool.id)
+    if (registeredGroup) {
+      return registeredGroup
+    }
+    return this._deriveGroupId(tool)
+  }
+
+  _deriveGroupId(tool) {
+    const source = typeof tool?.id === 'string' ? tool.id : ''
+    if (!source) {
+      return null
+    }
+    const separatorIndex = source.indexOf('-')
+    if (separatorIndex === -1) {
+      return source
+    }
+    const prefix = source.slice(0, separatorIndex)
+    return prefix || source
+  }
+
+  _setCurrentFocusGroup(groupId) {
+    const normalized = typeof groupId === 'string' ? groupId.trim() : null
+    if (this.currentFocusGroup === normalized) {
+      return
+    }
+    this.currentFocusGroup = normalized
+    this._updateToolLists()
   }
 
   addTool(tool) {

@@ -1,5 +1,5 @@
 export class Tool {
-  constructor(name, icon, position = 'topLeft', id = null) {
+  constructor(name, icon, position = 'topLeft', id = null, visibilityMode = 'always') {
     this.id = id ?? Tool.generate_id(name)
     this.name = name
     this.icon = icon
@@ -7,6 +7,7 @@ export class Tool {
     this.active = $state(false)
     this.component = null
     this.componentProps = {}
+    this.visibilityMode = Tool.normalizeVisibilityMode(visibilityMode)
   }
 
   static generate_id(source) {
@@ -40,5 +41,13 @@ export class Tool {
   }
 
   destroy() {
+  }
+
+  setVisibilityMode(mode) {
+    this.visibilityMode = Tool.normalizeVisibilityMode(mode)
+  }
+
+  static normalizeVisibilityMode(mode) {
+    return mode === 'contextual' ? 'contextual' : 'always'
   }
 }

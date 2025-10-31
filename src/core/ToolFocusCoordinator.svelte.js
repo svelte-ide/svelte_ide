@@ -9,6 +9,17 @@ class ToolFocusCoordinator {
     eventBus.subscribe('tabs:focus-changed', ({ tab }) => {
       this._handleTabFocus(tab)
     })
+
+    eventBus.subscribe('tabs:activated', payload => {
+      const tab = payload && typeof payload === 'object' && 'tab' in payload
+        ? payload.tab
+        : payload
+      this._handleTabFocus(tab)
+    })
+
+    eventBus.subscribe('tabs:added', ({ tab }) => {
+      this._handleTabFocus(tab)
+    })
   }
 
   setFocusHandler(handler) {
@@ -54,23 +65,30 @@ class ToolFocusCoordinator {
 
   _handleTabFocus(tab) {
     if (!this._focusHandler || !tab) {
+      this._publishFocusGroupChange(null, null, tab, [])
       return
     }
 
     const primaryToolId = tab.toolId ?? tab.descriptor?.toolId
     if (!primaryToolId) {
+      this._publishFocusGroupChange(null, null, tab, [])
       return
     }
 
     const groupId = this._toolToGroup.get(primaryToolId)
     if (!groupId) {
+      this._publishFocusGroupChange(null, primaryToolId, tab, [])
       return
     }
 
     const toolsInGroup = this._groupToTools.get(groupId)
     if (!toolsInGroup || toolsInGroup.size === 0) {
+      this._publishFocusGroupChange(groupId, primaryToolId, tab, [])
       return
     }
+
+    const toolIds = Array.from(toolsInGroup)
+    this._publishFocusGroupChange(groupId, primaryToolId, tab, toolIds)
 
     toolsInGroup.forEach(toolId => {
       const isPrimary = toolId === primaryToolId
@@ -96,6 +114,22 @@ class ToolFocusCoordinator {
       return source
     }
     return source.slice(0, separatorIndex) || source
+  }
+
+  getGroupForTool(toolId) {
+    if (!toolId) {
+      return null
+    }
+    return this._toolToGroup.get(toolId) || null
+  }
+
+  _publishFocusGroupChange(groupId, primaryToolId, tab, toolIds) {
+    eventBus.publish('tools:focus-group-changed', {
+      groupId: groupId ?? null,
+      primaryToolId: primaryToolId ?? null,
+      tab: tab ?? null,
+      toolIds: Array.isArray(toolIds) ? toolIds : []
+    })
   }
 }
 

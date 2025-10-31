@@ -6,6 +6,7 @@ import './Explorer2RestorationService.svelte.js'
 class MetadataV2Tool extends Tool {
   constructor() {
     super('Métadonnées V2', '🔍', 'topRight', 'explorer2-metadata')
+    this.setVisibilityMode('contextual')
   }
 
   initialize() {
