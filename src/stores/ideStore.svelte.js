@@ -1,5 +1,6 @@
 import { eventBus } from '@/core/EventBusService.svelte.js'
 import { layoutService } from '@/core/LayoutService.svelte.js'
+import { mainMenuService } from '@/core/MainMenuService.svelte.js'
 import { MODAL_CANCELLED_BY_X, modalService } from '@/core/ModalService.svelte.js'
 import { panelsManager } from '@/core/PanelsManager.svelte.js'
 import { persistenceRegistry } from '@/core/PersistenceRegistry.svelte.js'
@@ -61,6 +62,21 @@ class IdeStore {
     eventBus.subscribe('tools:focus-group-changed', ({ groupId }) => {
       this._setCurrentFocusGroup(groupId)
     })
+
+    this.mainMenuService = mainMenuService
+    this._initializeMainMenu()
+  }
+
+  _initializeMainMenu() {
+    mainMenuService.registerMenu({ id: 'help', label: 'Aide', order: 900 }, 'core')
+    mainMenuService.registerMenuItem('help', {
+      id: 'help-about',
+      label: 'A propos...',
+      order: 100,
+      action: () => {
+        this.addLog('Hello', 'info', 'Général')
+      }
+    }, 'core')
   }
 
   get tabs() {
@@ -198,6 +214,26 @@ class IdeStore {
       this.tools.splice(index, 1)
       this._updateToolLists()
     }
+  }
+
+  registerMenu(config, ownerId = 'core') {
+    return mainMenuService.registerMenu(config, ownerId)
+  }
+
+  unregisterMenu(menuId, ownerId = null) {
+    mainMenuService.unregisterMenu(menuId, ownerId)
+  }
+
+  registerMenuItem(menuId, itemConfig, ownerId = 'core') {
+    return mainMenuService.registerMenuItem(menuId, itemConfig, ownerId)
+  }
+
+  unregisterMenuItem(menuId, itemId, ownerId = null) {
+    mainMenuService.unregisterMenuItem(menuId, itemId, ownerId)
+  }
+
+  unregisterMenuEntries(ownerId) {
+    mainMenuService.unregisterOwner(ownerId)
   }
 
   moveTool(toolId, newPosition) {

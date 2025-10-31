@@ -2,6 +2,7 @@ import { ideStore } from '@/stores/ideStore.svelte.js'
 import { panelsManager } from '@/core/PanelsManager.svelte.js'
 import { focusDisplayCoordinator } from '@/core/FocusDisplayCoordinator.svelte.js'
 import { toolFocusCoordinator } from '@/core/ToolFocusCoordinator.svelte.js'
+import { mainMenuService } from '@/core/MainMenuService.svelte.js'
 
 class ToolManagerSvelte {
   constructor() {
@@ -17,6 +18,7 @@ class ToolManagerSvelte {
       return
     }
 
+    mainMenuService.unregisterOwner(tool.id)
     this.registeredTools.set(tool.id, tool)
     tool.initialize()
     this._registerTool(tool)
@@ -56,6 +58,7 @@ class ToolManagerSvelte {
 
     tool.destroy()
     ideStore.removeTool(toolId)
+    mainMenuService.unregisterOwner(toolId)
     this.registeredTools.delete(toolId)
     ideStore.addLog(`Tool ${tool.name} unregistered`, 'info')
     toolFocusCoordinator.unregisterTool(toolId)

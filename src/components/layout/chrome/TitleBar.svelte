@@ -1,10 +1,13 @@
 <script>
   import AuthUserMenu from './AuthUserMenu.svelte'
+  import AppLogo from './AppLogo.svelte'
+  import MainMenu from './MainMenu.svelte'
 </script>
 
 <div class="title-bar">
-  <div class="title">
-    <h1>IDE Svelte</h1>
+  <div class="left-area">
+    <AppLogo size={26} class="logo" />
+    <MainMenu />
   </div>
 
   <AuthUserMenu />
@@ -25,9 +28,14 @@
     z-index: 1000;
   }
 
-  .title h1 {
-    font-size: 13px;
-    font-weight: 400;
-    margin: 0;
+  .left-area {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .logo {
+    flex-shrink: 0;
+    display: block;
   }
 </style>
