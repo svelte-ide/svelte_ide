@@ -2,8 +2,9 @@ import { eventBus } from '@/core/EventBusService.svelte.js'
 
 class ToolFocusCoordinator {
   constructor() {
-    this._registeredToolIds = new Set()
     this._focusHandler = null
+    this._toolToGroup = new Map()
+    this._groupToTools = new Map()
 
     eventBus.subscribe('tabs:focus-changed', ({ tab }) => {
       this._handleTabFocus(tab)
@@ -18,14 +19,37 @@ class ToolFocusCoordinator {
     if (!tool || !tool.id) {
       return
     }
-    this._registeredToolIds.add(tool.id)
+
+    const toolId = tool.id
+    const groupId = this._deriveGroupId(tool)
+
+    this._toolToGroup.set(toolId, groupId)
+
+    if (!this._groupToTools.has(groupId)) {
+      this._groupToTools.set(groupId, new Set())
+    }
+    this._groupToTools.get(groupId).add(toolId)
   }
 
   unregisterTool(toolId) {
     if (!toolId) {
       return
     }
-    this._registeredToolIds.delete(toolId)
+
+    const groupId = this._toolToGroup.get(toolId)
+    if (!groupId) {
+      return
+    }
+
+    this._toolToGroup.delete(toolId)
+
+    const group = this._groupToTools.get(groupId)
+    if (group) {
+      group.delete(toolId)
+      if (group.size === 0) {
+        this._groupToTools.delete(groupId)
+      }
+    }
   }
 
   _handleTabFocus(tab) {
@@ -33,16 +57,45 @@ class ToolFocusCoordinator {
       return
     }
 
-    const toolId = tab.toolId
-    if (!toolId) {
+    const primaryToolId = tab.toolId ?? tab.descriptor?.toolId
+    if (!primaryToolId) {
       return
     }
 
-    if (!this._registeredToolIds.has(toolId)) {
+    const groupId = this._toolToGroup.get(primaryToolId)
+    if (!groupId) {
       return
     }
 
-    this._focusHandler(toolId, tab)
+    const toolsInGroup = this._groupToTools.get(groupId)
+    if (!toolsInGroup || toolsInGroup.size === 0) {
+      return
+    }
+
+    toolsInGroup.forEach(toolId => {
+      const isPrimary = toolId === primaryToolId
+      this._focusHandler(toolId, tab, { isPrimary })
+    })
+  }
+
+  _deriveGroupId(tool) {
+    if (tool && typeof tool.focusGroup === 'string') {
+      const normalized = tool.focusGroup.trim()
+      if (normalized) {
+        return normalized
+      }
+    }
+
+    const source = typeof tool?.id === 'string' ? tool.id : ''
+    if (!source) {
+      return tool.id
+    }
+
+    const separatorIndex = source.indexOf('-')
+    if (separatorIndex === -1) {
+      return source
+    }
+    return source.slice(0, separatorIndex) || source
   }
 }
 

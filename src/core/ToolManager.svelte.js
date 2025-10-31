@@ -5,8 +5,8 @@ import { toolFocusCoordinator } from '@/core/ToolFocusCoordinator.svelte.js'
 class ToolManagerSvelte {
   constructor() {
     this.registeredTools = new Map()
-    toolFocusCoordinator.setFocusHandler((toolId, tab) => {
-      this._handleFocusedTab(toolId, tab)
+    toolFocusCoordinator.setFocusHandler((toolId, tab, options = {}) => {
+      this._handleFocusedTab(toolId, tab, options)
     })
   }
 
@@ -152,7 +152,7 @@ class ToolManagerSvelte {
     return this.registeredTools.get(toolId) || null
   }
 
-  _handleFocusedTab(toolId, tab) {
+  _handleFocusedTab(toolId, tab, { isPrimary = false } = {}) {
     const tool = this.getTool(toolId)
     if (!tool || !tool.panelId) {
       return
@@ -172,7 +172,9 @@ class ToolManagerSvelte {
       const component = panel.component ?? tool.component
       manager.activatePanel(panel.id, component)
     }
-    manager.focusPanel(panel.id)
+    if (isPrimary) {
+      manager.focusPanel(panel.id)
+    }
   }
 }
 
