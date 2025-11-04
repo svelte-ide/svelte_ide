@@ -56,8 +56,60 @@ export class AuthProvider {
   }
 
   generateState() {
-    return Math.random().toString(36).substring(2, 15) + 
-           Math.random().toString(36).substring(2, 15)
+    const array = new Uint8Array(32)
+    crypto.getRandomValues(array)
+    return btoa(String.fromCharCode.apply(null, array))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '')
+  }
+
+  getStateTtlMs() {
+    return 10 * 60 * 1000
+  }
+
+  storeState(state) {
+    const payload = {
+      value: state,
+      createdAt: Date.now()
+    }
+    try {
+      sessionStorage.setItem(this.getStorageKey('state'), JSON.stringify(payload))
+    } catch (error) {
+      console.warn(`Provider ${this.id}: Failed to persist OAuth state`, error)
+    }
+  }
+
+  consumeStoredState() {
+    const key = this.getStorageKey('state')
+    const raw = sessionStorage.getItem(key)
+    sessionStorage.removeItem(key)
+
+    if (!raw) {
+      return null
+    }
+
+    try {
+      const parsed = JSON.parse(raw)
+
+      if (!parsed?.value || typeof parsed.value !== 'string') {
+        return null
+      }
+
+      const isExpired = typeof parsed.createdAt === 'number'
+        ? Date.now() - parsed.createdAt > this.getStateTtlMs()
+        : true
+
+      if (isExpired) {
+        console.warn(`Provider ${this.id}: Stored OAuth state expired`)
+        return null
+      }
+
+      return parsed.value
+    } catch (error) {
+      console.warn(`Provider ${this.id}: Failed to parse stored OAuth state`, error)
+      return null
+    }
   }
 
   generateCodeVerifier() {

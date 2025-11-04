@@ -24,7 +24,7 @@ export class GoogleProvider extends AuthProvider {
     const codeVerifier = this.generateCodeVerifier()
     const codeChallenge = await this.generateCodeChallenge(codeVerifier)
     
-    sessionStorage.setItem(this.getStorageKey('state'), state)
+    this.storeState(state)
     sessionStorage.setItem(this.getStorageKey('code_verifier'), codeVerifier)
 
     const params = new URLSearchParams({
@@ -58,7 +58,7 @@ export class GoogleProvider extends AuthProvider {
     const state = urlParams.get('state')
     const error = urlParams.get('error')
 
-    console.log('Google callback parameters:', { code: !!code, state, error })
+    console.log('Google callback parameters:', { hasCode: !!code, hasState: !!state, error })
 
     if (error) {
       const errorDescription = urlParams.get('error_description')
@@ -69,17 +69,25 @@ export class GoogleProvider extends AuthProvider {
       }
     }
 
-    const storedState = sessionStorage.getItem(this.getStorageKey('state'))
+    const storedState = this.consumeStoredState()
     const codeVerifier = sessionStorage.getItem(this.getStorageKey('code_verifier'))
 
     console.log('Google state validation:', { 
-      urlState: state, 
-      storedState, 
-      stateMatch: state === storedState,
+      hasUrlState: !!state,
+      hasStoredState: !!storedState, 
+      stateMatch: state && storedState ? state === storedState : false,
       hasCodeVerifier: !!codeVerifier 
     })
 
-    if (!state || state !== storedState) {
+    if (!state || !storedState) {
+      console.error('Google state validation failed: missing or expired state')
+      return {
+        success: false,
+        error: 'Invalid or expired state parameter - possible CSRF attack'
+      }
+    }
+
+    if (state !== storedState) {
       console.error('Google state validation failed')
       return {
         success: false,
@@ -95,7 +103,6 @@ export class GoogleProvider extends AuthProvider {
       }
     }
 
-    sessionStorage.removeItem(this.getStorageKey('state'))
     sessionStorage.removeItem(this.getStorageKey('code_verifier'))
 
     try {
