@@ -133,9 +133,9 @@
 <div class="app">
   <ContextMenu />
   <ModalHost />
-  <TitleBar />
 
   {#if authStore.isAuthenticated}
+    <TitleBar />
     <div class="main-container">
       <Toolbar position="left" />
       
