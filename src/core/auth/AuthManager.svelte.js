@@ -115,7 +115,30 @@ export class AuthManager {
     }
 
     console.log(`AuthManager: Starting login with ${providerId}`)
-    return await provider.login()
+    const result = await provider.login()
+
+    if (result?.redirected) {
+      return result
+    }
+
+    if (result?.success) {
+      if (result.tokens?.accessToken && result.tokens?.expiresIn) {
+        this.tokenManager.setTokens(
+          result.tokens.accessToken,
+          result.tokens.refreshToken,
+          result.tokens.expiresIn,
+          result.userInfo ?? null
+        )
+      }
+
+      this.activeProvider = provider
+      this._isAuthenticated = true
+      this._currentUser = result.userInfo ?? null
+
+      console.log(`AuthManager: Authentication successful with ${providerId}`)
+    }
+
+    return result
   }
 
   async logout() {
