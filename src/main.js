@@ -1,6 +1,9 @@
 import { mount } from 'svelte'
 import App from '@/App.svelte'
 import { ideStore } from '@/stores/ideStore.svelte.js'
+import { applyCsp } from '@/core/security/csp.svelte.js'
+
+applyCsp()
 
 let externalTools = []
 

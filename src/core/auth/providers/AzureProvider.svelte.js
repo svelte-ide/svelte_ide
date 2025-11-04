@@ -1,4 +1,5 @@
 import { AuthProvider } from '@/core/auth/AuthProvider.svelte.js'
+import { authDebug, authWarn, authError } from '@/core/auth/authLogging.svelte.js'
 
 export class AzureProvider extends AuthProvider {
   constructor(config) {
@@ -34,7 +35,16 @@ export class AzureProvider extends AuthProvider {
     })
 
     const authUrl = `${this.authUrl}/${this.config.tenantId}/oauth2/v2.0/authorize?${params}`
-    console.log(`Azure OAuth: Redirecting to ${authUrl}`)
+    let redirectHost = null
+    try {
+      redirectHost = new URL(authUrl).host
+    } catch (_) {
+      redirectHost = 'unknown'
+    }
+    authDebug('Azure OAuth redirect initiated', {
+      tenant: this.config.tenantId,
+      redirectHost
+    })
     
     window.location.href = authUrl
     
@@ -45,18 +55,18 @@ export class AzureProvider extends AuthProvider {
   }
 
   async handleOwnCallback() {
-    console.log('AzureProvider.handleOwnCallback started')
+    authDebug('Azure callback started')
     
     const urlParams = new URLSearchParams(window.location.search)
     const code = urlParams.get('code')
     const state = urlParams.get('state')
     const error = urlParams.get('error')
 
-    console.log('Azure callback received:', { code: !!code, state, error })
+    authDebug('Azure callback parameters', { hasCode: !!code, hasState: !!state, error })
 
     if (error) {
       const errorDescription = urlParams.get('error_description')
-      console.error('Azure OAuth error:', { error, errorDescription })
+      authError('Azure OAuth error', { error, errorDescription })
       return {
         success: false,
         error: `OAuth error: ${error} - ${errorDescription}`
@@ -66,10 +76,15 @@ export class AzureProvider extends AuthProvider {
     const storedState = sessionStorage.getItem(this.getStorageKey('state'))
     const codeVerifier = sessionStorage.getItem(this.getStorageKey('code_verifier'))
     
-    console.log('Azure state validation:', { receivedState: state, storedState, codeVerifier: !!codeVerifier })
+    authDebug('Azure state validation', {
+      hasState: !!state,
+      hasStoredState: !!storedState,
+      stateMatch: state && storedState ? state === storedState : false,
+      hasCodeVerifier: !!codeVerifier
+    })
 
     if (!state || state !== storedState) {
-      console.error('Azure state mismatch:', { received: state, stored: storedState })
+      authWarn('Azure state mismatch', { received: state, stored: storedState })
       return {
         success: false,
         error: 'Invalid state parameter - possible CSRF attack'
@@ -77,7 +92,7 @@ export class AzureProvider extends AuthProvider {
     }
 
     if (!code) {
-      console.error('No authorization code received from Azure')
+      authWarn('No authorization code received from Azure')
       return {
         success: false,
         error: 'No authorization code received'
@@ -88,15 +103,19 @@ export class AzureProvider extends AuthProvider {
     sessionStorage.removeItem(this.getStorageKey('code_verifier'))
 
     try {
-      console.log('Exchanging Azure code for tokens...')
+      authDebug('Exchanging Azure authorization code for tokens')
       const tokenData = await this.exchangeCodeForTokens(code, codeVerifier)
-      console.log('Azure token exchange successful')
+      authDebug('Azure token exchange successful')
       
-      console.log('Fetching Azure user info...')
+      authDebug('Fetching Azure user info')
       const userInfo = await this.getUserInfo(tokenData.access_token)
-      console.log('Azure user info received:', userInfo)
+      authDebug('Azure user info received', {
+        hasEmail: Boolean(userInfo.email),
+        hasName: Boolean(userInfo.name),
+        hasAvatar: Boolean(userInfo.avatar)
+      })
       
-      console.log('AzureProvider.handleOwnCallback completed successfully')
+      authDebug('Azure callback processed successfully')
       return {
         success: true,
         tokens: {
@@ -107,7 +126,7 @@ export class AzureProvider extends AuthProvider {
         userInfo: userInfo
       }
     } catch (err) {
-      console.error('Azure callback processing error:', err)
+      authError('Azure callback processing error', err)
       return {
         success: false,
         error: err.message
@@ -136,14 +155,11 @@ export class AzureProvider extends AuthProvider {
 
     if (!response.ok) {
       const error = await response.json()
-      console.error('Azure token exchange failed:', {
+      authError('Azure token exchange failed', {
         status: response.status,
         statusText: response.statusText,
-        error: error,
-        endpoint: tokenEndpoint,
-        clientId: this.config.clientId,
-        tenantId: this.config.tenantId,
-        redirectUri: this.getRedirectUri()
+        error,
+        endpoint: tokenEndpoint
       })
       throw new Error(`Token exchange failed: ${error.error_description || error.error}`)
     }
@@ -178,7 +194,7 @@ export class AzureProvider extends AuthProvider {
         avatar = URL.createObjectURL(photoBlob)
       }
     } catch (photoError) {
-      console.log('Azure: No profile photo available')
+      authDebug('Azure user profile photo unavailable')
     }
     
     return {

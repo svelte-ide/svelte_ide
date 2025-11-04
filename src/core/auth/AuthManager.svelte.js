@@ -1,4 +1,5 @@
 import { TokenManager } from '@/core/auth/TokenManager.svelte.js'
+import { authDebug, authWarn, authError } from '@/core/auth/authLogging.svelte.js'
 
 export class AuthManager {
   constructor() {
@@ -8,7 +9,15 @@ export class AuthManager {
     this._isAuthenticated = false
     this._currentUser = null
     
-    this.initializeAuthState()
+    this.tokenManager.setAutoRefreshHandler(() => {
+      this.refreshToken().catch(error => {
+        authWarn('Auto-refresh failed', error)
+      })
+    })
+
+    this.ready = this.tokenManager.ready.then(() => {
+      return this.initializeAuthState()
+    })
   }
 
   get isAuthenticated() {
@@ -19,7 +28,9 @@ export class AuthManager {
     return this._currentUser
   }
 
-  initializeAuthState() {
+  async initializeAuthState() {
+    await this.tokenManager.ready
+
     const accessToken = this.tokenManager.getAccessToken()
     if (accessToken) {
       this._isAuthenticated = true
@@ -32,7 +43,7 @@ export class AuthManager {
       throw new Error('Invalid provider')
     }
     this.providers.set(provider.id, provider)
-    console.log(`AuthManager: Registered provider ${provider.id}`)
+    authDebug('Registered provider', { providerId: provider.id })
   }
 
   getAvailableProviders() {
@@ -46,51 +57,58 @@ export class AuthManager {
   findProviderForCallback(currentPath) {
     for (const [id, provider] of this.providers) {
       if (provider.canHandleCallback(currentPath)) {
-        console.log(`AuthManager: Found provider ${id} for callback path ${currentPath}`)
+        authDebug('Found provider for callback', { providerId: id, path: currentPath })
         return provider
       }
     }
-    console.log(`AuthManager: No provider found for callback path ${currentPath}`)
+    authDebug('No provider found for callback path', { path: currentPath })
     return null
   }
 
   async handleCallback() {
+    await this.tokenManager.ready
+
     const currentPath = window.location.pathname
-    console.log(`AuthManager: Handling callback for path ${currentPath}`)
+    authDebug('Handling callback', { path: currentPath })
     
     const provider = this.findProviderForCallback(currentPath)
     
     if (!provider) {
-      console.log('AuthManager: No provider can handle this callback')
+      authWarn('No provider can handle this callback', { path: currentPath })
       return {
         success: false,
         error: 'No provider found for this callback URL'
       }
     }
 
-    console.log(`AuthManager: Delegating callback to ${provider.id}`)
+    authDebug('Delegating callback to provider', { providerId: provider.id })
     
     // Vérifier si on a déjà traité ce callback pour éviter les doubles traitements
     const callbackKey = `callback_processed_${provider.id}_${window.location.search}`
     if (sessionStorage.getItem(callbackKey)) {
-      console.log(`AuthManager: Callback already processed for ${provider.id}, skipping`)
+      authWarn('Callback already processed, skipping', { providerId: provider.id })
       return { success: false, error: 'Callback already processed' }
     }
     
     const result = await provider.handleOwnCallback()
     
     if (result.success) {
-      this.tokenManager.setTokens(
-        result.tokens.accessToken,
-        result.tokens.refreshToken,
-        result.tokens.expiresIn,
-        result.userInfo
-      )
+      if (result.tokens?.accessToken && result.tokens?.expiresIn) {
+        await this.tokenManager.setTokens(
+          result.tokens.accessToken,
+          result.tokens.refreshToken,
+          result.tokens.expiresIn,
+          result.userInfo
+        )
+      } else {
+        await this.tokenManager.clear()
+        this.tokenManager.userInfo = result.userInfo || null
+      }
       this.activeProvider = provider
       this._isAuthenticated = true
       this._currentUser = result.userInfo
       
-      console.log(`AuthManager: Authentication successful with ${provider.id}`)
+      authDebug('Authentication successful', { providerId: provider.id })
       
       // Marquer ce callback comme traité
       sessionStorage.setItem(callbackKey, 'true')
@@ -106,6 +124,8 @@ export class AuthManager {
   }
 
   async login(providerId) {
+    await this.tokenManager.ready
+
     const provider = this.providers.get(providerId)
     if (!provider) {
       return {
@@ -114,7 +134,7 @@ export class AuthManager {
       }
     }
 
-    console.log(`AuthManager: Starting login with ${providerId}`)
+    authDebug('Starting login', { providerId })
     const result = await provider.login()
 
     if (result?.redirected) {
@@ -123,41 +143,46 @@ export class AuthManager {
 
     if (result?.success) {
       if (result.tokens?.accessToken && result.tokens?.expiresIn) {
-        this.tokenManager.setTokens(
+        await this.tokenManager.setTokens(
           result.tokens.accessToken,
           result.tokens.refreshToken,
           result.tokens.expiresIn,
           result.userInfo ?? null
         )
+      } else {
+        await this.tokenManager.clear()
+        this.tokenManager.userInfo = result.userInfo ?? null
       }
 
       this.activeProvider = provider
       this._isAuthenticated = true
       this._currentUser = result.userInfo ?? null
 
-      console.log(`AuthManager: Authentication successful with ${providerId}`)
+      authDebug('Login completed successfully', { providerId })
     }
 
     return result
   }
 
   async logout() {
-    console.log('AuthManager: Starting logout')
+    await this.tokenManager.ready
+
+    authDebug('Starting logout')
     
     try {
       if (this.activeProvider) {
         await this.activeProvider.logout()
       }
     } catch (error) {
-      console.warn('AuthManager: Provider logout failed:', error)
+      authWarn('Provider logout failed', error)
     }
     
-    this.tokenManager.clear()
+    await this.tokenManager.clear()
     this.activeProvider = null
     this._isAuthenticated = false
     this._currentUser = null
     
-    console.log('AuthManager: Logout completed')
+    authDebug('Logout completed')
     
     return { success: true }
   }
@@ -167,6 +192,8 @@ export class AuthManager {
   }
 
   async refreshToken() {
+    await this.tokenManager.ready
+
     if (!this.activeProvider) {
       return {
         success: false,
@@ -183,31 +210,31 @@ export class AuthManager {
         }
       }
 
-      console.log(`AuthManager: Refreshing token with ${this.activeProvider.id}`)
+      authDebug('Refreshing token', { providerId: this.activeProvider.id })
       const result = await this.activeProvider.refreshToken(refreshToken)
       
       if (result.success) {
-        this.tokenManager.setTokens(
+        await this.tokenManager.setTokens(
           result.tokens.accessToken,
           result.tokens.refreshToken,
           result.tokens.expiresIn,
           this._currentUser
         )
-        console.log('AuthManager: Token refresh successful')
+        authDebug('Token refresh successful', { providerId: this.activeProvider.id })
         return { success: true, accessToken: result.tokens.accessToken }
       }
       
-      console.error('AuthManager: Token refresh failed:', result.error)
+      authError('Token refresh failed', result.error)
       this._isAuthenticated = false
       this._currentUser = null
-      this.tokenManager.clear()
+      await this.tokenManager.clear()
       
       return result
     } catch (error) {
-      console.error('AuthManager: Token refresh error:', error)
+      authError('Token refresh error', error)
       this._isAuthenticated = false
       this._currentUser = null
-      this.tokenManager.clear()
+      await this.tokenManager.clear()
       
       return {
         success: false,
@@ -217,7 +244,7 @@ export class AuthManager {
   }
 
   async initializeProviders() {
-    console.log('AuthManager: Initializing providers...')
+    authDebug('Initializing providers')
     const successfulProviders = []
     const failedProviders = []
     
@@ -225,19 +252,22 @@ export class AuthManager {
       try {
         await provider.initialize()
         successfulProviders.push(id)
-        console.log(`AuthManager: Provider ${id} initialized successfully`)
+        authDebug('Provider initialized', { providerId: id })
       } catch (error) {
         failedProviders.push({ id, error: error.message })
-        console.warn(`AuthManager: Failed to initialize provider ${id}:`, error.message)
+        authWarn('Failed to initialize provider', { providerId: id, error: error.message })
         // Retirer le provider défaillant
         this.providers.delete(id)
       }
     }
     
-    console.log(`AuthManager: Initialization complete - ${successfulProviders.length} successful, ${failedProviders.length} failed`)
+    authDebug('Initialization complete', {
+      successful: successfulProviders.length,
+      failed: failedProviders.length
+    })
     
     if (this.providers.size === 0) {
-      console.warn('AuthManager: No providers available after initialization')
+      authWarn('No providers available after initialization')
     }
   }
 }

@@ -158,6 +158,15 @@ Deux parcours sont supportés pour l'authentification Google : un flux 100 % SPA
 - L'absence d'URL backend fait basculer le provider en mode SPA. Renseigner une URL de backend (ou `VITE_GOOGLE_USE_BACKEND=true`) active automatiquement le mode serveur.
 - Aucune modification n’est nécessaire ailleurs dans l’application : `AuthManager` et `authStore` détectent la configuration et utilisent la même API.
 
+### Sécurité des jetons
+- La persistance des jetons est contrôlée par `VITE_AUTH_TOKEN_PERSISTENCE` (`memory`, `session`, `local`). Par défaut, on stocke en `sessionStorage`, ou uniquement en mémoire si un backend OAuth est configuré.
+- Un chiffrement optionnel au repos est disponible via `VITE_AUTH_TOKEN_ENCRYPTION_KEY` (clé AES-GCM encodée en base64). Quand la clé est absente, l’application retombe sur un stockage en clair.
+- Pour auditer les accès, activez `VITE_AUTH_LOG_TOKEN_ACCESSES=true`. Les empreintes sont tronquées (`abcd…wxyz`) pour éviter toute fuite dans la console.
+- Lorsque le backend gère des cookies httpOnly, positionnez `VITE_AUTH_TOKEN_PERSISTENCE=memory` afin qu’aucun jeton ne soit conservé dans le navigateur.
+- Une politique CSP stricte peut être injectée via `VITE_CSP_DIRECTIVES`. À défaut, une valeur par défaut est appliquée en production pour réduire la surface XSS.
+- Les traces verbeuses peuvent être activées via `VITE_AUTH_DEBUG_LOGS=true`. Par défaut, seules les erreurs et avertissements sont affichés en production.
+- En production (`import.meta.env.PROD`), `VITE_AUTH_PROVIDERS` doit être défini et ne peut contenir `mock`. Le `MockProvider` reste disponible uniquement pour le développement.
+
 ## Principes transverses
 - Observer en priorité les conventions déjà présentes dans la base de code avant d’appliquer de nouvelles règles
 - Respecter la règle de langage : code et noms de fichiers en anglais, commentaires et libellés UI en français

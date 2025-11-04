@@ -1,23 +1,39 @@
 import { AuthManager } from '@/core/auth/AuthManager.svelte.js'
 import { AzureProvider, GoogleProvider, MockProvider } from '@/core/auth/providers/index.js'
+import { authDebug, authWarn, authError } from '@/core/auth/authLogging.svelte.js'
 
 function getIdeStore() {
   return import('@/stores/ideStore.svelte.js').then(module => module.ideStore)
 }
 
 function initializeAuthProviders(authManager) {
-  const enabledProviders = import.meta.env.VITE_AUTH_PROVIDERS?.split(',') || []
+  const rawProviders = import.meta.env.VITE_AUTH_PROVIDERS || ''
+  const enabledProviders = rawProviders
+    .split(',')
+    .map(providerId => providerId.trim())
+    .filter(Boolean)
   let hasRealProviders = false
+  const isProd = import.meta.env.PROD
+  const mockRequested = enabledProviders.includes('mock')
+  const providersToProcess = enabledProviders.filter(id => id !== 'mock')
 
-  console.log('AuthStore: Enabled providers:', enabledProviders)
+  if (isProd && enabledProviders.length === 0) {
+    throw new Error('AuthStore: VITE_AUTH_PROVIDERS must be set in production builds')
+  }
 
-  if (enabledProviders.includes('azure')) {
+  if (isProd && mockRequested) {
+    throw new Error('AuthStore: MockProvider is not allowed in production builds')
+  }
+
+  authDebug('Enabled auth providers', { enabledProviders })
+
+  if (providersToProcess.includes('azure')) {
     const azureConfig = {
       clientId: import.meta.env.VITE_AZURE_CLIENT_ID,
       tenantId: import.meta.env.VITE_AZURE_TENANT_ID
     }
     
-    console.log('AuthStore: Azure config check:', { 
+    authDebug('Azure config check', { 
       hasClientId: !!azureConfig.clientId, 
       hasTenantId: !!azureConfig.tenantId 
     })
@@ -25,13 +41,13 @@ function initializeAuthProviders(authManager) {
     if (azureConfig.clientId && azureConfig.tenantId) {
       authManager.registerProvider(new AzureProvider(azureConfig))
       hasRealProviders = true
-      console.log('AuthStore: Azure provider registered')
+      authDebug('Azure provider registered')
     } else {
-      console.log('AuthStore: Azure provider skipped - missing configuration')
+      authWarn('Azure provider skipped - missing configuration', azureConfig)
     }
   }
 
-  if (enabledProviders.includes('google')) {
+  if (providersToProcess.includes('google')) {
     const backendFlag = import.meta.env.VITE_GOOGLE_USE_BACKEND
     const allowSecretFlag = import.meta.env.VITE_GOOGLE_ALLOW_INSECURE_SECRET
     const googleConfig = {
@@ -44,7 +60,7 @@ function initializeAuthProviders(authManager) {
       allowInsecureClientSecret: allowSecretFlag === 'true' || allowSecretFlag === '1'
     }
     
-    console.log('AuthStore: Google config check:', { 
+    authDebug('Google config check', { 
       hasClientId: !!googleConfig.clientId,
       hasBackendTokenUrl: !!googleConfig.backendTokenUrl,
       backendModeFlag: googleConfig.useBackendExchange,
@@ -55,7 +71,7 @@ function initializeAuthProviders(authManager) {
     if (googleConfig.clientId) {
       const useBackend = googleConfig.useBackendExchange || !!googleConfig.backendTokenUrl || !!googleConfig.backendRefreshUrl
       if (useBackend && !googleConfig.backendTokenUrl) {
-        console.warn('AuthStore: Google provider skipped - backend exchange enabled but VITE_GOOGLE_BACKEND_TOKEN_URL is missing')
+        authWarn('Google provider skipped - backend exchange enabled but backend token URL missing')
       } else {
         const providerConfig = {
           clientId: googleConfig.clientId
@@ -76,7 +92,7 @@ function initializeAuthProviders(authManager) {
         
         if (!useBackend && googleConfig.clientSecret) {
           if (!googleConfig.allowInsecureClientSecret) {
-            console.warn('AuthStore: Google clientSecret provided but VITE_GOOGLE_ALLOW_INSECURE_SECRET is not true; secret will be ignored.')
+            authWarn('Google clientSecret provided without allow flag; secret ignored')
           } else {
             providerConfig.clientSecret = googleConfig.clientSecret
             providerConfig.allowInsecureClientSecret = true
@@ -85,16 +101,26 @@ function initializeAuthProviders(authManager) {
         
         authManager.registerProvider(new GoogleProvider(providerConfig))
         hasRealProviders = true
-        console.log('AuthStore: Google provider registered')
+        authDebug('Google provider registered', { useBackend })
       }
     } else {
-      console.log('AuthStore: Google provider skipped - missing clientId')
+      authWarn('Google provider skipped - missing clientId')
     }
   }
 
-  // Ajouter le MockProvider par défaut si aucun vrai provider n'est configuré
-  if (!hasRealProviders) {
-    console.log('AuthStore: No real providers configured, using MockProvider')
+  const allowMock = !isProd && (mockRequested || providersToProcess.length === 0)
+
+  if (!hasRealProviders && !allowMock) {
+    throw new Error('AuthStore: No authentication provider configured')
+  }
+
+  if (allowMock) {
+    if (!hasRealProviders) {
+      authWarn('No real providers configured, falling back to MockProvider (development only)')
+    } else if (mockRequested) {
+      authDebug('Registering MockProvider alongside real providers (development only)')
+    }
+
     const mockConfig = {
       simulateDelay: import.meta.env.VITE_MOCK_AUTH_DELAY ? parseInt(import.meta.env.VITE_MOCK_AUTH_DELAY) : 1000,
       userInfo: {
@@ -104,9 +130,10 @@ function initializeAuthProviders(authManager) {
         avatar: '👨‍💻'
       }
     }
-    
+
     authManager.registerProvider(new MockProvider(mockConfig))
-    console.log('AuthStore: MockProvider registered as fallback')
+    authDebug('MockProvider registered', { fallback: !hasRealProviders })
+    hasRealProviders = true
   }
 }
 
@@ -149,11 +176,12 @@ function createAuthStore() {
         
         initializeAuthProviders(authManager)
         await authManager.initializeProviders()
+        await authManager.ready
         
         // Vérifier si on est dans un callback OAuth
         const currentPath = window.location.pathname
         if (currentPath.startsWith('/auth/') && currentPath.includes('/callback') || window.location.search.includes('code=')) {
-          console.log('AuthStore: Detected OAuth callback, delegating to AuthManager')
+          authDebug('Detected OAuth callback, delegating to AuthManager')
           const result = await authManager.handleCallback()
           
           if (result.success) {
@@ -165,7 +193,7 @@ function createAuthStore() {
                 const ideStore = await getIdeStore()
                 await ideStore.restoreUserLayout(currentUser)
               } catch (layoutError) {
-                console.warn('AuthStore: Failed to restore user layout:', layoutError)
+                authWarn('Failed to restore user layout', layoutError)
               }
             }
           } else if (result.error) {
@@ -175,14 +203,14 @@ function createAuthStore() {
         
         // Après l'initialisation, vérifier si l'utilisateur est déjà authentifié (reload de page)
         // La restauration du layout sera faite plus tard via App.svelte après le chargement des outils
-        if (authManager.isAuthenticated && authManager.currentUser) {
-          syncFromManager()
-        }
+    if (authManager.isAuthenticated && authManager.currentUser) {
+      syncFromManager()
+    }
         
         initialized = true
         syncFromManager(true)
       } catch (err) {
-        console.error('AuthStore: Initialization error:', err)
+        authError('AuthStore initialization error', err)
         error = err.message
       } finally {
         isLoading = false
@@ -195,18 +223,18 @@ function createAuthStore() {
         isLoading = true
         error = null
         
-        console.log(`AuthStore: Starting login with ${providerId}`)
+        authDebug('Starting login', { providerId })
         const result = await authManager.login(providerId)
         
         if (result.redirected) {
           // Le provider a redirigé vers OAuth, pas besoin de mise à jour réactive ici
-          console.log(`AuthStore: Redirected to ${providerId} OAuth`)
+          authDebug('Redirected to provider OAuth', { providerId })
           return result
         }
         
         if (result.success) {
           syncFromManager()
-          console.log(`AuthStore: Login successful with ${providerId}`)
+          authDebug('Login successful', { providerId })
           
           // Restaurer le layout utilisateur après une authentification réussie
           if (currentUser) {
@@ -214,7 +242,7 @@ function createAuthStore() {
               const ideStore = await getIdeStore()
               await ideStore.restoreUserLayout(currentUser)
             } catch (layoutError) {
-              console.warn('AuthStore: Failed to restore user layout:', layoutError)
+              authWarn('Failed to restore user layout', layoutError)
             }
           }
         } else {
@@ -223,7 +251,7 @@ function createAuthStore() {
         
         return result
       } catch (err) {
-        console.error('AuthStore: Login error:', err)
+        authError('AuthStore login error', err)
         error = err.message
         throw err
       } finally {
@@ -236,15 +264,15 @@ function createAuthStore() {
         isLoading = true
         error = null
         
-        console.log('AuthStore: Starting logout')
+        authDebug('Starting logout')
         const result = await authManager.logout()
         
         syncFromManager()
         
-        console.log('AuthStore: Logout completed')
+        authDebug('Logout completed')
         return result
       } catch (err) {
-        console.error('AuthStore: Logout error:', err)
+        authError('AuthStore logout error', err)
         error = err.message
         throw err
       } finally {
@@ -258,7 +286,7 @@ function createAuthStore() {
 
     async refreshToken() {
       try {
-        console.log('AuthStore: Refreshing token')
+        authDebug('Manual token refresh requested')
         const result = await authManager.refreshToken()
         
         if (!result.success) {
@@ -268,7 +296,7 @@ function createAuthStore() {
         
         return result
       } catch (err) {
-        console.error('AuthStore: Token refresh error:', err)
+        authError('AuthStore token refresh error', err)
         error = err.message
         throw err
       }

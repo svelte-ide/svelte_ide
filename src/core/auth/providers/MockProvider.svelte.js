@@ -1,4 +1,5 @@
 import { AuthProvider } from '@/core/auth/AuthProvider.svelte.js'
+import { authDebug, authWarn } from '@/core/auth/authLogging.svelte.js'
 
 export class MockProvider extends AuthProvider {
   constructor(config = {}) {
@@ -31,15 +32,15 @@ export class MockProvider extends AuthProvider {
   }
 
   async login() {
-    console.log('MockProvider: Starting mock authentication')
+    authDebug('Mock provider starting authentication')
     
     if (this.config.simulateDelay > 0) {
-      console.log(`MockProvider: Simulating ${this.config.simulateDelay}ms delay`)
+      authDebug('Mock provider delay', { delayMs: this.config.simulateDelay })
       await new Promise(resolve => setTimeout(resolve, this.config.simulateDelay))
     }
 
     if (this.config.shouldFail) {
-      console.log('MockProvider: Simulating authentication failure')
+      authDebug('Mock provider simulating failure')
       return {
         success: false,
         error: 'Mock authentication failed (simulated)'
@@ -58,7 +59,7 @@ export class MockProvider extends AuthProvider {
       loginTime: new Date().toISOString()
     }
 
-    console.log('MockProvider: Authentication successful')
+    authDebug('Mock provider authentication successful')
     return {
       success: true,
       tokens: mockTokens,
@@ -68,7 +69,7 @@ export class MockProvider extends AuthProvider {
 
   async handleOwnCallback() {
     // MockProvider ne devrait jamais être appelé pour un callback
-    console.warn('MockProvider: handleOwnCallback called but MockProvider does not handle OAuth callbacks')
+    authWarn('Mock provider callback invoked unexpectedly')
     return {
       success: false,
       error: 'MockProvider does not handle OAuth callbacks'
@@ -76,18 +77,18 @@ export class MockProvider extends AuthProvider {
   }
 
   async logout() {
-    console.log('MockProvider: Starting logout')
+    authDebug('Mock provider starting logout')
     
     if (this.config.simulateDelay > 0) {
       await new Promise(resolve => setTimeout(resolve, 500))
     }
     
-    console.log('MockProvider: Logout completed')
+    authDebug('Mock provider logout completed')
     return { success: true }
   }
 
   async refreshToken(refreshToken) {
-    console.log('MockProvider: Refreshing token')
+    authDebug('Mock provider refreshing token')
     
     if (this.config.simulateDelay > 0) {
       await new Promise(resolve => setTimeout(resolve, 800))
@@ -106,7 +107,7 @@ export class MockProvider extends AuthProvider {
       expiresIn: 3600
     }
 
-    console.log('MockProvider: Token refresh successful')
+    authDebug('Mock provider token refresh successful')
     return {
       success: true,
       tokens: newTokens

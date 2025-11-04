@@ -1,0 +1,123 @@
+const encoder = typeof TextEncoder !== 'undefined' ? new TextEncoder() : null
+const decoder = typeof TextDecoder !== 'undefined' ? new TextDecoder() : null
+const hasBase64 = typeof atob === 'function' && typeof btoa === 'function'
+
+function hasWebCrypto() {
+  return typeof window !== 'undefined' && window.crypto && window.crypto.subtle && encoder && decoder && hasBase64
+}
+
+function base64ToBytes(base64) {
+  const binary = atob(base64)
+  const len = binary.length
+  const bytes = new Uint8Array(len)
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binary.charCodeAt(i)
+  }
+  return bytes
+}
+
+function bytesToBase64(bytes) {
+  let binary = ''
+  const chunkSize = 0x8000
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize)
+    binary += String.fromCharCode.apply(null, chunk)
+  }
+  return btoa(binary)
+}
+
+export class TokenCipher {
+  constructor(rawKey) {
+    this.rawKey = rawKey
+    this.enabled = hasWebCrypto() && rawKey && rawKey.length >= 32
+    this.keyPromise = null
+  }
+
+  async getKey() {
+    if (!this.enabled) {
+      return null
+    }
+    if (this.keyPromise) {
+      return this.keyPromise
+    }
+    this.keyPromise = (async () => {
+      try {
+        const keyBytes = base64ToBytes(this.rawKey)
+        return await window.crypto.subtle.importKey(
+          'raw',
+          keyBytes,
+          { name: 'AES-GCM' },
+          false,
+          ['encrypt', 'decrypt']
+        )
+      } catch (error) {
+        console.warn('TokenCipher: Failed to import encryption key, disabling encryption', error)
+        this.enabled = false
+        return null
+      }
+    })()
+    return this.keyPromise
+  }
+
+  async encrypt(plaintext) {
+    if (!this.enabled) {
+      return plaintext
+    }
+
+    try {
+      const key = await this.getKey()
+      if (!key) {
+        return plaintext
+      }
+
+      const iv = window.crypto.getRandomValues(new Uint8Array(12))
+      const data = encoder.encode(plaintext)
+      const ciphertext = await window.crypto.subtle.encrypt(
+        { name: 'AES-GCM', iv },
+        key,
+        data
+      )
+
+      const resultBytes = new Uint8Array(iv.length + ciphertext.byteLength)
+      resultBytes.set(iv, 0)
+      resultBytes.set(new Uint8Array(ciphertext), iv.length)
+
+      return bytesToBase64(resultBytes)
+    } catch (error) {
+      console.warn('TokenCipher: Encryption failed, storing plaintext instead', error)
+      return plaintext
+    }
+  }
+
+  async decrypt(payload) {
+    if (!this.enabled) {
+      return payload
+    }
+
+    try {
+      const key = await this.getKey()
+      if (!key) {
+        return payload
+      }
+
+      const bytes = base64ToBytes(payload)
+      if (bytes.length <= 12) {
+        return payload
+      }
+
+      const iv = bytes.subarray(0, 12)
+      const data = bytes.subarray(12)
+
+      const decrypted = await window.crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv },
+        key,
+        data
+      )
+
+      return decoder.decode(decrypted)
+    } catch (error) {
+      console.warn('TokenCipher: Decryption failed, clearing stored tokens', error)
+      return null
+    }
+  }
+}

@@ -1,4 +1,5 @@
 import { AuthProvider } from '@/core/auth/AuthProvider.svelte.js'
+import { authDebug, authWarn, authError } from '@/core/auth/authLogging.svelte.js'
 
 export class GoogleProvider extends AuthProvider {
   constructor(config) {
@@ -34,7 +35,7 @@ export class GoogleProvider extends AuthProvider {
       this.config.allowInsecureClientSecret === 'true' ||
       this.config.allowInsecureClientSecret === '1'
 
-    console.log('GoogleProvider.validateConfig', {
+    authDebug('Google provider config received', {
       receivedClientSecret: !!this.config.clientSecret,
       trimmedSecretLength: secret.length,
       allowSecretFlag
@@ -54,13 +55,13 @@ export class GoogleProvider extends AuthProvider {
       delete this.config.clientSecret
     }
 
-    console.log('GoogleProvider.validateConfig status', {
+    authDebug('Google provider config evaluated', {
       allowInsecureClientSecret: this.allowInsecureClientSecret,
       storedSecretLength: this.config.clientSecret ? this.config.clientSecret.length : 0
     })
 
     if (this.allowInsecureClientSecret && import.meta.env && import.meta.env.PROD) {
-      console.warn(
+      authWarn(
         'GoogleProvider: allowInsecureClientSecret enabled in production build. This exposes the client secret; consider switching to the backend exchange.'
       )
     }
@@ -132,7 +133,16 @@ export class GoogleProvider extends AuthProvider {
     })
 
     const authUrl = `${this.authUrl}?${params}`
-    console.log(`Google OAuth: Redirecting to ${authUrl}`)
+    let redirectHost = null
+    try {
+      redirectHost = new URL(authUrl).host
+    } catch (_) {
+      redirectHost = 'unknown'
+    }
+    authDebug('Google OAuth redirect initiated', {
+      hasBackendExchange: this.useBackendExchange,
+      redirectHost
+    })
     
     window.location.href = authUrl
     
@@ -143,18 +153,18 @@ export class GoogleProvider extends AuthProvider {
   }
 
   async handleOwnCallback() {
-    console.log('GoogleProvider.handleOwnCallback started')
+    authDebug('Google callback started')
     
     const urlParams = new URLSearchParams(window.location.search)
     const code = urlParams.get('code')
     const state = urlParams.get('state')
     const error = urlParams.get('error')
 
-    console.log('Google callback parameters:', { hasCode: !!code, hasState: !!state, error })
+    authDebug('Google callback parameters', { hasCode: !!code, hasState: !!state, error })
 
     if (error) {
       const errorDescription = urlParams.get('error_description')
-      console.error('Google OAuth error:', error, errorDescription)
+      authError('Google OAuth error', { error, errorDescription })
       return {
         success: false,
         error: `OAuth error: ${error} - ${errorDescription}`
@@ -164,7 +174,7 @@ export class GoogleProvider extends AuthProvider {
     const storedState = this.consumeStoredState()
     const codeVerifier = sessionStorage.getItem(this.getStorageKey('code_verifier'))
 
-    console.log('Google state validation:', { 
+    authDebug('Google state validation', { 
       hasUrlState: !!state,
       hasStoredState: !!storedState, 
       stateMatch: state && storedState ? state === storedState : false,
@@ -172,7 +182,7 @@ export class GoogleProvider extends AuthProvider {
     })
 
     if (!state || !storedState) {
-      console.error('Google state validation failed: missing or expired state')
+      authWarn('Google state validation failed: missing or expired state')
       return {
         success: false,
         error: 'Invalid or expired state parameter - possible CSRF attack'
@@ -180,7 +190,7 @@ export class GoogleProvider extends AuthProvider {
     }
 
     if (state !== storedState) {
-      console.error('Google state validation failed')
+      authWarn('Google state validation failed', { received: state, stored: storedState })
       return {
         success: false,
         error: 'Invalid state parameter - possible CSRF attack'
@@ -188,7 +198,7 @@ export class GoogleProvider extends AuthProvider {
     }
 
     if (!code) {
-      console.error('No authorization code received from Google')
+      authWarn('No authorization code received from Google')
       return {
         success: false,
         error: 'No authorization code received'
@@ -198,15 +208,19 @@ export class GoogleProvider extends AuthProvider {
     sessionStorage.removeItem(this.getStorageKey('code_verifier'))
 
     try {
-      console.log('Exchanging Google code for tokens...')
+      authDebug('Exchanging Google authorization code for tokens')
       const tokenData = await this.exchangeCodeForTokens(code, codeVerifier)
-      console.log('Google token exchange successful')
+      authDebug('Google token exchange successful')
       
-      console.log('Fetching Google user info...')
+      authDebug('Fetching Google user info')
       const userInfo = await this.getUserInfo(tokenData.access_token)
-      console.log('Google user info received:', userInfo)
+      authDebug('Google user info received', {
+        hasEmail: Boolean(userInfo.email),
+        hasName: Boolean(userInfo.name),
+        hasAvatar: Boolean(userInfo.avatar)
+      })
       
-      console.log('GoogleProvider.handleOwnCallback completed successfully')
+      authDebug('Google callback processed successfully')
       return {
         success: true,
         tokens: {
@@ -217,7 +231,7 @@ export class GoogleProvider extends AuthProvider {
         userInfo: userInfo
       }
     } catch (err) {
-      console.error('Google callback processing error:', err)
+      authError('Google callback processing error', err)
       return {
         success: false,
         error: err.message
@@ -250,14 +264,14 @@ export class GoogleProvider extends AuthProvider {
         } catch (_) {
           error = await response.text()
         }
-        console.error('GoogleProvider: Backend token exchange failed:', error)
+        authError('Google backend token exchange failed', error)
         const message =
           (error && (error.error_description || error.error || error.message)) ||
           'Backend token exchange failed'
         throw new Error(message)
       }
 
-      console.log('GoogleProvider: Token exchange completed via backend')
+      authDebug('Google token exchange completed via backend')
       return await response.json()
     }
 
@@ -276,7 +290,7 @@ export class GoogleProvider extends AuthProvider {
       params.set('client_secret', directSecret)
     }
 
-    console.log('GoogleProvider: Token exchange payload (direct)', {
+    authDebug('Google token exchange payload (direct)', {
       hasSecret: params.has('client_secret'),
       allowInsecureClientSecret: this.allowInsecureClientSecret,
       configHasSecret: includeSecret
@@ -297,14 +311,17 @@ export class GoogleProvider extends AuthProvider {
       } catch (_) {
         error = await response.text()
       }
-      console.error('GoogleProvider: Token exchange failed:', error)
+      authError('Google token exchange failed (direct)', error)
       const message =
         (error && (error.error_description || error.error || error.message)) ||
         'Token exchange failed'
       throw new Error(message)
     }
 
-    console.log('GoogleProvider: Token exchange completed via direct flow')
+    authDebug('Google token exchange completed via direct flow', {
+      backend: false,
+      includeSecret
+    })
     return await response.json()
   }
 
@@ -322,7 +339,10 @@ export class GoogleProvider extends AuthProvider {
 
     const userData = await response.json()
     
-    console.log('Google user data received:', userData)
+    authDebug('Raw Google user data received', {
+      hasId: Boolean(userData.sub || userData.id),
+      hasEmail: Boolean(userData.email)
+    })
     
     return {
       id: userData.sub || userData.id,
@@ -356,7 +376,7 @@ export class GoogleProvider extends AuthProvider {
         } catch (_) {
           error = await response.text()
         }
-        console.error('GoogleProvider: Backend token refresh failed:', error)
+        authError('Google backend token refresh failed', error)
         const message =
           (error && (error.error_description || error.error || error.message)) ||
           'Token refresh failed'
@@ -367,7 +387,7 @@ export class GoogleProvider extends AuthProvider {
       }
 
       const tokenData = await response.json()
-      console.log('GoogleProvider: Token refresh completed via backend')
+      authDebug('Google token refresh completed via backend')
       
       return {
         success: true,
@@ -392,7 +412,7 @@ export class GoogleProvider extends AuthProvider {
       params.set('client_secret', directSecret)
     }
 
-    console.log('GoogleProvider: Token refresh payload (direct)', {
+    authDebug('Google token refresh payload (direct)', {
       hasSecret: params.has('client_secret'),
       allowInsecureClientSecret: this.allowInsecureClientSecret,
       configHasSecret: includeSecret
