@@ -24,3 +24,7 @@ Ce projet applique des règles de codage strictes basées sur les dernières fon
 Pour connaître les règles précises, les bonnes pratiques et les anti-patterns à éviter, veuillez consulter le guide de développement :
 
 ➡️ **[SVELTE5.md](./SVELTE5.md)**
+
+## Licence
+
+Ce projet est distribué sous licence Apache 2.0. Consultez les fichiers [LICENSE](./LICENSE) et [NOTICE](./NOTICE) pour connaître les conditions d'utilisation et les obligations d'attribution.
