@@ -18,9 +18,10 @@
   const hasCustomComponent = $derived(Boolean(branding?.logoComponent))
   const customText = $derived(branding?.logoText ?? null)
   const textFontSize = $derived(`${Math.round(size * 0.75)}px`)
+  const minWidthStyle = $derived(hasCustomComponent ? heightStyle : 'auto')
 </script>
 
-<div class={`app-logo ${className}`.trim()} style:height={heightStyle} style:min-width={heightStyle}>
+<div class={`app-logo ${className}`.trim()} style:height={heightStyle} style:min-width={minWidthStyle}>
   {#if hasCustomComponent}
     <svelte:component this={branding.logoComponent} {...componentProps} />
   {:else}

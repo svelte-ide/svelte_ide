@@ -189,3 +189,7 @@ Deux parcours sont supportés pour l'authentification Google : un flux 100 % SPA
 - Respecter la règle de langage : code et noms de fichiers en anglais, commentaires et libellés UI en français
 - Favoriser le principe KISS : écrire le minimum de code nécessaire, éviter les couches d'abstraction inutiles et n'introduire qu'une classe ou un module supplémentaire apportant un bénéfice clair
 - Écrire et conserver les fichiers en UTF-8 SANS BOM afin de préserver les accents et caractères spéciaux. Les fichiers doivent être encodés avec des "LF". **INTERDIT AU CRLF**, **BOM INTERDIT**
+
+## Normes IMPORTANTES svelte5
+
+Suivre méticuleusement les normes [svelte5](SVELTE5.md).
