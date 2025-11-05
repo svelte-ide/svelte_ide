@@ -16,7 +16,12 @@
 
   const authStore = getAuthStore()
 
-  let { externalTools = [], systemTools = [], statusMessages = {} } = $props()
+  let {
+    externalTools = [],
+    systemTools = [],
+    statusMessages = {},
+    branding = null
+  } = $props()
   const {
     initializing: initializingStatus = '',
     systemTools: systemToolsStatus = '',
@@ -187,7 +192,7 @@
   <ModalHost />
 
   {#if authStore.isAuthenticated}
-    <TitleBar />
+    <TitleBar {branding} />
     <div class="main-container">
       <Toolbar position="left" />
       

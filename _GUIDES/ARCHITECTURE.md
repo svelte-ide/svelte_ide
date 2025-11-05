@@ -110,6 +110,22 @@ C'est le composant racine qui assemble toutes les pièces du puzzle.
 -   **Initialisation** : Au montage, il instancie les outils système (console, notifications, etc.), les enregistre via `toolManager`, puis charge les outils externes fournis via la prop `externalTools`.
 -   **Assemblage de l'interface** : Il intègre tous les composants `layout` (`TitleBar`, `Toolbar`, `MainView`, etc.) pour former l'application complète.
 -   **Logique de l'interface globale** : Il gère des interactions qui affectent toute l'interface, comme le redimensionnement des panneaux.
+-   **Branding du chrome** : Il accepte une prop optionnelle `branding` qui permet aux consommateurs de remplacer l'identité visuelle du `TitleBar` (logo, texte, props associées) sans forker le code du noyau. À défaut, le composant interne `AppLogo` affiche la signature `❱SIDE❰`.
+
+> Exemple de configuration :
+> ```javascript
+> mount(App, {
+>   target,
+>   props: {
+>     branding: {
+>       logoComponent: ClientBrand,
+>       logoProps: { class: 'brand-logo' },
+>       logoText: 'Fallback Inc.'
+>     }
+>   }
+> })
+> ```
+> Si `logoComponent` est défini, il est rendu avec `size` (24px par défaut, 26px dans la barre de titre) et les `logoProps` fournis. Sinon, l'IDE affiche `logoText` ou la signature par défaut.
 
 ### 6. `LayoutService.svelte.js` : Gestion avancée des onglets
 

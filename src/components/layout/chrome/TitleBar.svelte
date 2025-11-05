@@ -4,6 +4,8 @@
   import MainMenu from './MainMenu.svelte'
   import { getAuthStore } from '@/stores/authStore.svelte.js'
 
+  let { branding = null } = $props()
+
   const authStore = getAuthStore()
   let isAuthenticated = $state(false)
 
@@ -15,7 +17,7 @@
 <div class="title-bar">
   <div class="left-area">
     <div class="logo-wrapper">
-      <AppLogo size={26} />
+      <AppLogo size={26} branding={branding} />
     </div>
     {#if isAuthenticated}
       <MainMenu />
