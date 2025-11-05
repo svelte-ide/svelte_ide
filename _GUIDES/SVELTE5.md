@@ -162,40 +162,402 @@ $effect(() => {
 
 ## 3. Éviter les Boucles Infinies avec `$effect`
 
-L'expérience a montré que le compilateur Svelte peut être trop optimiste avec `$derived`, conduisant à des non-mises à jour si les dépendances sont indirectes.
+**⚠️ DANGER CRITIQUE :** Les boucles infinies sont le piège #1 avec `$effect`. L'historique du projet montre plusieurs incidents majeurs causés par ce problème.
 
--   **Le Symptôme :** Une valeur affichée à l'écran ne se met pas à jour alors que ses données sources ont changé.
--   **La Cause :** La dépendance n'est pas directement visible dans l'expression du `$derived` (ex: elle est cachée dans une méthode d'un objet).
+### ❌ Anti-Pattern #1 : Lecture ET Modification de la Même Variable
 
--   **La Solution Infaillible : Le "Pattern `$effect` + `$state`"**
-    -   En cas de doute ou de bug avec un `$derived`, **ne perdez pas de temps** et refactorez-le immédiatement en utilisant un `$effect` qui met à jour un `$state`. C'est plus verbeux mais **explicite et fiable**.
+**LE PLUS DANGEREUX** - Cause immédiate de boucle infinie
 
-    -   **Exemple de refactoring :**
+```javascript
+// ❌ TOTALEMENT INTERDIT - Boucle infinie garantie
+let content = $state('')
 
-        *Version `$derived` (potentiellement piégeuse) :*
-        ```javascript
-        // Si activeTool est un objet complexe, Svelte pourrait ne pas voir
-        // les changements de ses propriétés internes.
-        let toolName = $derived(activeTool ? activeTool.getName() : 'Aucun');
-        ```
+$effect(() => {
+  const value = content  // LIT content
+  content = value.trim() // MODIFIE content → relance l'effet → boucle infinie!
+})
+```
 
-        *Version `$effect` + `$state` (sûre et recommandée) :*
-        ```javascript
-        let toolName = $state('Aucun');
+**Symptôme :** `Maximum update depth exceeded`
 
-        $effect(() => {
-          // Accès explicite pour garantir la dépendance
-          const currentTool = ideStore.activeToolsByPosition[position];
-          
-          if (currentTool) {
-            toolName = currentTool.name;
-          } else {
-            toolName = 'Aucun';
-          }
-        });
-        ```
+**Solution :** Séparer la lecture et l'écriture avec un garde
 
-## 3. Composants : Props, Événements et Cycle de Vie
+```javascript
+// ✅ CORRECT - Garde pour éviter la boucle
+let content = $state('')
+let isInitialized = $state(false)
+
+$effect(() => {
+  if (!isInitialized && content) {
+    content = content.trim()
+    isInitialized = true
+  }
+})
+```
+
+### ❌ Anti-Pattern #2 : Effets en Cascade
+
+**Multiples `$effect` qui se déclenchent mutuellement**
+
+```javascript
+// ❌ DANGEREUX - Risque de cascade infinie
+let panelsCount = $state(0)
+let isActive = $state(false)
+
+$effect(() => {
+  isActive = panelsCount > 0 // Modifie isActive
+})
+
+$effect(() => {
+  if (isActive) {
+    panelsCount++ // Modifie panelsCount → relance le premier effet
+  }
+})
+```
+
+**Solution :** Consolider les effets ou utiliser des gardes
+
+```javascript
+// ✅ CORRECT - Un seul effet
+let panelsCount = $state(0)
+let isActive = $state(false)
+
+$effect(() => {
+  const shouldBeActive = panelsCount > 0
+  if (isActive !== shouldBeActive) {
+    isActive = shouldBeActive
+  }
+})
+```
+
+### ❌ Anti-Pattern #3 : Effect sans Dépendances Claires
+
+**Modification d'état qui devrait être dérivé**
+
+```javascript
+// ❌ MAUVAIS - State mis à jour en permanence
+let items = $state([1, 2, 3])
+let total = $state(0)
+
+$effect(() => {
+  total = items.reduce((a, b) => a + b, 0) // Se relance à chaque update
+})
+```
+
+**Solution :** Utiliser `$derived` quand c'est approprié
+
+```javascript
+// ✅ CORRECT - Calcul dérivé pur
+let items = $state([1, 2, 3])
+let total = $derived(items.reduce((a, b) => a + b, 0))
+```
+
+### 🛡️ Bonnes Pratiques pour `$effect`
+
+1. **Ne JAMAIS lire et modifier la même variable** dans un `$effect`
+2. **Utiliser des gardes** (`if (!initialized)`, `if (value !== newValue)`)
+3. **Consolider les effets** plutôt que de créer des cascades
+4. **Préférer `$derived`** pour les calculs purs
+5. **Toujours nettoyer** les timers/abonnements avec `return () => cleanup()`
+
+### 📋 Checklist de Debugging de Boucle Infinie
+
+Si vous voyez `Maximum update depth exceeded` :
+
+1. ✅ Identifiez quel `$effect` est en cause (ajoutez des logs temporaires)
+2. ✅ Vérifiez si l'effet LIT et MODIFIE la même variable
+3. ✅ Cherchez les cascades entre plusieurs effets
+4. ✅ Ajoutez un garde pour éviter les modifications inutiles
+5. ✅ Envisagez de remplacer par `$derived` si c'est un calcul pur
+
+## 4. Debugging Svelte 5 : Outils et Techniques
+
+### `$inspect()` - L'Outil de Debugging Natif
+
+**Recommandation Svelte 5 officielle** pour inspecter les valeurs réactives
+
+```javascript
+// ✅ MEILLEURE PRATIQUE - $inspect() natif
+let user = $state({ name: 'Alice', age: 30 })
+$inspect('user', user) // Affiche dans la console quand user change
+
+// ✅ Avec condition DEV uniquement
+if (import.meta.env.DEV) {
+  $inspect('sections', sections)
+}
+
+// ✅ Inspecter plusieurs valeurs
+$inspect('state', { user, items, total })
+```
+
+**Avantages :**
+- ✅ Pas de warning sur les proxies `$state`
+- ✅ Affichage automatique quand la valeur change
+- ✅ Interface native de Svelte dans la console
+- ✅ Peut être conditionné au mode DEV
+
+### `$state.snapshot()` - Pour les Logs Manuels
+
+**Quand utiliser :** Logs dans `$effect` ou debugging ponctuel
+
+```javascript
+// ✅ CORRECT - Snapshot pour éviter les warnings
+let items = $state([1, 2, 3])
+
+$effect(() => {
+  console.log('Items changed:', $state.snapshot(items))
+})
+
+// ✅ Logs conditionnels en production
+$effect(() => {
+  sections = statusBarService.sections
+  if (import.meta.env.DEV) {
+    console.log('Sections updated:', $state.snapshot(sections))
+  }
+})
+```
+
+**⚠️ Ne PAS faire :**
+
+```javascript
+// ❌ MAUVAIS - Warning: logging $state proxy
+let value = $state(10)
+$effect(() => {
+  console.log('value:', value) // ⚠️ Warning!
+})
+```
+
+### Stratégie de Debugging par Niveau
+
+#### Niveau 1 : Debugging Actif (Développement)
+```javascript
+// Utiliser $inspect() pour voir les changements en temps réel
+$inspect('myState', myState)
+```
+
+#### Niveau 2 : Logs Permanents (Développement uniquement)
+```javascript
+// Logs conditionnels avec $state.snapshot()
+if (import.meta.env.DEV) {
+  $effect(() => {
+    console.log('State:', $state.snapshot(myState))
+  })
+}
+```
+
+#### Niveau 3 : Traces Production (Sélectif)
+```javascript
+// Seulement pour les erreurs critiques
+try {
+  // ...
+} catch (error) {
+  console.error('Critical error:', error, $state.snapshot(currentState))
+}
+```
+
+### Debugging de Réactivité
+
+**Problème :** Une valeur ne se met pas à jour
+
+```javascript
+// ✅ Tester si la dépendance est détectée
+let computed = $state(0)
+
+$effect(() => {
+  computed = source.value
+  console.log('Effect ran!', computed) // Si ça ne s'affiche pas → problème
+})
+
+// ✅ Tester avec $inspect
+$inspect('source.value', source.value)
+$inspect('computed', computed)
+```
+
+**Si `$inspect` ne se déclenche pas :** Dépendance indirecte non détectée → migrer vers `$effect`
+
+### Debugging de Boucle Infinie
+
+**Problème :** `Maximum update depth exceeded`
+
+```javascript
+// ✅ Ajouter des logs pour identifier l'effet coupable
+$effect(() => {
+  console.log('Effect 1 running')
+  // ... votre code
+})
+
+$effect(() => {
+  console.log('Effect 2 running')
+  // ... votre code
+})
+
+// Cherchez lequel se répète infiniment dans la console
+```
+
+**Solution :** Ajouter des gardes ou consolider les effets
+
+## 6. Exemples Concrets du Projet svelte-ide
+
+### Exemple 1 : StatusBar - Migration Service → State
+
+**Contexte :** Le composant StatusBar doit afficher dynamiquement les sections fournies par `statusBarService`.
+
+#### ❌ AVANT - Tentative avec $derived (ne fonctionnait pas)
+
+```javascript
+// statusBarService n'est PAS un $state direct → dépendance indirecte
+const sections = $derived(statusBarService.sections)
+// ⚠️ Problème : sections.left/right/center ne sont pas détectés comme réactifs
+```
+
+#### ✅ APRÈS - Migration vers $effect + $state
+
+```javascript
+// StatusBar.svelte
+let sections = $state({
+  left: [],
+  center: [],
+  right: []
+})
+
+$effect(() => {
+  sections = statusBarService.sections
+})
+
+// Debugging en mode DEV
+if (import.meta.env.DEV) {
+  $inspect('StatusBar sections', sections)
+}
+```
+
+**Pourquoi ça fonctionne :**
+- `statusBarService.sections` change quand un composant s'enregistre/désenregistre
+- `$effect` détecte le changement et met à jour `sections` (local `$state`)
+- Les templates Svelte voient le `$state` local → réactivité garantie
+
+---
+
+### Exemple 2 : TitleBar - Props Complexes avec Composants
+
+**Contexte :** Le composant TitleBar reçoit une prop `branding` qui peut être `{ component, props }` et doit l'afficher dynamiquement.
+
+#### ❌ AVANT - $derived sur objet complexe
+
+```javascript
+const brandingComponent = $derived(branding?.component)
+const brandingProps = $derived(branding?.props ?? {})
+// ⚠️ Warning: console.log contenait des proxies $state
+```
+
+#### ✅ APRÈS - $effect avec $state séparés
+
+```javascript
+// TitleBar.svelte
+let { branding = $bindable() } = $props()
+
+let brandingComponent = $state(null)
+let brandingProps = $state({})
+
+$effect(() => {
+  brandingComponent = branding?.component ?? null
+  brandingProps = branding?.props ?? {}
+})
+
+if (import.meta.env.DEV) {
+  $inspect('TitleBar branding', { brandingComponent, brandingProps })
+}
+```
+
+**Bénéfices :**
+- Séparation claire : `component` et `props` sont des `$state` indépendants
+- `$inspect()` au lieu de `console.log` → pas de warnings sur les proxies
+- Code plus explicite : on voit clairement ce qui change
+
+---
+
+### Exemple 3 : ActiveTabItem - Cas Valide pour $derived
+
+**Contexte :** Un composant simple qui affiche une icône et un libellé avec des valeurs par défaut.
+
+#### ✅ CORRECT - $derived pour props simples
+
+```javascript
+// ActiveTabItem.svelte
+let { icon = $bindable(), label = $bindable(), title = $bindable() } = $props()
+
+const resolvedIcon = $derived(icon ?? 'file-text')
+const resolvedLabel = $derived(label ?? 'No file selected')
+const resolvedTitle = $derived(title ?? resolvedLabel)
+```
+
+**Pourquoi $derived est approprié ici :**
+- ✅ Dépendances directes sur les props (pas de service)
+- ✅ Calculs purs et simples (fallbacks uniquement)
+- ✅ Pas d'effets de bord
+- ✅ Performance optimale (réévaluation minimale)
+
+**Règle :** Si vous voyez seulement `props.X ?? defaultValue`, `$derived` est le bon choix.
+
+---
+
+### Exemple 4 : App.svelte - Normalisation de Props Optionnelles
+
+**Contexte :** Le composant racine accepte une prop `branding` qui peut être `undefined`, `null`, ou `{ component, props }`.
+
+#### ❌ AVANT - $derived avec fonction helper
+
+```javascript
+const resolvedBranding = $derived(normalizeBranding(branding))
+
+function normalizeBranding(b) {
+  if (!b?.component) return null
+  return { component: b.component, props: b.props ?? {} }
+}
+```
+
+#### ✅ APRÈS - $effect + $state
+
+```javascript
+// App.svelte
+let { branding = $bindable() } = $props()
+
+let resolvedBranding = $state(null)
+
+$effect(() => {
+  resolvedBranding = normalizeBranding(branding)
+})
+
+function normalizeBranding(b) {
+  if (!b?.component) return null
+  return { component: b.component, props: b.props ?? {} }
+}
+
+if (import.meta.env.DEV) {
+  $inspect('App resolvedBranding', resolvedBranding)
+}
+```
+
+**Justification :**
+- La prop `branding` contient un **objet complexe** avec un composant Svelte
+- La fonction `normalizeBranding()` retourne un nouvel objet → pas de calcul pur
+- `$effect` permet d'ajouter facilement `$inspect()` pour le debugging
+
+---
+
+### Récapitulatif des Patterns
+
+| Composant | Pattern | Raison |
+|-----------|---------|--------|
+| StatusBar | `$effect` + `$state` | Service externe (`statusBarService.sections`) |
+| TitleBar | `$effect` + `$state` | Objet complexe avec composant + props |
+| ActiveTabItem | `$derived` | Props simples avec fallbacks |
+| ClockItem | `$derived` | Props simples avec fallbacks |
+| StatusMessageItem | `$derived` | Props simples avec fallbacks |
+| App | `$effect` + `$state` | Objet complexe avec fonction de normalisation |
+
+**Conclusion :** La décision `$derived` vs `$effect` dépend de la **source de données** (props vs service) et de la **complexité du calcul** (pure vs side-effect).
+
+## 7. Composants : Props, Événements et Cycle de Vie
 
 -   **Props :**
     -   **Usage :** Récupérez **TOUJOURS** les props avec `let { maProp, autreProp } = $props();`.

@@ -40,7 +40,7 @@ Les responsabilités sont clairement délimitées par la structure des dossiers 
 
 C'est le fichier le plus important pour comprendre le fonctionnement de l'IDE. Il agit comme la **source unique de vérité** pour l'ensemble de l'application.
 
--   **Rôle** : Il centralise tout l'état réactif de l'IDE en utilisant les "runes" de Svelte 5 (`$state`, `$derived`).
+-   **Rôle** : Il centralise tout l'état réactif de l'IDE en utilisant les "runes" de Svelte 5 (`$state`, `$effect`, et `$derived` judicieusement selon les cas d'usage).
 -   **État géré** :
     -   La liste de tous les outils enregistrés (`tools`).
     -   Les regroupements d'outils par position (`topLeftTools`, `bottomLeftTools`, `topRightTools`, `bottomRightTools`, `bottomTools`).
@@ -187,11 +187,17 @@ Deux parcours sont supportés pour l'authentification Google : un flux 100 % SPA
 - En production (`import.meta.env.PROD`), `VITE_AUTH_PROVIDERS` doit être défini et ne peut contenir `mock`. Le `MockProvider` reste disponible uniquement pour le développement.
 
 ## Principes transverses
-- Observer en priorité les conventions déjà présentes dans la base de code avant d’appliquer de nouvelles règles
+- Observer en priorité les conventions déjà présentes dans la base de code avant d'appliquer de nouvelles règles
 - Respecter la règle de langage : code et noms de fichiers en anglais, commentaires et libellés UI en français
 - Favoriser le principe KISS : écrire le minimum de code nécessaire, éviter les couches d'abstraction inutiles et n'introduire qu'une classe ou un module supplémentaire apportant un bénéfice clair
 - Écrire et conserver les fichiers en UTF-8 SANS BOM afin de préserver les accents et caractères spéciaux. Les fichiers doivent être encodés avec des "LF". **INTERDIT AU CRLF**, **BOM INTERDIT**
 
-## Normes IMPORTANTES svelte5
+## Normes IMPORTANTES Svelte 5
 
-Suivre méticuleusement les normes [svelte5](SVELTE5.md).
+Suivre méticuleusement les normes [SVELTE5.md](SVELTE5.md).
+
+**Points clés :**
+- Utiliser `$derived` pour les calculs purs avec dépendances directes
+- Utiliser `$effect` + `$state` pour les dépendances indirectes ou l'accès à des services
+- Éviter les boucles infinies dans `$effect` (ne pas lire ET modifier la même variable)
+- Utiliser `$inspect()` pour le debugging au lieu de `console.log` direct sur des `$state`
