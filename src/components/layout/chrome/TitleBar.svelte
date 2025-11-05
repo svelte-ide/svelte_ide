@@ -1,12 +1,21 @@
 <script>
-  import AuthUserMenu from './AuthUserMenu.svelte'
-  import MainMenu from './MainMenu.svelte'
-  import { getAuthStore } from '@/stores/authStore.svelte.js'
+  import { getAuthStore } from '@/stores/authStore.svelte.js';
+  import AuthUserMenu from './AuthUserMenu.svelte';
+  import MainMenu from './MainMenu.svelte';
 
   let { branding = null } = $props()
 
-  const brandingComponent = $derived(branding?.component ?? null)
-  const brandingProps = $derived(branding?.props ?? {})
+  let brandingComponent = $state(null)
+  let brandingProps = $state({})
+
+  $effect(() => {
+    brandingComponent = branding?.component ?? null
+    brandingProps = branding?.props ?? {}
+  })
+
+  if (import.meta.env.DEV) {
+    $inspect('TitleBar branding', { component: brandingComponent, props: brandingProps })
+  }
 
   const authStore = getAuthStore()
   let isAuthenticated = $state(false)

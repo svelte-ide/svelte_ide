@@ -1,18 +1,17 @@
 <script>
-  import { toolManager } from '@/core/ToolManager.svelte.js'
-  import { ideStore } from '@/stores/ideStore.svelte.js'
-  import { getAuthStore } from '@/stores/authStore.svelte.js'
+  import { toolManager } from '@/core/ToolManager.svelte.js';
+  import { getAuthStore } from '@/stores/authStore.svelte.js';
+  import { ideStore } from '@/stores/ideStore.svelte.js';
 
-  import TitleBar from '@/components/layout/chrome/TitleBar.svelte'
-  import Toolbar from '@/components/layout/chrome/Toolbar.svelte'
-  import StatusBar from '@/components/layout/chrome/StatusBar.svelte'
-  import MainViewSplit from '@/components/layout/containers/MainViewSplit.svelte'
-  import ContextMenu from '@/components/layout/ui/ContextMenu.svelte'
-  import ModalHost from '@/components/layout/ui/ModalHost.svelte'
-  import ResizeHandle from '@/components/layout/containers/ResizeHandle.svelte'
-  import AuthPanel from '@/components/layout/ui/AuthPanel.svelte'
-  import WelcomeScreen from '@/components/layout/ui/WelcomeScreen.svelte'
-  import ToolPanel from '@/components/layout/chrome/ToolPanel.svelte'
+  import StatusBar from '@/components/layout/chrome/StatusBar.svelte';
+  import TitleBar from '@/components/layout/chrome/TitleBar.svelte';
+  import Toolbar from '@/components/layout/chrome/Toolbar.svelte';
+  import ToolPanel from '@/components/layout/chrome/ToolPanel.svelte';
+  import MainViewSplit from '@/components/layout/containers/MainViewSplit.svelte';
+  import ResizeHandle from '@/components/layout/containers/ResizeHandle.svelte';
+  import ContextMenu from '@/components/layout/ui/ContextMenu.svelte';
+  import ModalHost from '@/components/layout/ui/ModalHost.svelte';
+  import WelcomeScreen from '@/components/layout/ui/WelcomeScreen.svelte';
 
   const authStore = getAuthStore()
 
@@ -44,7 +43,17 @@
     statusMessages = {},
     branding = null
   } = $props()
-  const resolvedBranding = $derived(normalizeBranding(branding))
+  
+  let resolvedBranding = $state(null)
+
+  $effect(() => {
+    resolvedBranding = normalizeBranding(branding)
+  })
+
+  if (import.meta.env.DEV) {
+    $inspect('App resolvedBranding', resolvedBranding)
+  }
+  
   const {
     initializing: initializingStatus = '',
     systemTools: systemToolsStatus = '',

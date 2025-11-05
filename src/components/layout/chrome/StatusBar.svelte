@@ -1,7 +1,15 @@
 <script>
   import { statusBarService } from '@/core/StatusBarService.svelte.js'
 
-  const sections = $derived(statusBarService.sections)
+  let sections = $state({ left: [], center: [], right: [] })
+
+  $effect(() => {
+    sections = statusBarService.sections
+  })
+
+  if (import.meta.env.DEV) {
+    $inspect('StatusBar sections', sections)
+  }
 
   function getDisplayText(item) {
     if (typeof item.text === 'function') {

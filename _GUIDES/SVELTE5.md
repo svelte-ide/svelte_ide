@@ -34,44 +34,133 @@ La maîtrise de ces quatre concepts est non négociable.
         });
         ```
 
-## 2. RÈGLE ABSOLUE : INTERDICTION TOTALE DE `$derived` DANS CE PROJET
+## 2. `$derived` : Quand et Comment l'Utiliser
 
-**⚠️ ATTENTION : Suite à des incidents répétés, `$derived` est FORMELLEMENT INTERDIT dans ce projet ⚠️**
+`$derived` est **autorisé** mais nécessite une compréhension approfondie de ses pièges pour éviter les bugs de réactivité.
 
-### Pourquoi cette interdiction radicale ?
+### ✅ Cas d'Usage VALIDES pour `$derived`
 
-Le piège `$derived` s'est manifesté plusieurs fois dans ce projet, causant des pertes de temps importantes sur des bugs de réactivité difficiles à déboguer. Même avec des calculs qui semblent "purs", les dépendances indirectes créent des situations où Svelte n'exécute pas les calculs.
-
-### Pattern de Remplacement OBLIGATOIRE
+**Règle d'or :** `$derived` fonctionne UNIQUEMENT si toutes les dépendances sont **directes et visibles** dans l'expression.
 
 ```javascript
-// ❌ TOTALEMENT INTERDIT - Peu importe la simplicité
-let simple = $derived(a + b)
-let complex = $derived(() => container.width / content.width)
+// ✅ BON - Dépendances directes sur des $state
+let firstName = $state('Pierre')
+let lastName = $state('Langlois')
+let fullName = $derived(firstName + ' ' + lastName)
 
-// ✅ SEULE APPROCHE AUTORISÉE
-let simple = $state(0)
-let complex = $state(0)
+// ✅ BON - Calcul simple avec props
+let { items = [] } = $props()
+let itemCount = $derived(items.length)
 
+// ✅ BON - Transformation directe
+let price = $state(100)
+let priceWithTax = $derived(price * 1.15)
+```
+
+### ❌ Pièges CRITIQUES avec `$derived`
+
+**1. Dépendances indirectes (accès via méthodes ou propriétés d'objets)**
+
+```javascript
+// ❌ DANGEREUX - Svelte peut ne pas détecter la dépendance
+let container = $state({ width: 100, height: 50 })
+let ratio = $derived(container.width / container.height) // ⚠️ Peut ne pas se mettre à jour !
+
+// ✅ SOLUTION - Utiliser $effect + $state
+let ratio = $state(0)
 $effect(() => {
-  simple = a + b
-  console.log('simple CALCULATED:', simple)
-})
-
-$effect(() => {
-  complex = container.width / content.width
-  console.log('complex CALCULATED:', complex)
+  ratio = container.width / container.height
 })
 ```
 
-### Avantages de cette approche stricte :
+**2. Appels de méthodes dans le calcul**
 
-1. **Réactivité garantie** : `$effect` s'exécute toujours
-2. **Debugging facile** : Logs explicites des calculs
-3. **Pas de perte de temps** : Fini les mystères de réactivité
-4. **Code prévisible** : Comportement explicite et déterministe
+```javascript
+// ❌ DANGEREUX - La méthode peut cacher des dépendances
+let activeTool = $state(someTool)
+let toolName = $derived(activeTool.getName()) // ⚠️ Réactivité non garantie !
 
-## 3. Le Piège de `$derived` et Comment l'Éviter (Règle Critique - SECTION HISTORIQUE)
+// ✅ SOLUTION - Accès direct à la propriété
+let toolName = $derived(activeTool.name)
+
+// ✅ OU utiliser $effect si la méthode est nécessaire
+let toolName = $state('')
+$effect(() => {
+  toolName = activeTool.getName()
+})
+```
+
+**3. Logging de valeurs `$derived`**
+
+```javascript
+// ⚠️ ATTENTION - Ne PAS logger directement un $state dans $effect
+let value = $state(10)
+$effect(() => {
+  console.log('value:', value) // ⚠️ Warning: logging $state proxy
+})
+
+// ✅ SOLUTION - Utiliser $state.snapshot()
+$effect(() => {
+  console.log('value:', $state.snapshot(value))
+})
+
+// ✅ OU utiliser $inspect() (recommandé pour debugging)
+$inspect('value', value)
+```
+
+### 🎯 Décision : `$derived` vs `$effect` + `$state`
+
+| Critère | Utiliser `$derived` | Utiliser `$effect` + `$state` |
+|---------|---------------------|-------------------------------|
+| Dépendances | Directes et simples | Indirectes ou complexes |
+| Calcul | Pure transformation synchrone | Logique conditionnelle ou appels de méthodes |
+| Debugging | Pas besoin de logs | Besoin de tracer les changements |
+| Props avec fallbacks | ✅ Idéal | Overkill |
+| Services/Stores | ❌ Risqué | ✅ Préférable |
+
+### 📝 Exemples Comparatifs
+
+```javascript
+// CAS 1: Props simples avec fallbacks
+// ✅ $derived est parfait ici
+let { label = 'Défaut', className = '' } = $props()
+const resolvedLabel = $derived(label ?? 'Défaut')
+const resolvedClass = $derived(className ?? '')
+
+// ❌ $effect serait du overkill
+let resolvedLabel = $state('Défaut')
+$effect(() => {
+  resolvedLabel = label ?? 'Défaut'
+})
+
+// CAS 2: Accès à des services
+// ❌ $derived risqué (dépendances indirectes possibles)
+const sections = $derived(statusBarService.sections)
+
+// ✅ $effect préférable
+let sections = $state({ left: [], center: [], right: [] })
+$effect(() => {
+  sections = statusBarService.sections
+})
+
+// CAS 3: Calculs purs sur $state
+// ✅ $derived excellent
+let items = $state([1, 2, 3])
+let total = $derived(items.reduce((a, b) => a + b, 0))
+
+// CAS 4: Transformation avec objet complexe
+// ❌ $derived peut échouer
+let branding = $state({ component: MyComp, props: {} })
+const resolved = $derived(normalizeBranding(branding)) // ⚠️ Risqué !
+
+// ✅ $effect sûr
+let resolved = $state(null)
+$effect(() => {
+  resolved = normalizeBranding(branding)
+})
+```
+
+## 3. Éviter les Boucles Infinies avec `$effect`
 
 L'expérience a montré que le compilateur Svelte peut être trop optimiste avec `$derived`, conduisant à des non-mises à jour si les dépendances sont indirectes.
 
