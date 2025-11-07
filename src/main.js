@@ -1,13 +1,14 @@
-import { mount } from 'svelte'
 import App from '@/App.svelte'
 import AppLogo from '@/components/layout/chrome/AppLogo.svelte'
-import { applyCsp } from '@/core/security/csp.svelte.js'
-import { ConsoleTool, NotificationsTool } from '@/core/SystemTools.js'
-import { statusBarService } from '@/core/StatusBarService.svelte.js'
-import StatusMessageItem from '@/components/layout/chrome/statusbar/StatusMessageItem.svelte'
 import ActiveTabItem from '@/components/layout/chrome/statusbar/ActiveTabItem.svelte'
 import ClockItem from '@/components/layout/chrome/statusbar/ClockItem.svelte'
+import IndexedDBUsageItem from '@/components/layout/chrome/statusbar/IndexedDBUsageItem.svelte'
+import StatusMessageItem from '@/components/layout/chrome/statusbar/StatusMessageItem.svelte'
+import { applyCsp } from '@/core/security/csp.svelte.js'
+import { statusBarService } from '@/core/StatusBarService.svelte.js'
+import { ConsoleTool, NotificationsTool } from '@/core/SystemTools.js'
 import { ideStore, registerDefaultHelpMenu } from '@/stores/ideStore.svelte.js'
+import { mount } from 'svelte'
 
 applyCsp()
 
@@ -56,6 +57,13 @@ if (import.meta.env.DEV) {
     component: ClockItem,
     props: { },
     order: 0
+  }, 'demo')
+
+  statusBarService.registerItem('right', {
+    id: 'indexeddb-usage',
+    component: IndexedDBUsageItem,
+    props: { },
+    order: 1
   }, 'demo')
 
   setTimeout(() => {
