@@ -2861,7 +2861,7 @@ Pour **vraiment** tester IndexedDB, utilisez **Explorer** ou **Explorer2** ! �
 
 ---
 
-_**User (2025-11-07 13:42Z)**_
+_**User (2025-11-07 13:47Z)**_
 
 révise le plan svp en fonction de la nouvelle situation
 
@@ -2870,6 +2870,100 @@ révise le plan svp en fonction de la nouvelle situation
 _**Assistant (copilot/claude-sonnet-4.5)**_
 
 
+```
+
+```
+
+```
+
+```
+
+```
+
+```
+
+```
+
+```
+
+```
+
+```
+
+```
+
+```
+Plan de feature révisé avec succès! 
+
+## 📊 Résumé de la Révision
+
+### Changements Principaux
+
+**En-tête du document** :
+- ✅ Date mise à jour : 7 novembre 2025
+- ✅ Statut : Sprint 3 TERMINÉ SIMPLIFIÉ → Sprint 4 EN COURS
+- ✅ Progression : 85% → **90%**
+
+**Section Simplifications (détaillée)** :
+- ✅ Explication complète des 3 suppressions avec contexte
+- ✅ Alternatives claires pour chaque fonctionnalité retirée
+- ✅ Exemples de code pour développeurs
+- ✅ Métriques de simplification (46% réduction, 23% moins de fichiers)
+- ✅ Leçons apprises (YAGNI, responsabilité unique, etc.)
+- ✅ Guide de migration pour projets existants
+
+**Phase 4 - Intégration** :
+- ✅ Toutes tâches marquées **complétées**
+- ✅ Notes sur les simplifications appliquées
+- ✅ Retrait références aux fonctionnalités supprimées
+
+**Phase 6 - Documentation** :
+- ✅ Tâche #6.1 : Complétée (API publique)
+- ✅ Tâche #6.2 : 75% complétée (guides créés, README/diagrammes restants)
+
+**Sprint 3** :
+- ✅ Statut changé de "EN COURS" → **"TERMINÉ SIMPLIFIÉ"**
+- ✅ Détails complets de toutes les tâches
+- ✅ Liste des fichiers créés/supprimés/modifiés
+- ✅ Résultat quantifié (46% réduction code)
+
+**Sprint 4** :
+- ✅ Statut : **"EN COURS (75%)"**
+- ✅ 3 tâches sur 4 complétées
+- ✅ Reste : Documentation variables d'environnement
+
+**Todo List mise à jour** :
+- 7 tâches complétées (simplifications)
+- 2 tâches restantes : Tests Explorer + Variables d'env
+
+---
+
+## 🎯 Prochaines Étapes
+
+1. **Tester manuellement Explorer** (tâche #8)
+   - Suivre le guide que je vous ai fourni
+   - Vérifier persistance sélection + fichiers récents
+   - Valider comportement après reload
+
+2. **Documenter variables d'environnement** (tâche #9)
+   - Créer guide centralisé
+   - Exemples `.env.example`
+   - Toutes les variables IndexedDB + Auth
+
+Le plan est maintenant **à jour et cohérent** avec l'état réel du code! 🚀
+
+---
+
+_**User (2025-11-07 13:51Z)**_
+
+1. Tester manuellement Explore: c'est ok ça fonctionne!
+2. vas-y!
+
+---
+
+_**Assistant (copilot/claude-sonnet-4.5)**_
+
+Excellent! Explorer fonctionne correctement. Je vais maintenant créer le guide centralisé des variables d'environnement. 
 
 ---
 
