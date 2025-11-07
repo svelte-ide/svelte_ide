@@ -168,7 +168,7 @@ export class GenericLayoutService {
     }
 
     _saveZoneState(zone) {
-        if (!zone.persistent) return
+        if (!zone.persistent || !this.persister) return
 
         const stateKey = `zone-${zone.id}`
         const state = {
@@ -176,32 +176,59 @@ export class GenericLayoutService {
             lastActivated: zone.isActive ? Date.now() : null
         }
         
-        this.persister.save(stateKey, state)
-    }
-
-    restoreZoneStates() {
-        const persistableZones = zoneRegistry.getPersistableZones()
-        
-        persistableZones.forEach(zoneConfig => {
-            const stateKey = `zone-${zoneConfig.id}`
-            const savedState = this.persister.load(stateKey)
-            
-            if (savedState && savedState.isActive) {
-                const zone = this.zones.get(zoneConfig.id)
-                if (zone) {
-                    this.activateZone(zone.id)
-                }
+        try {
+            const result = this.persister.save(stateKey, state)
+            if (result && typeof result.then === 'function') {
+                result.catch(error => {
+                    console.error(`Error saving zone state "${stateKey}"`, error)
+                })
             }
-        })
+        } catch (error) {
+            console.error(`Error scheduling zone state save for "${stateKey}"`, error)
+        }
     }
 
-    clearPersistedStates() {
+    async restoreZoneStates() {
+        if (!this.persister || typeof this.persister.load !== 'function') {
+            return
+        }
+
         const persistableZones = zoneRegistry.getPersistableZones()
         
-        persistableZones.forEach(zoneConfig => {
+        for (const zoneConfig of persistableZones) {
             const stateKey = `zone-${zoneConfig.id}`
-            this.persister.remove(stateKey)
-        })
+            try {
+                const savedState = await this.persister.load(stateKey, null)
+                if (savedState && savedState.isActive) {
+                    const zone = this.zones.get(zoneConfig.id)
+                    if (zone) {
+                        this.activateZone(zone.id)
+                    }
+                }
+            } catch (error) {
+                console.error(`Error restoring zone state "${stateKey}"`, error)
+            }
+        }
+    }
+
+    async clearPersistedStates() {
+        if (!this.persister || typeof this.persister.remove !== 'function') {
+            return
+        }
+
+        const persistableZones = zoneRegistry.getPersistableZones()
+        
+        for (const zoneConfig of persistableZones) {
+            const stateKey = `zone-${zoneConfig.id}`
+            try {
+                const result = this.persister.remove(stateKey)
+                if (result && typeof result.then === 'function') {
+                    await result
+                }
+            } catch (error) {
+                console.error(`Error clearing zone state "${stateKey}"`, error)
+            }
+        }
     }
 
     getZoneTypes() {

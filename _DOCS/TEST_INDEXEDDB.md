@@ -157,6 +157,33 @@ console.log('🗑️ Données supprimées:', deleted) // null
 await indexedDBService.clear('default')
 ```
 
+### 11. Vérifier Explorer (Layout & Sélection)
+
+1. Ouvrir l’outil **Explorateur**.
+2. Sélectionner un dossier puis un fichier (notez le nom).
+3. Ouvrir le fichier (double clic) pour créer un onglet dans l’IDE.
+4. Rafraîchir la page (`Ctrl+R`).
+5. **Résultats attendus :**
+   - L’onglet du fichier est restauré automatiquement.
+   - Le fichier/dossier sélectionné avant reload reste sélectionné.
+6. En console, vérifier que la migration s’exécute :
+   ```javascript
+   await import('@/scripts/migrateExplorerLocalStorage.js').then(m => m.default())
+   ```
+   Doit afficher `Entrée "...tool-explorer..." migrée` si des données legacy étaient présentes.
+
+### 12. Vérifier Transactions v2 (CRUD + Export)
+
+1. Ouvrir l’outil **Transactions v2**.
+2. Créer 2 à 3 transactions (débit/crédit) avec des catégories différentes.
+3. Cliquez sur **Export JSON** et vérifier que le fichier contient vos entrées.
+4. Cliquez sur **Réinitialiser la démo** puis recharger la page ; les nouvelles transactions doivent être reseedées automatiquement.
+5. En console :
+   ```javascript
+   window.transactionsV2Repository?.list({ limit: 0 })
+   ```
+   Doit retourner la même liste que le tableau.
+
 ## Vérifications de Sécurité
 
 ### ✅ Checklist de Sécurité
@@ -188,6 +215,11 @@ Si configuré avec Google ou Azure :
 5. Rouvrir l'application
 6. Si auto-refresh fonctionne → données restaurées automatiquement
 7. Si session expirée → re-login → données restaurées
+
+## Annexes
+
+- Script de migration Explorer : `await import('@/scripts/migrateExplorerLocalStorage.js').then(m => m.default())`
+- Ressource guide : `_GUIDES/INDEXEDDB_USAGE.md`
 
 ## Problèmes Courants
 

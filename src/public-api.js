@@ -19,10 +19,10 @@ export { ideStore } from './stores/ideStore.svelte.js'
 
 // IndexedDB persistance sécurisée
 export { IndexedDBService, getIndexedDBService, indexedDBService } from './core/persistence/IndexedDBService.svelte.js'
+export { IndexedDBPersister } from './core/persistence/IndexedDBPersister.svelte.js'
 
 // Dérivation de clé de chiffrement
 export {
     clearEncryptionKey, deriveEncryptionKey,
     isValidEncryptionKey
 } from './core/auth/EncryptionKeyDerivation.svelte.js'
-

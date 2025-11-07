@@ -11,6 +11,8 @@ import { Tab } from '@/core/Tab.svelte.js'
 import { toolFocusCoordinator } from '@/core/ToolFocusCoordinator.svelte.js'
 import { getAuthStore } from './authStore.svelte.js'
 
+const LAYOUT_SCHEMA_VERSION = 2
+
 const buildUserStorageKey = (user) => {
   if (!user) return null
   const provider = user.provider || 'default'
@@ -47,7 +49,14 @@ class IdeStore {
     this._updateToolLists()
     
     this.panelsManager = panelsManager
-    this.layoutPersister = persistenceRegistry.getPersister('user-layout')
+    try {
+      this.layoutPersister = persistenceRegistry.createPersister('user-layout', 'indexedDB', {
+        storeName: 'user-layout'
+      })
+    } catch (error) {
+      console.warn('IdeStore: IndexedDB persister unavailable, falling back to default storage', error)
+      this.layoutPersister = persistenceRegistry.getPersister('user-layout')
+    }
     this._lastRestoredUserKey = null
     this._restorationAttemptedUsers = new Set()
     
@@ -528,12 +537,14 @@ class IdeStore {
         return
       }
       const storageKey = `user-${userKey}`
-      const layoutData = this.layoutPersister.load(storageKey)
+      const rawLayoutData = await this.layoutPersister.load(storageKey)
       this._restorationAttemptedUsers.add(userKey)
       
-      if (!layoutData) {
+      if (!rawLayoutData) {
         return
       }
+
+      const layoutData = this._migrateLayoutData(rawLayoutData)
 
       if (layoutData.layout) {
         this.closeAllTabs()
@@ -596,7 +607,7 @@ class IdeStore {
       
       // Restaurer tous les états via le service de fournisseurs
       if (layoutData.states) {
-        stateProviderService.restoreAllStates(layoutData.states)
+        await stateProviderService.restoreAllStates(layoutData.states)
       }
 
       const activeTabAfterRestore = layoutService.activeTab
@@ -628,7 +639,7 @@ class IdeStore {
     return layoutData
   }
 
-  saveUserLayout() {
+  async saveUserLayout() {
     if (!this.isAuthenticated || !this.user) return
     
     try {
@@ -639,22 +650,26 @@ class IdeStore {
       }
       const storageKey = `user-${userKey}`
       
-      if (!this._restorationAttemptedUsers.has(userKey) && this.layoutPersister.exists(storageKey)) {
-        return
+      if (!this._restorationAttemptedUsers.has(userKey)) {
+        const alreadyExists = await this.layoutPersister.exists(storageKey)
+        if (alreadyExists) {
+          return
+        }
       }
       
       this._restorationAttemptedUsers.add(userKey)
       const serializableLayout = layoutService._createSerializableLayout(layoutService.layout)
       
       if (serializableLayout) {
+        const states = await stateProviderService.saveAllStatesAsync()
         const layoutData = {
           layout: serializableLayout,
-          states: stateProviderService.saveAllStates(),
+          states,
           timestamp: Date.now(),
-          version: '1.0'
+          version: LAYOUT_SCHEMA_VERSION
         }
         
-        this.layoutPersister.save(storageKey, layoutData)
+        await this.layoutPersister.save(storageKey, layoutData)
         this._lastRestoredUserKey = userKey
       }
     } catch (error) {
@@ -691,6 +706,35 @@ class IdeStore {
   }
 
   restoreState(state) {
+  }
+
+  _migrateLayoutData(layoutEntry) {
+    if (!layoutEntry) {
+      return null
+    }
+
+    const versionNumber = typeof layoutEntry.version === 'number'
+      ? layoutEntry.version
+      : parseFloat(layoutEntry.version ?? '1')
+
+    const normalizedStates = layoutEntry.states ?? {}
+    const normalizedTimestamp = layoutEntry.timestamp ?? Date.now()
+
+    if (Number.isNaN(versionNumber) || versionNumber >= LAYOUT_SCHEMA_VERSION) {
+      return {
+        ...layoutEntry,
+        states: normalizedStates,
+        timestamp: normalizedTimestamp,
+        version: LAYOUT_SCHEMA_VERSION
+      }
+    }
+
+    return {
+      layout: layoutEntry.layout,
+      states: normalizedStates,
+      timestamp: normalizedTimestamp,
+      version: LAYOUT_SCHEMA_VERSION
+    }
   }
 
 }

@@ -206,14 +206,6 @@
 
       await toolManager.registerExternalTools(externalTools)
 
-      if (authStore.isAuthenticated && authStore.currentUser) {
-        try {
-          await ideStore.restoreUserLayout(authStore.currentUser)
-        } catch (layoutError) {
-          console.warn('App: Failed to restore user layout:', layoutError)
-        }
-      }
-
       if (readyStatus) {
         ideStore.setStatusMessage(readyStatus)
       } else if (initializingStatus || systemToolsStatus || externalToolsStatus) {
@@ -225,6 +217,30 @@
     }
   })()
   
+  let layoutRestoreInProgress = false
+
+  async function ensureUserLayoutRestored() {
+    if (layoutRestoreInProgress) {
+      return
+    }
+    if (!authStore.isAuthenticated || !authStore.currentUser) {
+      return
+    }
+
+    layoutRestoreInProgress = true
+    try {
+      await ideStore.restoreUserLayout(authStore.currentUser)
+    } catch (layoutError) {
+      console.warn('App: Failed to restore user layout:', layoutError)
+    } finally {
+      layoutRestoreInProgress = false
+    }
+  }
+
+  $effect(() => {
+    ensureUserLayoutRestored()
+  })
+
   $effect(() => {
     const panelsManager = ideStore.panelsManager
     if (panelsManager) {

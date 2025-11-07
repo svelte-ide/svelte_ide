@@ -230,8 +230,8 @@ export class TabsManager {
         })
     }
 
-    saveTabsState(userKey) {
-        if (!userKey) return
+    async saveTabsState(userKey) {
+        if (!userKey || !this.persister) return
 
         try {
             const layout = this.createSerializableLayout()
@@ -241,7 +241,7 @@ export class TabsManager {
                 version: '1.0'
             }
             
-            this.persister.save(`user-${userKey}`, layoutData)
+            await this.persister.save(`user-${userKey}`, layoutData)
         } catch (error) {
             console.error('Error saving tabs state:', error)
         }
@@ -251,7 +251,7 @@ export class TabsManager {
         if (!userKey) return
 
         try {
-            const layoutData = this.persister.load(`user-${userKey}`)
+            const layoutData = await this.persister.load(`user-${userKey}`)
             if (!layoutData || !layoutData.layout) return
 
             this.closeAllTabs()

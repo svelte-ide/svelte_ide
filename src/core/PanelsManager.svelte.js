@@ -225,10 +225,10 @@ export class PanelsManager {
         return true
     }
 
-    restorePanelStates() {
-        genericLayoutService.restoreZoneStates()
+    async restorePanelStates() {
+        await genericLayoutService.restoreZoneStates()
         
-        this.panels.forEach((panel, panelId) => {
+        this.panels.forEach((panel) => {
             const zone = genericLayoutService.getZone(panel.zoneId)
             if (zone && zone.isActive) {
                 panel.isActive = true

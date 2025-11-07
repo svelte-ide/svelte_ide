@@ -3,9 +3,21 @@
   import FileViewer from './FileViewer.svelte'
   import { contextMenuService } from '@/core/ContextMenuService.svelte.js'
   import { openFileInIDE } from './fileService.svelte.js'
+  import { explorerPersistence } from './ExplorerPersistenceService.svelte.js'
 
   let { files = [], toolId } = $props()
   let selectedFileName = $state(null)
+  let persistenceLoaded = $state(false)
+
+  $effect(() => {
+    explorerPersistence.state.selectedItem
+    selectedFileName = explorerPersistence.state.selectedItem
+  })
+
+  $effect(() => {
+    explorerPersistence.state.loaded
+    persistenceLoaded = explorerPersistence.state.loaded
+  })
 
   function getIconForFile(fileName) {
     const extension = fileName.split('.').pop()
@@ -19,12 +31,13 @@
     }
   }
 
-  function handleFileClick(file) {
+  async function handleFileClick(file) {
     selectedFileName = file.name
+    await explorerPersistence.setSelectedItem(file.name)
     ideStore.addLog(`Fichier ${file.name} sélectionné`, 'info', 'Explorateur')
   }
 
-  function handleFileDoubleClick(file) {
+  async function handleFileDoubleClick(file) {
     // Utiliser la fonction partagée
     openFileInIDE(file.name, ideStore, FileViewer)
     
@@ -38,8 +51,9 @@
     )
   }
 
-  function handleFolderClick(folder) {
+  async function handleFolderClick(folder) {
     selectedFileName = folder.name
+    await explorerPersistence.setSelectedItem(folder.name)
     ideStore.addLog(`Dossier ${folder.name} sélectionné`, 'info', 'Explorateur')
   }
 
@@ -107,7 +121,11 @@
   </div>
   
   <div class="file-tree" role="tree" aria-label="Arborescence de fichiers">
-    {#if files.length > 0}
+    {#if !persistenceLoaded}
+      <div class="empty-state">
+        <p>Chargement de la persistance...</p>
+      </div>
+    {:else if files.length > 0}
       {#each files as item}
         {#if item.type === 'folder'}
           <button 

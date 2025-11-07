@@ -1,12 +1,23 @@
 import { LocalStoragePersister, MemoryPersister } from '@/core/PersisterInterface.js'
+import { IndexedDBPersister } from '@/core/persistence/IndexedDBPersister.svelte.js'
 import { APP_KEY } from '@/core/config/appKey.js'
+
+const ALLOWED_TYPES = ['localstorage', 'memory', 'indexeddb']
+const DEFAULT_TYPE = (() => {
+    const envValue = import.meta?.env?.VITE_PERSISTENCE_DEFAULT_TYPE
+    if (envValue && ALLOWED_TYPES.includes(envValue.toLowerCase())) {
+        return envValue.toLowerCase()
+    }
+    return 'indexeddb'
+})()
 
 export class PersistenceRegistry {
     constructor() {
         this.persisters = new Map()
-        this.defaultPersisterType = 'localStorage'
         this.namespacePrefix = null
+        this.defaultPersisterOptions = {}
         this.setNamespacePrefix(APP_KEY)
+        this.setDefaultPersisterType(DEFAULT_TYPE)
     }
 
     setNamespacePrefix(prefix) {
@@ -40,19 +51,25 @@ export class PersistenceRegistry {
         return persister
     }
 
-    createPersister(namespace, type = this.defaultPersisterType) {
+    createPersister(namespace, type = this.defaultPersisterType, options = {}) {
         const mapKey = this._getMapKey(namespace)
         if (this.persisters.has(mapKey)) {
             return this.persisters.get(mapKey)
         }
 
+        const effectiveType = type || this.defaultPersisterType
+        const mergedOptions = { ...this.defaultPersisterOptions, ...options }
         let persister
-        switch (type) {
+        switch (effectiveType) {
             case 'localStorage':
                 persister = new LocalStoragePersister(this._getEffectiveNamespace(namespace))
                 break
             case 'memory':
                 persister = new MemoryPersister(this._getEffectiveNamespace(namespace))
+                break
+            case 'indexeddb':
+            case 'indexedDB':
+                persister = new IndexedDBPersister(this._getEffectiveNamespace(namespace), mergedOptions)
                 break
             default:
                 throw new Error(`Unknown persister type: ${type}`)
@@ -110,10 +127,28 @@ export class PersistenceRegistry {
     }
 
     setDefaultPersisterType(type) {
-        if (!['localStorage', 'memory'].includes(type)) {
+        if (!type) {
+            throw new Error('Invalid persister type: undefined')
+        }
+        const normalized = typeof type === 'string' ? type.toLowerCase() : ''
+        if (!ALLOWED_TYPES.includes(normalized)) {
             throw new Error(`Invalid persister type: ${type}`)
         }
-        this.defaultPersisterType = type
+        if (normalized === 'indexeddb') {
+            this.defaultPersisterType = 'indexedDB'
+        } else if (normalized === 'localstorage') {
+            this.defaultPersisterType = 'localStorage'
+        } else {
+            this.defaultPersisterType = 'memory'
+        }
+    }
+
+    setDefaultPersisterOptions(options = {}) {
+        if (!options || typeof options !== 'object') {
+            this.defaultPersisterOptions = {}
+            return
+        }
+        this.defaultPersisterOptions = { ...options }
     }
 }
 

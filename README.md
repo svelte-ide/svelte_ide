@@ -41,3 +41,4 @@ Pour connaître les règles détaillées, les bonnes pratiques et les anti-patte
 ## Licence
 
 Ce projet est distribué sous licence Apache 2.0. Consultez les fichiers [LICENSE](./LICENSE) et [NOTICE](./NOTICE) pour connaître les conditions d'utilisation et les obligations d'attribution.
+- [IndexedDB Chiffrée : guide d’intégration & migration](./_GUIDES/INDEXEDDB_USAGE.md)

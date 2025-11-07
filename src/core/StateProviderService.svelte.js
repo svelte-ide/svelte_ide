@@ -26,13 +26,29 @@ class StateProviderService {
     return states
   }
 
-  restoreAllStates(states) {
+  async saveAllStatesAsync() {
+    const states = {}
+    for (const [key, provider] of this.providers) {
+      try {
+        const result = provider.saveState()
+        states[key] = result instanceof Promise ? await result : result
+      } catch (error) {
+        console.error(`Error saving async state for provider "${key}":`, error)
+      }
+    }
+    return states
+  }
+
+  async restoreAllStates(states) {
     if (!states) return
 
     for (const [key, provider] of this.providers) {
       try {
         if (states[key]) {
-          provider.restoreState(states[key])
+          const maybePromise = provider.restoreState(states[key])
+          if (maybePromise instanceof Promise) {
+            await maybePromise
+          }
         }
       } catch (error) {
         console.error(`Error restoring state for provider "${key}":`, error)

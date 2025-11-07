@@ -2,7 +2,8 @@ import { namespacedKey } from '@/core/config/appKey.js'
 import { TokenCipher } from '@/core/security/tokenCipher.svelte.js'
 
 const DB_NAME = namespacedKey('app-data')
-const DB_VERSION = 1
+const FALLBACK_STRATEGIES = ['block', 'localstorage', 'memory']
+const DEFAULT_FALLBACK_STRATEGY = (import.meta.env.VITE_INDEXEDDB_FALLBACK_STRATEGY || 'block').toLowerCase()
 
 /**
  * Service de persistance IndexedDB avec chiffrement transparent
@@ -26,9 +27,13 @@ export class IndexedDBService {
     this.dbReady = null
     this.cipher = null
     this.encryptionKey = null
+    this.dbVersion = null
     this.availableStores = new Set()
     this.fallbackStrategy = null
     this.fallbackPersister = null
+    this.fallbackStrategy = FALLBACK_STRATEGIES.includes(DEFAULT_FALLBACK_STRATEGY)
+      ? DEFAULT_FALLBACK_STRATEGY
+      : 'block'
   }
 
   /**
@@ -48,7 +53,13 @@ export class IndexedDBService {
         return
       }
 
-      const request = indexedDB.open(DB_NAME, DB_VERSION)
+      let request
+      try {
+        request = indexedDB.open(DB_NAME)
+      } catch (error) {
+        reject(error)
+        return
+      }
 
       request.onerror = () => {
         console.error('IndexedDBService: Failed to open database', request.error)
@@ -57,12 +68,20 @@ export class IndexedDBService {
 
       request.onsuccess = () => {
         this.db = request.result
+        this.dbVersion = this.db?.version ?? null
+
+        this.db.addEventListener('versionchange', () => {
+          console.warn('IndexedDBService: Database version change detected, closing connection')
+          this.close()
+        })
+
         console.debug('IndexedDBService: Database opened successfully')
         resolve(this.db)
       }
 
       request.onupgradeneeded = (event) => {
         const db = event.target.result
+        this.dbVersion = db?.version ?? null
         
         console.debug('IndexedDBService: Upgrading database schema', {
           oldVersion: event.oldVersion,
@@ -86,6 +105,32 @@ export class IndexedDBService {
     })
 
     return this.dbReady
+  }
+
+  /**
+   * Définit la stratégie de fallback globale utilisée par IndexedDBPersister
+   * @param {'block'|'localStorage'|'memory'|'user-choice'} strategy
+   */
+  setFallbackStrategy(strategy) {
+    if (!strategy || typeof strategy !== 'string') {
+      console.warn('IndexedDBService: invalid fallback strategy type')
+      return
+    }
+    const normalized = strategy.toLowerCase()
+    if (!FALLBACK_STRATEGIES.includes(normalized)) {
+      console.warn('IndexedDBService: unknown fallback strategy', { strategy })
+      return
+    }
+    this.fallbackStrategy = normalized
+    console.info('IndexedDBService: fallback strategy set', { strategy: normalized })
+  }
+
+  /**
+   * Retourne la stratégie de fallback actuellement configurée
+   * @returns {string}
+   */
+  getFallbackStrategy() {
+    return this.fallbackStrategy || 'block'
   }
 
   /**
@@ -119,12 +164,14 @@ export class IndexedDBService {
 
       request.onsuccess = () => {
         this.db = request.result
+        this.dbVersion = this.db?.version ?? null
         console.debug(`IndexedDBService: Store "${storeName}" created successfully`)
         resolve(true)
       }
 
       request.onupgradeneeded = (event) => {
         const db = event.target.result
+        this.dbVersion = db?.version ?? null
 
         if (!db.objectStoreNames.contains(storeName)) {
           const objectStore = db.createObjectStore(storeName, { keyPath: 'key' })
