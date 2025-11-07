@@ -186,6 +186,37 @@ Deux parcours sont supportés pour l'authentification Google : un flux 100 % SPA
 - Les traces verbeuses peuvent être activées via `VITE_AUTH_DEBUG_LOGS=true`. Par défaut, seules les erreurs et avertissements sont affichés en production.
 - En production (`import.meta.env.PROD`), `VITE_AUTH_PROVIDERS` doit être défini et ne peut contenir `mock`. Le `MockProvider` reste disponible uniquement pour le développement.
 
+### Unification des tokens : tous les providers génèrent des JWT signés
+
+**Principe fondamental** : Tous les providers (Google, Azure, **et Mock**) retournent des JWT signés cryptographiquement. Le backend ne doit **jamais** accepter de tokens non signés, même en développement.
+
+- **MockProvider** génère des JWT valides signés avec **HS256** (HMAC-SHA256) via la librairie `jose`
+- Le secret de signature est configuré via `VITE_MOCK_JWT_SECRET` (défaut : `default-dev-secret-change-in-production`)
+- Le backend doit valider ces JWT avec **le même secret** que le frontend
+- Les JWT Mock contiennent les mêmes claims que les vrais providers (`sub`, `email`, `name`, `exp`, `iat`)
+- Le refresh token Mock est également un JWT signé avec un claim `type: 'refresh'`
+- **Aucune logique "insecure"** ne doit exister côté backend (pas de `allow_insecure_dev_tokens`, pas de validation basée sur des préfixes comme `dev-*` ou `mock-*`)
+
+Cette approche garantit que le code backend reste simple et sécurisé : un seul chemin de validation JWT pour tous les providers, développement inclus.
+
+**Configuration recommandée** :
+```bash
+# Frontend (.env.development)
+VITE_AUTH_PROVIDERS=mock
+VITE_MOCK_JWT_SECRET=my-shared-dev-secret-123
+
+# Backend (.env ou config)
+MOCK_JWT_SECRET=my-shared-dev-secret-123  # Même valeur que le frontend!
+```
+
+**Validation backend simplifiée** :
+Le backend n'a pas besoin de logique spéciale "mock". Il valide simplement les JWT selon leur algorithme :
+- JWT avec `"provider": "mock"` → HS256 avec `MOCK_JWT_SECRET`
+- JWT Google → RS256 avec clés publiques Google
+- JWT Azure → RS256 avec clés publiques Microsoft
+
+Un seul endpoint `/api/auth/verify` suffit pour tous les providers.
+
 ## Principes transverses
 - Toute documentation supplémentaire doit se trouver sous le dossier _DOCS/
 - Observer en priorité les conventions déjà présentes dans la base de code avant d'appliquer de nouvelles règles

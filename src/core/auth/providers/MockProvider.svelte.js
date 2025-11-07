@@ -1,5 +1,6 @@
 import { AuthProvider } from '@/core/auth/AuthProvider.svelte.js'
 import { authDebug, authWarn } from '@/core/auth/authLogging.svelte.js'
+import * as jose from 'jose'
 
 export class MockProvider extends AuthProvider {
   constructor(config = {}) {
@@ -8,6 +9,7 @@ export class MockProvider extends AuthProvider {
     this.config = {
       simulateDelay: config.simulateDelay ?? 1000,
       shouldFail: config.shouldFail ?? false,
+      jwtSecret: config.jwtSecret ?? 'default-dev-secret-change-in-production',
       userInfo: config.userInfo ?? {
         sub: 'mock-user-123', // Standard OAuth2/OIDC : 'sub' = subject (user ID)
         name: 'John Doe',
@@ -47,10 +49,31 @@ export class MockProvider extends AuthProvider {
       }
     }
 
+    const now = Math.floor(Date.now() / 1000)
+    const expiresIn = 3600 // 1 heure
+
+    const accessToken = await this.generateJWT({
+      sub: this.config.userInfo.sub,
+      name: this.config.userInfo.name,
+      email: this.config.userInfo.email,
+      picture: this.config.userInfo.picture,
+      provider: 'mock',
+      iat: now,
+      exp: now + expiresIn
+    })
+
+    const refreshToken = await this.generateJWT({
+      sub: this.config.userInfo.sub,
+      type: 'refresh',
+      provider: 'mock',
+      iat: now,
+      exp: now + (expiresIn * 24) // 24 heures pour le refresh token
+    })
+
     const mockTokens = {
-      accessToken: 'mock_access_token_' + Date.now(),
-      refreshToken: 'mock_refresh_token_' + Date.now(),
-      expiresIn: 3600
+      accessToken,
+      refreshToken,
+      expiresIn
     }
 
     const userInfo = {
@@ -59,7 +82,7 @@ export class MockProvider extends AuthProvider {
       loginTime: new Date().toISOString()
     }
 
-    authDebug('Mock provider authentication successful')
+    authDebug('Mock provider authentication successful (JWT signed)')
     return {
       success: true,
       tokens: mockTokens,
@@ -106,23 +129,61 @@ export class MockProvider extends AuthProvider {
       await new Promise(resolve => setTimeout(resolve, 800))
     }
 
-    if (!refreshToken || !refreshToken.startsWith('mock_refresh_token_')) {
+    // Valider le refresh token JWT
+    try {
+      const secret = new TextEncoder().encode(this.config.jwtSecret)
+      const { payload } = await jose.jwtVerify(refreshToken, secret)
+      
+      if (payload.type !== 'refresh' || payload.provider !== 'mock') {
+        authWarn('Mock provider invalid refresh token payload')
+        return {
+          success: false,
+          error: 'Invalid refresh token'
+        }
+      }
+
+      const now = Math.floor(Date.now() / 1000)
+      const expiresIn = 3600
+
+      const newAccessToken = await this.generateJWT({
+        sub: payload.sub,
+        name: this.config.userInfo.name,
+        email: this.config.userInfo.email,
+        picture: this.config.userInfo.picture,
+        provider: 'mock',
+        iat: now,
+        exp: now + expiresIn
+      })
+
+      const newTokens = {
+        accessToken: newAccessToken,
+        refreshToken: refreshToken, // Le refresh token reste valide
+        expiresIn
+      }
+
+      authDebug('Mock provider token refresh successful (JWT signed)')
+      return {
+        success: true,
+        tokens: newTokens
+      }
+    } catch (err) {
+      authWarn('Mock provider refresh token verification failed', err)
       return {
         success: false,
-        error: 'Invalid refresh token'
+        error: 'Invalid or expired refresh token'
       }
     }
+  }
 
-    const newTokens = {
-      accessToken: 'mock_access_token_refreshed_' + Date.now(),
-      refreshToken: refreshToken,
-      expiresIn: 3600
-    }
-
-    authDebug('Mock provider token refresh successful')
-    return {
-      success: true,
-      tokens: newTokens
-    }
+  /**
+   * Génère un JWT signé avec HS256
+   * @private
+   */
+  async generateJWT(payload) {
+    const secret = new TextEncoder().encode(this.config.jwtSecret)
+    return await new jose.SignJWT(payload)
+      .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
+      .setIssuedAt()
+      .sign(secret)
   }
 }

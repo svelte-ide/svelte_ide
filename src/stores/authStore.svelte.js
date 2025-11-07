@@ -127,6 +127,7 @@ function initializeAuthProviders(authManager) {
 
     const mockConfig = {
       simulateDelay: import.meta.env.VITE_MOCK_AUTH_DELAY ? parseInt(import.meta.env.VITE_MOCK_AUTH_DELAY) : 1000,
+      jwtSecret: import.meta.env.VITE_MOCK_JWT_SECRET || 'default-dev-secret-change-in-production',
       userInfo: {
         sub: 'mock-dev-user',
         name: 'Développeur Mock',
@@ -136,7 +137,10 @@ function initializeAuthProviders(authManager) {
     }
 
     authManager.registerProvider(new MockProvider(mockConfig))
-    authDebug('MockProvider registered', { fallback: !hasRealProviders })
+    authDebug('MockProvider registered with JWT signing', { 
+      fallback: !hasRealProviders,
+      hasCustomSecret: Boolean(import.meta.env.VITE_MOCK_JWT_SECRET)
+    })
     hasRealProviders = true
   }
 }

@@ -163,6 +163,34 @@ Ce guide centralise toutes les variables d'environnement disponibles dans le fra
 
 ### Gestion des Tokens
 
+#### `VITE_MOCK_JWT_SECRET`
+- **Type** : `string`
+- **Défaut** : `default-dev-secret-change-in-production`
+- **Description** : Secret partagé pour signer les JWT générés par MockProvider (HS256). Le backend doit utiliser le même secret dans sa variable `MOCK_JWT_SECRET`.
+- **Usage** : En développement avec MockProvider, permet de tester le flux de validation JWT comme avec un vrai provider.
+- **Sécurité** : Changer cette valeur pour chaque environnement. Les deux secrets (frontend/backend) doivent être identiques.
+- **Exemple** :
+  ```bash
+  # Frontend (.env.development)
+  VITE_MOCK_JWT_SECRET=my-shared-dev-secret-123
+  
+  # Backend (.env)
+  MOCK_JWT_SECRET=my-shared-dev-secret-123
+  ```
+
+#### `VITE_MOCK_AUTH_DELAY`
+- **Type** : `number`
+- **Défaut** : `1000` (millisecondes)
+- **Description** : Délai simulé pour les opérations MockProvider (login, refresh, logout) pour tester l'UX de chargement
+- **Exemple** :
+  ```bash
+  # Pas de délai (tests rapides)
+  VITE_MOCK_AUTH_DELAY=0
+  
+  # Délai réaliste (simule réseau)
+  VITE_MOCK_AUTH_DELAY=1500
+  ```
+
 #### `VITE_AUTH_TOKEN_PERSISTENCE`
 - **Type** : `string`
 - **Défaut** : `session` (ou `memory` si backend OAuth configuré)
@@ -356,6 +384,12 @@ VITE_APP_KEY=svelte-ide
 # Providers activés (mock, google, azure)
 VITE_AUTH_PROVIDERS=google,azure
 
+# --- Mock Provider (développement) ---
+# Secret partagé pour signature JWT (doit matcher le backend)
+VITE_MOCK_JWT_SECRET=my-shared-dev-secret
+# Délai simulé en ms (0 = instantané)
+VITE_MOCK_AUTH_DELAY=1000
+
 # --- Google OAuth ---
 VITE_GOOGLE_CLIENT_ID=your_google_client_id_here
 VITE_GOOGLE_REDIRECT_URI=http://localhost:5173/auth/callback
@@ -455,8 +489,10 @@ VITE_INDEXEDDB_FALLBACK_STRATEGY=localStorage
 ### Développement
 
 ```bash
-# Mock pour tests rapides
+# Mock pour tests rapides avec JWT signés
 VITE_AUTH_PROVIDERS=mock
+VITE_MOCK_JWT_SECRET=my-dev-secret-123
+VITE_MOCK_AUTH_DELAY=500
 
 # Ou Google avec secret (flag explicite)
 VITE_AUTH_PROVIDERS=google
