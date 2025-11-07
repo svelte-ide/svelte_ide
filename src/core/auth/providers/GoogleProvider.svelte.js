@@ -8,7 +8,12 @@ export class GoogleProvider extends AuthProvider {
     this.authUrl = 'https://accounts.google.com/o/oauth2/v2/auth'
     this.tokenUrl = 'https://oauth2.googleapis.com/token'
     this.userInfoUrl = 'https://openidconnect.googleapis.com/v1/userinfo'
-    this.scope = 'openid profile email'
+    // Read scopes from env if present, else fallback to default
+    let envScope = null
+    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_GOOGLE_SCOPES) {
+      envScope = String(import.meta.env.VITE_GOOGLE_SCOPES).trim()
+    }
+    this.scope = envScope && envScope.length > 0 ? envScope : 'openid profile email'
     this.useBackendExchange = false
     this.backendTokenUrl = null
     this.backendRefreshUrl = null

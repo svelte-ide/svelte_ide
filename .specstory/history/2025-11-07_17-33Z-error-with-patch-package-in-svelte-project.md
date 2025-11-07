@@ -810,3 +810,41 @@ _**Assistant (copilot/claude-sonnet-4.5)**_
 
 ---
 
+_**User (2025-11-07 18:29Z)**_
+
+Besoin pour svelte-ide
+Le provider Azure dans svelte-ide doit :
+
+Lire VITE_AZURE_SCOPES depuis les variables d'environnement
+Inclure ces scopes dans la requête d'autorisation OAuth (scope parameter dans l'URL de login)
+Résultat : Azure AD retournera un access token avec aud = api://... au lieu de juste le client ID
+Actuellement : Le provider Azure envoie probablement seulement openid profile email comme scopes par défaut, ce qui génère un token avec aud = client ID.
+
+Requis : Ajouter api://436fddc9-7503-41a0-90af-b9de51bb66e6/access_as_user aux scopes demandés pour obtenir un token avec le bon audience pour le backend.
+
+---
+
+_**Assistant (copilot/claude-sonnet-4.5)**_
+
+
+```
+
+```
+The AzureProvider now reads the `VITE_AZURE_SCOPES` environment variable and uses it for the OAuth `scope` parameter. If the variable is not set, it falls back to the default scopes. No errors were found in the updated file.
+
+This completes the requested enhancement for custom Azure OAuth scopes. Let me know if you need further adjustments or want to test the integration.
+
+---
+
+_**User (2025-11-07 18:28Z)**_
+
+est-ce un concept qui se généralise aussi à google?
+
+---
+
+_**Assistant (copilot/claude-sonnet-4.5)**_
+
+
+
+---
+

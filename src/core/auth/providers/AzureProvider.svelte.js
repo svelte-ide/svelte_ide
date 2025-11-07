@@ -6,7 +6,12 @@ export class AzureProvider extends AuthProvider {
   constructor(config) {
     super('azure', 'Microsoft Azure AD', config)
     this.authUrl = 'https://login.microsoftonline.com'
-    this.scope = 'openid profile email User.Read'
+    // Read scopes from env if present, else fallback to default
+    let envScope = null
+    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_AZURE_SCOPES) {
+      envScope = String(import.meta.env.VITE_AZURE_SCOPES).trim()
+    }
+    this.scope = envScope && envScope.length > 0 ? envScope : 'openid profile email User.Read'
   }
 
   requiredConfigKeys() {
