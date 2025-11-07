@@ -415,6 +415,37 @@ _**Assistant (copilot/claude-sonnet-4.5)**_
 
 ```
 
+```
+
+```
+Parfait ! J'ai effectué les deux modifications :
+
+## ✅ Changements appliqués
+
+### 1. **Valeurs simulées retirées**
+- Le composant utilise maintenant les vraies valeurs de `navigator.storage.estimate()`
+- Plus de simulation artificielle
+
+### 2. **Export dans l'API publique**
+- Ajout de `StatusBarIndexedDBUsageItem` dans `public-api.js`
+- Les clients peuvent maintenant importer et utiliser le composant :
+
+```javascript
+import { 
+  statusBarService, 
+  StatusBarIndexedDBUsageItem 
+} from 'svelte-ide'
+
+// Dans leur application
+statusBarService.registerItem('right', {
+  id: 'storage-usage',
+  component: StatusBarIndexedDBUsageItem,
+  props: {},
+  order: 10
+}, 'mon-app')
+```
+
+Le composant est maintenant prêt pour une utilisation en production avec les vraies données de stockage ! 🚀
 
 ---
 

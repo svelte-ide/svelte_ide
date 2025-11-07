@@ -207,7 +207,7 @@ Parfait ! Maintenant créons un fichier récapitulatif pour documenter ce change
 
 ---
 
-_**User (2025-11-07 16:42Z)**_
+_**User (2025-11-07 16:43Z)**_
 
 merci pour l'explication. j'aimais bien la nom MOCK_JWT_SECRET. Pas besoin de doucment MOCK_JWT_BACK....
 
@@ -216,6 +216,36 @@ merci pour l'explication. j'aimais bien la nom MOCK_JWT_SECRET. Pas besoin de do
 _**Assistant (copilot/claude-sonnet-4.5)**_
 
 Parfait ! Je vais simplifier et utiliser `MOCK_JWT_SECRET` (sans le préfixe `VITE_` côté backend). Je supprime aussi le document détaillé puisque tout est déjà expliqué dans les guides existants. 
+```
+
+```
+
+```
+
+```
+Parfait ! Maintenant un résumé de ce qui a été fait :
+
+## ✅ Modifications Complétées
+
+### 1. **MockProvider génère maintenant de vrais JWT signés (HS256)**
+   - Utilise la librairie `jose` pour signer cryptographiquement
+   - Access token et refresh token sont tous deux des JWT valides
+   - Contiennent les claims standards : `sub`, `email`, `name`, `exp`, `iat`, `provider`
+
+### 2. **Configuration simplifiée**
+   - Frontend : `VITE_MOCK_JWT_SECRET=my-secret`
+   - Backend : `MOCK_JWT_SECRET=my-secret` (même valeur)
+   - Le backend valide tous les providers avec le même code (pas de logique spéciale "mock")
+
+### 3. **Documentation mise à jour**
+   - `ARCHITECTURE.md` : Section "Unification des tokens" expliquant le principe
+   - `ENVIRONMENT_VARIABLES.md` : Documentation de `VITE_MOCK_JWT_SECRET`
+   - `.env.example` : Exemple avec Mock configuré
+
+### 4. **Principe clé**
+   Le backend ne sait pas qu'il traite un JWT "mock". Il regarde juste le claim `"provider": "mock"` et valide avec HS256. Exactement comme il regarde l'issuer Google et valide avec RS256. **Un seul chemin de validation pour tous les providers.**
+
+Tout est prêt pour que ton backend puisse valider les JWT Mock de la même manière sécurisée que les vrais providers OAuth ! 🎉
 
 ---
 

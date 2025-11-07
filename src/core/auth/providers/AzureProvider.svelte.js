@@ -27,7 +27,7 @@ export class AzureProvider extends AuthProvider {
     const codeVerifier = this.generateCodeVerifier()
     const codeChallenge = await this.generateCodeChallenge(codeVerifier)
     
-    sessionStorage.setItem(this.getStorageKey('state'), state)
+    this.storeState(state)
     sessionStorage.setItem(this.getStorageKey('code_verifier'), codeVerifier)
 
     const params = new URLSearchParams({
@@ -79,17 +79,25 @@ export class AzureProvider extends AuthProvider {
       }
     }
 
-    const storedState = sessionStorage.getItem(this.getStorageKey('state'))
+    const storedState = this.consumeStoredState()
     const codeVerifier = sessionStorage.getItem(this.getStorageKey('code_verifier'))
     
     authDebug('Azure state validation', {
-      hasState: !!state,
+      hasUrlState: !!state,
       hasStoredState: !!storedState,
       stateMatch: state && storedState ? state === storedState : false,
       hasCodeVerifier: !!codeVerifier
     })
 
-    if (!state || state !== storedState) {
+    if (!state || !storedState) {
+      authWarn('Azure state validation failed: missing or expired state')
+      return {
+        success: false,
+        error: 'Invalid or expired state parameter - possible CSRF attack'
+      }
+    }
+
+    if (state !== storedState) {
       authWarn('Azure state mismatch', { received: state, stored: storedState })
       return {
         success: false,
@@ -105,7 +113,6 @@ export class AzureProvider extends AuthProvider {
       }
     }
 
-    sessionStorage.removeItem(this.getStorageKey('state'))
     sessionStorage.removeItem(this.getStorageKey('code_verifier'))
 
     try {
