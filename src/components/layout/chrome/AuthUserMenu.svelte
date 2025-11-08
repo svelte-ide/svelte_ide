@@ -7,11 +7,21 @@
   let userMenu = $state(false)
   let wasAuthenticated = $state(false)
   let menuButton = $state(null)
+  let imageLoadError = $state(false)
+  let imageLoadErrorLarge = $state(false)
   const menuId = 'auth-user-menu'
   const buttonId = 'auth-user-menu-button'
 
   $effect(() => {
     authStore.initialize()
+  })
+
+  // Réinitialiser les erreurs de chargement d'image quand l'utilisateur change
+  $effect(() => {
+    if (authStore.currentUser) {
+      imageLoadError = false
+      imageLoadErrorLarge = false
+    }
   })
 
   $effect(() => {
@@ -96,6 +106,14 @@
     const displayName = user?.name || user?.email || 'Utilisateur'
     return displayName
   }
+
+  function handleImageError() {
+    imageLoadError = true
+  }
+
+  function handleImageErrorLarge() {
+    imageLoadErrorLarge = true
+  }
 </script>
 
 <svelte:window onclick={handleClickOutside} />
@@ -112,9 +130,13 @@
       id={buttonId}
       bind:this={menuButton}
     >
-      <span class="user-avatar" class:has-image={hasAvatar(authStore.currentUser)}>
-        {#if getUserAvatarImage(authStore.currentUser)}
-          <img src={getUserAvatarImage(authStore.currentUser)} alt={`[${getUserDisplayName(authStore.currentUser)[0]}]`} />
+      <span class="user-avatar" class:has-image={hasAvatar(authStore.currentUser) && !imageLoadError}>
+        {#if getUserAvatarImage(authStore.currentUser) && !imageLoadError}
+          <img 
+            src={getUserAvatarImage(authStore.currentUser)} 
+            alt="" 
+            onerror={handleImageError}
+          />
         {/if}
       </span>
       <span class="username">{getUserDisplayName(authStore.currentUser)}</span>
@@ -124,9 +146,13 @@
     {#if userMenu}
       <div class="user-menu" role="menu" id={menuId} aria-labelledby={buttonId}>
         <div class="user-info">
-          <div class="user-avatar-large" class:has-image={hasAvatar(authStore.currentUser)}>
-            {#if getUserAvatarImage(authStore.currentUser)}
-              <img src={getUserAvatarImage(authStore.currentUser)} alt={`Avatar de ${getUserDisplayName(authStore.currentUser)}`} />
+          <div class="user-avatar-large" class:has-image={hasAvatar(authStore.currentUser) && !imageLoadErrorLarge}>
+            {#if getUserAvatarImage(authStore.currentUser) && !imageLoadErrorLarge}
+              <img 
+                src={getUserAvatarImage(authStore.currentUser)} 
+                alt="" 
+                onerror={handleImageErrorLarge}
+              />
             {/if}
           </div>
           <div class="user-details">
@@ -199,11 +225,17 @@
     justify-content: center;
     width: 16px;
     height: 16px;
+    border-radius: 50%;
+    background: #007acc;
+    color: white;
+    font-size: 10px;
+    font-weight: bold;
   }
   
-  /* Masquer complètement l'avatar si pas d'image */
-  .user-avatar:not(.has-image) {
-    display: none;
+  /* Afficher l'icône utilisateur par défaut */
+  .user-avatar:not(.has-image)::before {
+    content: '👤';
+    font-size: 12px;
   }
 
   .user-avatar img {
@@ -255,11 +287,15 @@
     align-items: center;
     justify-content: center;
     background: #007acc;
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
   }
   
-  /* Masquer complètement l'avatar large si pas d'image */
-  .user-avatar-large:not(.has-image) {
-    display: none;
+  /* Afficher l'icône utilisateur par défaut */
+  .user-avatar-large:not(.has-image)::before {
+    content: '👤';
+    font-size: 24px;
   }
 
   .user-avatar-large img {

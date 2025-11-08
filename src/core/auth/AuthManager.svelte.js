@@ -125,6 +125,22 @@ export class AuthManager {
       this._isAuthenticated = true
       this._currentUser = this.tokenManager.userInfo
       
+      // Note: activeProvider sera restauré plus tard dans initializeProviders()
+      // car les providers ne sont pas encore enregistrés à ce stade
+      
+      // Restaurer l'avatar depuis le cache (les blob URLs ne survivent pas au reload)
+      if (this._currentUser?.sub) {
+        try {
+          const cachedAvatar = await avatarCacheService.getAvatar(this._currentUser.sub)
+          if (cachedAvatar) {
+            this._currentUser.avatar = cachedAvatar
+            authDebug('User avatar restored from cache after page reload')
+          }
+        } catch (error) {
+          authDebug('Failed to restore avatar from cache (non-blocking)', error)
+        }
+      }
+      
       // Dériver la clé de chiffrement si userInfo disponible
       if (this._currentUser) {
         await this._deriveAndSetEncryptionKey(this._currentUser)
@@ -314,15 +330,10 @@ export class AuthManager {
     
     const userId = this._currentUser?.sub
     
-    try {
-      if (this.activeProvider) {
-        await this.activeProvider.logout()
-      }
-    } catch (error) {
-      authWarn('Provider logout failed', error)
-    }
-    
+    // Nettoyer l'état local AVANT de rediriger vers le provider
+    // Cela garantit que l'état est clean même si l'utilisateur revient avant la fin du logout
     await this.tokenManager.clear()
+    const previousProvider = this.activeProvider
     this.activeProvider = null
     this._isAuthenticated = false
     this._currentUser = null
@@ -330,14 +341,26 @@ export class AuthManager {
     // Effacer la clé de chiffrement lors du logout
     this._clearEncryptionKey()
     
-    // Nettoyer le cache d'avatar de l'utilisateur déconnecté
-    if (userId) {
-      await avatarCacheService.deleteAvatar(userId)
-      authDebug('Avatar cache cleared for user')
+    // ✅ NE PAS supprimer le cache d'avatar pour permettre le fallback lors du prochain login
+    // Le cache persistant offre de la résilience si Graph API est indisponible
+    // Le TTL de 24h gère automatiquement l'expiration
+    
+    authDebug('Local state cleared, delegating to provider logout')
+    
+    // Appeler le logout du provider EN DERNIER car il peut rediriger
+    // et empêcher l'exécution du code qui suit
+    try {
+      if (previousProvider) {
+        const result = await previousProvider.logout()
+        // Si le provider redirige (Azure), ce code ne sera jamais atteint
+        authDebug('Logout completed')
+        return result
+      }
+    } catch (error) {
+      authWarn('Provider logout failed', error)
     }
     
     authDebug('Logout completed')
-    
     return { success: true }
   }
 
@@ -431,6 +454,21 @@ export class AuthManager {
     
     if (this.providers.size === 0) {
       authWarn('No providers available after initialization')
+      return
+    }
+    
+    // Restaurer le provider actif si l'utilisateur est authentifié (après rechargement de page)
+    if (this._isAuthenticated && this._currentUser?.provider && !this.activeProvider) {
+      this.activeProvider = this.providers.get(this._currentUser.provider)
+      if (this.activeProvider) {
+        authDebug('Active provider restored after page reload', { 
+          providerId: this._currentUser.provider 
+        })
+      } else {
+        authWarn('Cannot restore active provider: provider not registered', { 
+          providerId: this._currentUser.provider 
+        })
+      }
     }
   }
 }

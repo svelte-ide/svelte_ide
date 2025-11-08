@@ -1,5 +1,6 @@
-import { AuthProvider } from '@/core/auth/AuthProvider.svelte.js'
 import { authDebug, authError, authWarn } from '@/core/auth/authLogging.svelte.js'
+import { AuthProvider } from '@/core/auth/AuthProvider.svelte.js'
+import { avatarCacheService } from '@/core/auth/AvatarCacheService.svelte.js'
 
 export class AzureProvider extends AuthProvider {
   constructor(config) {
@@ -121,6 +122,18 @@ export class AzureProvider extends AuthProvider {
         hasName: Boolean(userInfo.name),
         sub: userInfo.sub
       })
+      
+      // Charger l'avatar avant de continuer (on attend pour l'avoir dès le login)
+      try {
+        const avatarUrl = await this.loadUserAvatar(userInfo.sub, tokenData.access_token, tokenData.refresh_token)
+        if (avatarUrl) {
+          userInfo.avatar = avatarUrl
+          authDebug('Azure avatar loaded successfully', { hasAvatar: true })
+        }
+      } catch (avatarErr) {
+        authDebug('Failed to load Azure avatar (non-blocking)', avatarErr)
+        // Non-bloquant : on continue sans avatar
+      }
       
       // Préparer les tokens (Azure peut retourner plusieurs audiences si multiples scopes)
       const accessTokens = []
@@ -254,11 +267,73 @@ export class AzureProvider extends AuthProvider {
         email: payload.email || payload.preferred_username,
         name: payload.name,
         provider: 'azure',
-        avatar: null // Avatar chargé séparément si besoin
+        avatar: null // Avatar chargé séparément via loadUserAvatar()
       }
     } catch (error) {
       authError('Failed to decode ID token', error)
       throw new Error('Failed to extract user info from ID token')
+    }
+  }
+
+  /**
+   * Charge l'avatar utilisateur depuis le cache ou Graph API
+   * @param {string} userId - L'identifiant unique de l'utilisateur (oid)
+   * @param {string} accessToken - Le token d'accès (peut ne pas être pour Graph API)
+   * @param {string} refreshToken - Le refresh token pour obtenir un token Graph si nécessaire
+   * @returns {Promise<string|null>} URL blob de l'avatar ou null
+   */
+  async loadUserAvatar(userId, accessToken, refreshToken) {
+    try {
+      // Essayer de récupérer l'avatar depuis le cache en premier
+      let avatar = await avatarCacheService.getAvatar(userId)
+      
+      if (avatar) {
+        authDebug('Azure user avatar restored from cache')
+        return avatar
+      }
+      
+      // Vérifier si le token actuel est pour Graph API
+      const audience = this.extractAudienceFromToken(accessToken)
+      let graphToken = accessToken
+      
+      // Si le token n'est pas pour Graph API, obtenir un token Graph temporaire
+      if (audience !== '00000003-0000-0000-c000-000000000000') {
+        authDebug('Access token is not for Graph API, requesting Graph token', { 
+          currentAudience: audience 
+        })
+        
+        try {
+          const graphTokenData = await this.refreshTokenWithScopes(
+            refreshToken, 
+            'https://graph.microsoft.com/User.Read'
+          )
+          graphToken = graphTokenData.access_token
+          authDebug('Graph API token obtained for avatar download (temporary, not stored)')
+        } catch (refreshError) {
+          authWarn('Failed to obtain Graph token for avatar', refreshError)
+          return null
+        }
+      }
+      
+      // Télécharger depuis Graph API et mettre en cache
+      const photoResponse = await fetch('https://graph.microsoft.com/v1.0/me/photo/$value', {
+        headers: {
+          'Authorization': `Bearer ${graphToken}`
+        }
+      })
+      
+      if (photoResponse.ok) {
+        const photoBlob = await photoResponse.blob()
+        avatar = await avatarCacheService.saveAvatar(userId, photoBlob)
+        authDebug('Azure user avatar downloaded and cached')
+        return avatar
+      } else {
+        authDebug('Azure user profile photo unavailable (HTTP error)', { status: photoResponse.status })
+        return null
+      }
+    } catch (error) {
+      authDebug('Azure user profile photo unavailable (network error)', error)
+      return null
     }
   }
 
@@ -309,24 +384,38 @@ export class AzureProvider extends AuthProvider {
 
     const userData = await response.json()
     
+    const userId = userData.id
     let avatar = null
-    try {
-      const photoResponse = await fetch('https://graph.microsoft.com/v1.0/me/photo/$value', {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`
+    
+    // Essayer de récupérer l'avatar depuis le cache en premier
+    avatar = await avatarCacheService.getAvatar(userId)
+    
+    if (avatar) {
+      authDebug('Azure user avatar restored from cache')
+    } else {
+      // Télécharger depuis Graph API et mettre en cache
+      try {
+        const photoResponse = await fetch('https://graph.microsoft.com/v1.0/me/photo/$value', {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`
+          }
+        })
+        
+        if (photoResponse.ok) {
+          const photoBlob = await photoResponse.blob()
+          avatar = await avatarCacheService.saveAvatar(userId, photoBlob)
+          authDebug('Azure user avatar downloaded and cached')
+        } else {
+          authDebug('Azure user profile photo unavailable (HTTP error)', { status: photoResponse.status })
         }
-      })
-      
-      if (photoResponse.ok) {
-        const photoBlob = await photoResponse.blob()
-        avatar = URL.createObjectURL(photoBlob)
+      } catch (photoError) {
+        authDebug('Azure user profile photo unavailable (network error)', photoError)
       }
-    } catch (photoError) {
-      authDebug('Azure user profile photo unavailable')
     }
     
     return {
-      id: userData.id,
+      sub: userId,         // Standard OAuth2/OIDC
+      id: userId,          // Compatibilité descendante
       email: userData.mail || userData.userPrincipalName,
       name: userData.displayName,
       provider: 'azure',
@@ -373,8 +462,16 @@ export class AzureProvider extends AuthProvider {
 
   async logout() {
     const logoutUrl = `${this.authUrl}/${this.config.tenantId}/oauth2/v2.0/logout?post_logout_redirect_uri=${encodeURIComponent(window.location.origin)}`
+    
+    authDebug('Azure logout - redirecting to Microsoft', { 
+      tenant: this.config.tenantId,
+      redirectUri: window.location.origin 
+    })
+    
     window.location.href = logoutUrl
-    return { success: true }
+    
+    // Retourner immédiatement - la redirection empêchera l'exécution de code supplémentaire
+    return { success: true, redirected: true }
   }
 
   /**
