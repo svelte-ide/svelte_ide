@@ -1,6 +1,7 @@
 import { eventBus } from '@/core/EventBusService.svelte.js'
 import { layoutService } from '@/core/LayoutService.svelte.js'
 import { mainMenuService } from '@/core/MainMenuService.svelte.js'
+import { createExportAllAction, createImportAllAction } from '@/core/MenuActionsHelpers.svelte.js'
 import { MODAL_CANCELLED_BY_X, modalService } from '@/core/ModalService.svelte.js'
 import { panelsManager } from '@/core/PanelsManager.svelte.js'
 import { persistenceRegistry } from '@/core/persistence/PersistenceRegistry.svelte.js'
@@ -9,18 +10,9 @@ import { SCROLL_MODES } from '@/core/ScrollModes.svelte.js'
 import { stateProviderService } from '@/core/StateProviderService.svelte.js'
 import { Tab } from '@/core/Tab.svelte.js'
 import { toolFocusCoordinator } from '@/core/ToolFocusCoordinator.svelte.js'
-import { registerStorageMenu } from '@/core/StorageMenuHelper.svelte.js'
 import { getAuthStore } from './authStore.svelte.js'
 
 const LAYOUT_SCHEMA_VERSION = 2
-
-const DEFAULT_STORAGE_BUNDLE = {
-  entries: [
-    { type: 'json', namespace: 'user-layout', path: 'data/user-layout.json' },
-    { type: 'json', namespace: 'tool-explorer', path: 'data/tool-explorer.json' },
-    { type: 'blob', namespace: 'tool-explorer-blobs', basePath: 'files/tool-explorer/' }
-  ]
-}
 
 const buildUserStorageKey = (user) => {
   if (!user) return null
@@ -81,14 +73,78 @@ class IdeStore {
       this._setCurrentFocusGroup(groupId)
     })
 
-    registerStorageMenu(this, 'core-storage', 'user-layout', {
-      menuLabel: 'Sauvegarde',
-      exportLabel: 'Exporter toutes les données...',
-      importLabel: 'Importer toutes les données...',
-      filename: 'svelte-ide-backup.zip',
-      menuOrder: 850,
-      bundle: DEFAULT_STORAGE_BUNDLE
-    })
+    // Enregistrer le menu "Sauvegarde" avec export/import exhaustif
+    this.registerMenu({ id: 'sauvegarde', label: 'Sauvegarde', order: 850 }, 'core-storage')
+    
+    this.registerMenuItem('sauvegarde', {
+      id: 'export-all-data',
+      label: 'Exporter toutes les données...',
+      order: 10,
+      action: createExportAllAction({
+        onSuccess: ({ filename, namespaces }) => {
+          this.addNotification(
+            'Export réussi',
+            `${namespaces.length} namespace(s) exportés dans ${filename}`,
+            'success',
+            'core-storage'
+          )
+          this.addLog(
+            `Export complet terminé : ${filename} (${namespaces.join(', ')})`,
+            'info',
+            'core-storage'
+          )
+        },
+        onError: (error) => {
+          this.addNotification(
+            'Erreur d\'export',
+            error?.message || 'Impossible d\'exporter les données',
+            'error',
+            'core-storage'
+          )
+          this.addLog(
+            `Export complet échoué : ${error?.message || 'Erreur inconnue'}`,
+            'error',
+            'core-storage'
+          )
+        }
+      })
+    }, 'core-storage')
+
+    this.registerMenuItem('sauvegarde', {
+      id: 'import-all-data',
+      label: 'Importer toutes les données...',
+      order: 20,
+      action: createImportAllAction({
+        mode: 'replace',
+        confirmReplace: true,
+        onSuccess: ({ filename, namespaces }) => {
+          this.addNotification(
+            'Import réussi',
+            `${namespaces.length} namespace(s) restaurés depuis ${filename}`,
+            'success',
+            'core-storage'
+          )
+          this.addLog(
+            `Import complet terminé : ${filename} (${namespaces.join(', ')})`,
+            'info',
+            'core-storage'
+          )
+        },
+        onError: (error) => {
+          this.addNotification(
+            'Erreur d\'import',
+            error?.message || 'Impossible d\'importer les données',
+            'error',
+            'core-storage'
+          )
+          this.addLog(
+            `Import complet échoué : ${error?.message || 'Erreur inconnue'}`,
+            'error',
+            'core-storage'
+          )
+        }
+      })
+    }, 'core-storage')
   }
 
   get tabs() {

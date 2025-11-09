@@ -196,6 +196,93 @@ export class PersistenceRegistry {
         return Array.from(this.persisters.keys())
     }
 
+    /**
+     * Retourne le type d'un namespace enregistré.
+     * 
+     * @param {string} namespace - Namespace à inspecter
+     * @returns {'json'|'binary'|'localstorage'|'memory'|null} Type du persister ou null si inexistant
+     */
+    getNamespaceType(namespace) {
+        const mapKey = this._getMapKey(namespace)
+        const persister = this.persisters.get(mapKey)
+        
+        if (!persister) {
+            return null
+        }
+
+        // Identifier le type par introspection du persister
+        if (persister instanceof BinaryPersister) {
+            return 'binary'
+        }
+        if (persister instanceof JsonPersister) {
+            return 'json'
+        }
+        if (persister instanceof LocalStoragePersister) {
+            return 'localstorage'
+        }
+        if (persister instanceof MemoryPersister) {
+            return 'memory'
+        }
+
+        // Fallback : inspecter le constructor.name
+        const constructorName = persister.constructor?.name
+        if (constructorName === 'BinaryPersister') return 'binary'
+        if (constructorName === 'JsonPersister') return 'json'
+        if (constructorName === 'LocalStoragePersister') return 'localstorage'
+        if (constructorName === 'MemoryPersister') return 'memory'
+
+        return null
+    }
+
+    /**
+     * Retourne tous les namespaces avec leurs métadonnées (type).
+     * 
+     * @returns {Array<{namespace: string, type: string}>} Liste des namespaces avec leurs types
+     * 
+     * @example
+     * const namespaces = persistenceRegistry.getAllNamespacesWithMetadata()
+     * // [
+     * //   { namespace: 'user-layout', type: 'json' },
+     * //   { namespace: 'documents', type: 'binary' }
+     * // ]
+     */
+    getAllNamespacesWithMetadata() {
+        const result = []
+        
+        for (const [mapKey, persister] of this.persisters.entries()) {
+            // Extraire le namespace original (sans prefix)
+            const namespace = this.namespacePrefix
+                ? mapKey.replace(`${this.namespacePrefix}::`, '')
+                : mapKey
+
+            let type = null
+
+            // Identifier le type par introspection
+            if (persister instanceof BinaryPersister) {
+                type = 'binary'
+            } else if (persister instanceof JsonPersister) {
+                type = 'json'
+            } else if (persister instanceof LocalStoragePersister) {
+                type = 'localstorage'
+            } else if (persister instanceof MemoryPersister) {
+                type = 'memory'
+            } else {
+                // Fallback : inspecter le constructor.name
+                const constructorName = persister.constructor?.name
+                if (constructorName === 'BinaryPersister') type = 'binary'
+                else if (constructorName === 'JsonPersister') type = 'json'
+                else if (constructorName === 'LocalStoragePersister') type = 'localstorage'
+                else if (constructorName === 'MemoryPersister') type = 'memory'
+            }
+
+            if (type) {
+                result.push({ namespace, type })
+            }
+        }
+
+        return result
+    }
+
     save(namespace, key, data) {
         const persister = this.getPersister(namespace)
         return persister.save(key, data)

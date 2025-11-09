@@ -13,14 +13,14 @@ function logStatus(ideStore, message, level = 'info', source = 'storage') {
 }
 
 /**
- * Enregistre un menu "Stockage" standard avec actions Export/Import.
+ * Enregistre un menu "stockage" standard avec actions Export/Import.
  *
  * @param {Object} ideStoreInstance - Instance de ideStore
  * @param {string} toolId - Identifiant du propriétaire (utilisé comme ownerId)
  * @param {string} namespace - Namespace de persistance ciblé
  * @param {Object} [options]
- * @param {string} [options.menuId='storage'] - Identifiant du menu
- * @param {string} [options.menuLabel='Stockage'] - Libellé du menu
+ * @param {string} [options.menuId='stockage'] - Identifiant du menu
+ * @param {string} [options.menuLabel='stockage'] - Libellé du menu
  * @param {number} [options.menuOrder=800] - Ordre d'affichage du menu
  * @param {string} [options.exportLabel='Exporter les données...'] - Libellé de l'action d'export
  * @param {string} [options.importLabel='Importer les données...'] - Libellé de l'action d'import
@@ -50,8 +50,8 @@ export function registerStorageMenu(
   }
 
   const {
-    menuId = 'storage',
-    menuLabel = 'Stockage',
+    menuId = 'stockage',
+    menuLabel = 'stockage',
     menuOrder = 800,
     exportLabel = 'Exporter les données...',
     importLabel = 'Importer les données...',

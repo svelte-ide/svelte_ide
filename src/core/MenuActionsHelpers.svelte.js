@@ -473,6 +473,125 @@ function normalizeMode(mode) {
 }
 
 /**
+ * Exporte tous les namespaces enregistrés dans un seul bundle ZIP.
+ * Détecte automatiquement les types (JSON/binary) et construit le bundle dynamiquement.
+ * 
+ * @param {Object} [options]
+ * @param {string} [options.appKey] - Clé d'application pour le nom de fichier (défaut: APP_KEY)
+ * @param {boolean} [options.excludeMemory=true] - Exclure les namespaces 'memory' (volatiles)
+ * @param {number} [options.compressionLevel=6] - Niveau de compression du ZIP (0-9)
+ * @returns {Promise<{blob: Blob, filename: string, namespaces: Array}>} Archive ZIP et métadonnées
+ * 
+ * @example
+ * const { blob, filename } = await exportAllNamespaces()
+ * downloadFile(blob, filename)
+ */
+export async function exportAllNamespaces(options = {}) {
+  const { APP_KEY } = await import('@/core/config/appKey.js')
+  
+  const {
+    appKey = APP_KEY,
+    excludeMemory = true,
+    compressionLevel = 6
+  } = options
+
+  // Récupérer tous les namespaces avec leurs types
+  const allNamespaces = persistenceRegistry.getAllNamespacesWithMetadata()
+  
+  if (!allNamespaces || allNamespaces.length === 0) {
+    throw new Error('Aucun namespace enregistré à exporter')
+  }
+
+  // Filtrer selon les options
+  const namespacesToExport = allNamespaces.filter(({ type }) => {
+    if (excludeMemory && type === 'memory') {
+      return false
+    }
+    return true
+  })
+
+  if (namespacesToExport.length === 0) {
+    throw new Error('Aucun namespace persistant à exporter')
+  }
+
+  // Construire le bundle dynamiquement
+  const bundleEntries = []
+  
+  for (const { namespace, type } of namespacesToExport) {
+    if (type === 'binary') {
+      bundleEntries.push({
+        type: 'blob',
+        namespace,
+        basePath: `files/${namespace}/`
+      })
+    } else {
+      // JSON, localstorage (on les exporte tous comme JSON)
+      bundleEntries.push({
+        type: 'json',
+        namespace,
+        path: `data/${namespace}.json`
+      })
+    }
+  }
+
+  const bundle = {
+    entries: bundleEntries,
+    manifestPath: DEFAULT_BUNDLE_MANIFEST_PATH,
+    compressionLevel,
+    includeDefaultNamespace: false // Déjà inclus manuellement
+  }
+
+  // Exporter le bundle
+  const blob = await exportBundle(bundle, null)
+  
+  // Générer le nom de fichier
+  const timestamp = formatTimestamp()
+  const filename = `${appKey}-backup-${timestamp}.zip`
+
+  return {
+    blob,
+    filename,
+    namespaces: namespacesToExport.map(n => n.namespace)
+  }
+}
+
+/**
+ * Crée une action de menu permettant d'exporter tous les namespaces.
+ * 
+ * @param {Object} [options]
+ * @param {string} [options.appKey] - Clé d'application pour le nom de fichier
+ * @param {boolean} [options.excludeMemory=true] - Exclure les namespaces volatiles
+ * @param {Function} [options.onSuccess] - Callback appelé après succès
+ * @param {Function} [options.onError] - Callback appelé en cas d'échec
+ * @returns {Function} Action compatible avec MainMenuService
+ * 
+ * @example
+ * mainMenuService.registerMenuItem('sauvegarde', {
+ *   id: 'export-all',
+ *   label: 'Exporter toutes les données',
+ *   action: createExportAllAction({
+ *     onSuccess: () => console.log('Export réussi')
+ *   })
+ * })
+ */
+export function createExportAllAction(options = {}) {
+  const { onSuccess, onError, ...exportOptions } = options
+
+  return async () => {
+    try {
+      const { blob, filename, namespaces } = await exportAllNamespaces(exportOptions)
+      
+      downloadFile(blob, filename, 'application/zip')
+      
+      onSuccess?.({ filename, namespaces, data: blob })
+    } catch (error) {
+      console.error('createExportAllAction: export échoué', error)
+      onError?.(error)
+    }
+  }
+}
+
+/**
  * Crée une action de menu permettant d'exporter un namespace.
  *
  * @param {string} namespace - Namespace à exporter
@@ -512,6 +631,191 @@ export function createExportAction(namespace, options = {}) {
       onSuccess?.({ filename: resolvedFilename, data })
     } catch (error) {
       console.error('createExportAction: export échoué', error)
+      onError?.(error)
+    }
+  }
+}
+
+/**
+ * Importe tous les namespaces depuis un bundle ZIP complet.
+ * Utilise le manifest du bundle pour restaurer chaque namespace.
+ * 
+ * @param {Blob|ArrayBuffer|Uint8Array} archiveInput - Archive ZIP à importer
+ * @param {Object} [options]
+ * @param {'merge'|'replace'} [options.mode='replace'] - Mode d'import
+ * @returns {Promise<{namespaces: Array<string>, mode: string}>} Liste des namespaces importés
+ * 
+ * @example
+ * const { file } = await pickFile('.zip')
+ * const { namespaces } = await importAllNamespaces(file, { mode: 'replace' })
+ * console.log('Namespaces restaurés:', namespaces)
+ */
+export async function importAllNamespaces(archiveInput, options = {}) {
+  const { mode = 'replace' } = options
+  const normalizedMode = normalizeMode(mode)
+
+  // Lire l'archive et le manifest
+  const archiveBytes = await toUint8Array(archiveInput)
+  const extracted = unzipSync(archiveBytes)
+  
+  const manifestRaw = extracted[DEFAULT_BUNDLE_MANIFEST_PATH]
+  if (!manifestRaw) {
+    throw new Error('Archive invalide : manifest manquant')
+  }
+
+  let manifest
+  try {
+    manifest = JSON.parse(strFromU8(manifestRaw))
+  } catch (error) {
+    throw new Error('Archive invalide : manifest illisible')
+  }
+
+  if (!manifest || !Array.isArray(manifest.entries)) {
+    throw new Error('Archive invalide : manifest.entries manquant')
+  }
+
+  const importedNamespaces = []
+
+  // Restaurer chaque namespace du manifest
+  for (const entry of manifest.entries) {
+    if (!entry || !entry.namespace) {
+      console.warn('importAllNamespaces: entrée manifest invalide', entry)
+      continue
+    }
+
+    const { namespace, type } = entry
+
+    if (type === 'json') {
+      // Restaurer namespace JSON
+      const payloadBytes = extracted[entry.path]
+      if (!payloadBytes) {
+        console.warn(`importAllNamespaces: fichier JSON manquant pour "${namespace}"`, entry.path)
+        continue
+      }
+
+      try {
+        const payload = JSON.parse(strFromU8(payloadBytes))
+        await persistenceRegistry.importNamespace(namespace, payload, { mode: normalizedMode })
+        importedNamespaces.push(namespace)
+      } catch (error) {
+        console.error(`importAllNamespaces: échec import JSON "${namespace}"`, error)
+      }
+    } else if (type === 'blob') {
+      // Restaurer namespace binary
+      if (normalizedMode === 'replace') {
+        await clearBlobNamespace(namespace)
+      }
+
+      const files = Array.isArray(entry.files) ? entry.files : []
+      let successCount = 0
+
+      for (const fileRef of files) {
+        const fileData = extracted[fileRef.path]
+        if (!fileData) {
+          console.warn(`importAllNamespaces: fichier blob manquant pour "${namespace}"`, fileRef.path)
+          continue
+        }
+
+        try {
+          const blob = new Blob([fileData], { type: fileRef.mimeType || 'application/octet-stream' })
+          const metadataOptions = {
+            filename: fileRef.filename,
+            mimeType: fileRef.mimeType,
+            tags: fileRef.metadata?.tags,
+            custom: fileRef.metadata?.custom,
+            createdAt: fileRef.metadata?.createdAt,
+            updatedAt: fileRef.metadata?.updatedAt
+          }
+          await persistenceRegistry.saveBlob(namespace, fileRef.blobId, blob, metadataOptions)
+          successCount++
+        } catch (error) {
+          console.error(`importAllNamespaces: échec sauvegarde blob "${fileRef.blobId}"`, error)
+        }
+      }
+
+      if (successCount > 0) {
+        importedNamespaces.push(namespace)
+      }
+    } else {
+      console.warn(`importAllNamespaces: type inconnu "${type}" pour namespace "${namespace}"`)
+    }
+  }
+
+  return {
+    namespaces: importedNamespaces,
+    mode: normalizedMode
+  }
+}
+
+/**
+ * Crée une action de menu permettant d'importer tous les namespaces.
+ * 
+ * @param {Object} [options]
+ * @param {'merge'|'replace'} [options.mode='replace'] - Mode d'import
+ * @param {boolean} [options.confirmReplace=true] - Confirmer si mode replace
+ * @param {Function} [options.onSuccess] - Callback après succès
+ * @param {Function} [options.onError] - Callback après échec
+ * @returns {Function} Action compatible avec MainMenuService
+ * 
+ * @example
+ * mainMenuService.registerMenuItem('sauvegarde', {
+ *   id: 'import-all',
+ *   label: 'Importer toutes les données',
+ *   action: createImportAllAction({
+ *     mode: 'replace',
+ *     onSuccess: ({ namespaces }) => console.log('Restauré:', namespaces)
+ *   })
+ * })
+ */
+export function createImportAllAction(options = {}) {
+  const {
+    mode = 'replace',
+    confirmReplace = true,
+    onSuccess,
+    onError
+  } = options
+
+  return async () => {
+    try {
+      const normalizedMode = normalizeMode(mode)
+
+      // Confirmation si mode replace
+      if (normalizedMode === 'replace' && confirmReplace) {
+        const result = await modalService.confirm({
+          icon: '📂',
+          question: 'Importer de nouvelles données ?',
+          description: 'Cette action remplacera TOUTES les données existantes de l\'application.',
+          buttons: [
+            { id: 'confirm_import', label: 'Importer' },
+            { id: 'cancel', label: 'Annuler' }
+          ]
+        })
+
+        const actionId = resolveConfirmActionId(result)
+        if (!actionId || actionId === MODAL_CANCELLED_BY_X || actionId === 'cancel') {
+          return
+        }
+
+        if (actionId !== 'confirm_import') {
+          return
+        }
+      }
+
+      // Sélectionner le fichier
+      const { file, data } = await pickFile('.zip')
+      if (!file) {
+        return
+      }
+
+      // Importer tous les namespaces
+      const { namespaces } = await importAllNamespaces(data, { mode: normalizedMode })
+
+      onSuccess?.({ filename: file.name, mode: normalizedMode, namespaces })
+    } catch (error) {
+      if (error?.code === FILE_PICKER_CANCELLED) {
+        return
+      }
+      console.error('createImportAllAction: import échoué', error)
       onError?.(error)
     }
   }
