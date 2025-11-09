@@ -1,5 +1,5 @@
 import { stateProviderService } from '@/core/StateProviderService.svelte.js'
-import { IndexedDBPersister } from '@/core/persistence/IndexedDBPersister.svelte.js'
+import { persistenceRegistry } from '@/core/persistence/PersistenceRegistry.svelte.js'
 
 const DEFAULT_STATE = {
   selectedItem: null,
@@ -20,7 +20,7 @@ class ExplorerPersistenceService {
       ...DEFAULT_STATE,
       loaded: false
     })
-    this.persister = new IndexedDBPersister('tool-explorer', {
+    this.persister = persistenceRegistry.createPersister('tool-explorer', 'json', {
       storeName: 'tool-explorer'
     })
 

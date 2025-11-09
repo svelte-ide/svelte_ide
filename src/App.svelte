@@ -1,5 +1,6 @@
 <script>
   import { indexedDBService } from '@/core/persistence/IndexedDBService.svelte.js';
+  import { binaryStorageService } from '@/core/persistence/BinaryStorageService.svelte.js';
   import { toolManager } from '@/core/ToolManager.svelte.js';
   import { getAuthStore } from '@/stores/authStore.svelte.js';
   import { ideStore } from '@/stores/ideStore.svelte.js';
@@ -19,12 +20,15 @@
 
   // Synchroniser IndexedDBService avec authStore
   $effect(() => {
-    if (authStore.encryptionKey) {
-      indexedDBService.setEncryptionKey(authStore.encryptionKey)
-      console.debug('App: IndexedDB encryption key synchronized')
+    const key = authStore.encryptionKey
+    if (key) {
+      indexedDBService.setEncryptionKey(key)
+      binaryStorageService.setEncryptionKey(key)
+      console.debug('App: Encryption keys synchronized for persistence services')
     } else {
       indexedDBService.clearEncryptionKey()
-      console.debug('App: IndexedDB encryption key cleared')
+      binaryStorageService.clearEncryptionKey()
+      console.debug('App: Encryption keys cleared for persistence services')
     }
   })
 
@@ -181,6 +185,7 @@
   (async () => {
     window.toolManager = toolManager
     window.indexedDBService = indexedDBService // Pour tests manuels dans console
+    window.binaryStorageService = binaryStorageService
 
     try {
       if (initializingStatus) {
@@ -190,9 +195,10 @@
       // Initialiser IndexedDB avec les stores de base
       try {
         await indexedDBService.initialize(['default', 'tools', 'layout', 'preferences'])
-        console.debug('App: IndexedDB initialized successfully')
+        await binaryStorageService.initialize()
+        console.debug('App: Persistence services initialized successfully')
       } catch (idbError) {
-        console.warn('App: IndexedDB initialization failed, data persistence may be limited', idbError)
+        console.warn('App: Persistence initialization failed, data persistence may be limited', idbError)
         // Ne pas bloquer l'application, continuer sans IndexedDB
       }
 

@@ -11,19 +11,20 @@ class ExplorerRestorationService {
     eventBus.subscribe('tab:hydrate', (hydrateEvent) => {
       if (hydrateEvent.descriptor.type === 'file-editor' && 
           hydrateEvent.descriptor.toolId === 'explorer') {
-        this.handleHydrate(hydrateEvent)
+        void this.handleHydrate(hydrateEvent)
       }
     })
   }
 
-  handleHydrate(hydrateEvent) {
+  async handleHydrate(hydrateEvent) {
     const { descriptor, tabId, hydrateCallback, userId } = hydrateEvent
     
     try {
-      const content = getFileContent(descriptor.resourceId)
-      
+      const content = await getFileContent(descriptor.resourceId)
+
       hydrateCallback(FileViewer, {
-        content: content
+        content: content,
+        fileName: descriptor.resourceId
       })
       
     } catch (error) {

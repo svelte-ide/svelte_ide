@@ -25,6 +25,31 @@ const DEFAULT_TYPE = (() => {
     return normalized || 'json'
 })()
 
+/**
+ * Registre centralisé pour la gestion des persisters de l'application.
+ * Source unique de vérité pour les namespaces et la création de persisters.
+ * 
+ * @class PersistenceRegistry
+ * 
+ * @example
+ * // Créer un persister JSON pour un namespace
+ * const jsonPersister = persistenceRegistry.createPersister('myTool', 'json')
+ * await jsonPersister.save('config', { theme: 'dark' })
+ * 
+ * @example
+ * // Utiliser l'API directe pour les blobs
+ * await persistenceRegistry.saveBlob('documents', 'file-1', pdfBlob, {
+ *   filename: 'rapport.pdf',
+ *   mimeType: 'application/pdf',
+ *   tags: ['important', '2025']
+ * })
+ * const doc = await persistenceRegistry.loadBlob('documents', 'file-1')
+ * 
+ * @example
+ * // Export/Import d'un namespace complet
+ * const archive = await persistenceRegistry.exportNamespace('documents') // ZIP Blob
+ * await persistenceRegistry.importNamespace('documents', archive, { mode: 'replace' })
+ */
 export class PersistenceRegistry {
     constructor() {
         this.persisters = new Map()
@@ -60,6 +85,14 @@ export class PersistenceRegistry {
         return normalized
     }
 
+    /**
+     * Enregistre manuellement un persister pour un namespace.
+     * 
+     * @param {string} namespace - Namespace du persister
+     * @param {PersisterInterface} persister - Instance du persister
+     * @returns {PersisterInterface} Le persister enregistré
+     * @throws {Error} Si le namespace est vide ou le persister invalide
+     */
     registerPersister(namespace, persister) {
         if (!namespace) {
             throw new Error('Namespace is required')
@@ -73,6 +106,31 @@ export class PersistenceRegistry {
         return persister
     }
 
+    /**
+     * Crée ou récupère un persister pour un namespace donné.
+     * Si le persister existe déjà, le retourne. Sinon, en crée un nouveau.
+     * 
+     * @param {string} namespace - Namespace du persister
+     * @param {'json'|'binary'|'localstorage'|'memory'} [type] - Type de persister (défaut: 'json')
+     * @param {Object} [options] - Options de configuration du persister
+     * @param {string} [options.tenantId] - ID du tenant (pour BinaryPersister uniquement)
+     * @param {string} [options.storeName] - Nom du store IndexedDB (pour JsonPersister)
+     * @param {'block'|'localstorage'|'memory'} [options.fallbackStrategy] - Stratégie de fallback si IndexedDB indisponible
+     * @returns {PersisterInterface} Instance du persister
+     * @throws {Error} Si le type est inconnu
+     * 
+     * @example
+     * // Créer un persister JSON avec fallback localStorage
+     * const persister = persistenceRegistry.createPersister('myTool', 'json', {
+     *   fallbackStrategy: 'localstorage'
+     * })
+     * 
+     * @example
+     * // Créer un persister Binary multi-tenant
+     * const persister = persistenceRegistry.createPersister('documents', 'binary', {
+     *   tenantId: 'org-123'
+     * })
+     */
     createPersister(namespace, type = this.defaultPersisterType, options = {}) {
         const mapKey = this._getMapKey(namespace)
         if (this.persisters.has(mapKey)) {
@@ -105,6 +163,12 @@ export class PersistenceRegistry {
         return persister
     }
 
+    /**
+     * Récupère un persister existant ou en crée un par défaut.
+     * 
+     * @param {string} namespace - Namespace du persister
+     * @returns {PersisterInterface} Instance du persister
+     */
     getPersister(namespace) {
         const mapKey = this._getMapKey(namespace)
         if (!this.persisters.has(mapKey)) {
@@ -152,6 +216,29 @@ export class PersistenceRegistry {
         return persister.exists(key)
     }
 
+    /**
+     * Sauvegarde un blob binaire dans le namespace.
+     * Le namespace doit être de type 'binary' ou une erreur sera levée.
+     * 
+     * @param {string} namespace - Namespace où stocker le blob
+     * @param {string} blobId - Identifiant unique du blob
+     * @param {Blob|ArrayBuffer|TypedArray|string} data - Données à sauvegarder
+     * @param {Object} [metadata] - Métadonnées du blob
+     * @param {string} [metadata.filename] - Nom du fichier
+     * @param {string} [metadata.mimeType] - Type MIME
+     * @param {string[]} [metadata.tags] - Tags pour recherche
+     * @param {Object} [metadata.custom] - Données custom JSON
+     * @returns {Promise<Object>} Métadonnées du blob sauvegardé
+     * @throws {Error} Si le namespace ne supporte pas les blobs
+     * 
+     * @example
+     * await persistenceRegistry.saveBlob('documents', 'rapport-2025', pdfBlob, {
+     *   filename: 'rapport-annuel.pdf',
+     *   mimeType: 'application/pdf',
+     *   tags: ['important', 'finance'],
+     *   custom: { year: 2025, department: 'IT' }
+     * })
+     */
     async saveBlob(namespace, blobId, data, metadata = {}) {
         const persister = this.getPersister(namespace)
         if (!persister.supportsBinary) {
@@ -160,6 +247,15 @@ export class PersistenceRegistry {
         return persister.saveBlob(blobId, data, metadata)
     }
 
+    /**
+     * Charge un blob binaire depuis le namespace.
+     * 
+     * @param {string} namespace - Namespace contenant le blob
+     * @param {string} blobId - Identifiant du blob
+     * @param {Object} [options] - Options de chargement
+     * @param {'blob'|'arrayBuffer'} [options.as='blob'] - Format de retour
+     * @returns {Promise<Object|null>} Objet avec {data, ...metadata} ou null si inexistant
+     */
     async loadBlob(namespace, blobId, options = {}) {
         const persister = this.getPersister(namespace)
         if (!persister.supportsBinary) {
@@ -184,6 +280,24 @@ export class PersistenceRegistry {
         return persister.listBlobs(options)
     }
 
+    /**
+     * Exporte un namespace complet (JSON ou ZIP selon le type).
+     * 
+     * @param {string} namespace - Namespace à exporter
+     * @returns {Promise<Object|Blob>} Objet JSON (pour 'json') ou Blob ZIP (pour 'binary')
+     * @throws {Error} Si le namespace ne supporte pas l'export
+     * 
+     * @example
+     * // Export JSON
+     * const jsonData = await persistenceRegistry.exportNamespace('myTool')
+     * // Format: { format: 'svelte-ide-json-store', entries: [...] }
+     * 
+     * @example
+     * // Export Binary (ZIP)
+     * const zipBlob = await persistenceRegistry.exportNamespace('documents')
+     * const url = URL.createObjectURL(zipBlob)
+     * // Télécharger ou sauvegarder
+     */
     async exportNamespace(namespace) {
         const persister = this.getPersister(namespace)
         if (!persister.supportsExport) {
@@ -192,6 +306,17 @@ export class PersistenceRegistry {
         return persister.export()
     }
 
+    /**
+     * Importe des données dans un namespace.
+     * 
+     * @param {string} namespace - Namespace cible
+     * @param {Object|Blob} data - Données à importer (JSON ou ZIP)
+     * @param {Object} [options] - Options d'import
+     * @param {'merge'|'replace'} [options.mode='merge'] - Mode d'import
+     * @param {boolean} [options.preserveTimestamps=true] - Préserver les timestamps (binary uniquement)
+     * @returns {Promise<Object>} Résultat de l'import {importedCount, skippedCount, mode}
+     * @throws {Error} Si le namespace ne supporte pas l'import
+     */
     async importNamespace(namespace, data, options = {}) {
         const persister = this.getPersister(namespace)
         if (!persister.supportsExport) {
@@ -216,4 +341,18 @@ export class PersistenceRegistry {
     }
 }
 
+/**
+ * Instance singleton du registre de persistance.
+ * Point d'entrée principal pour toute persistance de données dans l'application.
+ * 
+ * @type {PersistenceRegistry}
+ * @example
+ * import { persistenceRegistry } from 'svelte-ide'
+ * 
+ * // JSON storage
+ * await persistenceRegistry.save('myTool', 'config', { theme: 'dark' })
+ * 
+ * // Binary storage
+ * await persistenceRegistry.saveBlob('documents', 'file-1', pdfBlob)
+ */
 export const persistenceRegistry = new PersistenceRegistry()

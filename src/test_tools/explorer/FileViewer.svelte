@@ -12,16 +12,25 @@
   let lastDirtyState = $state(false)
   
   $effect(() => {
-    if (!explorerStore.getFileContent(fileName)) {
+    let storedContent = explorerStore.getFileContent(fileName)
+    if (storedContent === null || storedContent === undefined) {
       explorerStore.setFileContent(fileName, initialContent)
+      storedContent = initialContent
     }
-    content = explorerStore.getFileContent(fileName)
+
+    if (explorerStore.getFileOriginalContent(fileName) === null) {
+      explorerStore.setFileOriginalContent(fileName, initialContent)
+    }
+
+    content = storedContent
   })
   
   function handleInput() {
     explorerStore.setFileContent(fileName, content)
     
-    const isDirty = content !== initialContent
+    const baseline = explorerStore.getFileOriginalContent(fileName)
+    const referenceContent = baseline !== null ? baseline : initialContent
+    const isDirty = content !== referenceContent
     if (isDirty !== lastDirtyState) {
       lastDirtyState = isDirty
       if (onDirtyStateChange) {

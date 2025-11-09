@@ -26,6 +26,20 @@ function bytesToBase64(bytes) {
   return btoa(binary)
 }
 
+function toArrayBuffer(data) {
+  if (data instanceof ArrayBuffer) {
+    return data
+  }
+  if (ArrayBuffer.isView(data)) {
+    return data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength)
+  }
+  if (data == null) {
+    return new ArrayBuffer(0)
+  }
+  console.warn('TokenCipher: Expected ArrayBuffer or TypedArray for binary operation, received', typeof data)
+  return null
+}
+
 export class TokenCipher {
   constructor(rawKey) {
     this.rawKey = rawKey
@@ -117,6 +131,77 @@ export class TokenCipher {
       return decoder.decode(decrypted)
     } catch (error) {
       console.warn('TokenCipher: Decryption failed, clearing stored tokens', error)
+      return null
+    }
+  }
+
+  async encryptBytes(data) {
+    if (!this.enabled) {
+      return toArrayBuffer(data) || data
+    }
+
+    try {
+      const key = await this.getKey()
+      if (!key) {
+        return toArrayBuffer(data) || data
+      }
+
+      const buffer = toArrayBuffer(data)
+      if (!buffer) {
+        return data
+      }
+
+      const iv = window.crypto.getRandomValues(new Uint8Array(12))
+      const ciphertext = await window.crypto.subtle.encrypt(
+        { name: 'AES-GCM', iv },
+        key,
+        buffer
+      )
+
+      const resultBytes = new Uint8Array(iv.length + ciphertext.byteLength)
+      resultBytes.set(iv, 0)
+      resultBytes.set(new Uint8Array(ciphertext), iv.length)
+
+      return resultBytes.buffer
+    } catch (error) {
+      console.warn('TokenCipher: encryptBytes failed, returning plaintext buffer', error)
+      return toArrayBuffer(data) || data
+    }
+  }
+
+  async decryptBytes(payload) {
+    const buffer = toArrayBuffer(payload)
+    if (!buffer) {
+      return null
+    }
+
+    if (!this.enabled) {
+      return buffer
+    }
+
+    try {
+      const key = await this.getKey()
+      if (!key) {
+        return buffer
+      }
+
+      const bytes = new Uint8Array(buffer)
+      if (bytes.length <= 12) {
+        return buffer
+      }
+
+      const iv = bytes.subarray(0, 12)
+      const data = bytes.subarray(12)
+
+      const decrypted = await window.crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv },
+        key,
+        data
+      )
+
+      return decrypted
+    } catch (error) {
+      console.warn('TokenCipher: decryptBytes failed, returning null', error)
       return null
     }
   }

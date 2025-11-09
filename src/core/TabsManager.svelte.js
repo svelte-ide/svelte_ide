@@ -1,6 +1,6 @@
-import { Tab } from '@/core/Tab.svelte.js'
-import { persistenceRegistry } from '@/core/PersistenceRegistry.svelte.js'
 import { eventBus } from '@/core/EventBusService.svelte.js'
+import { Tab } from '@/core/Tab.svelte.js'
+import { persistenceRegistry } from '@/core/persistence/PersistenceRegistry.svelte.js'
 
 export class TabsManager {
     constructor() {

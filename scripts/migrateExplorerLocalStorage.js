@@ -1,4 +1,4 @@
-import { IndexedDBPersister } from '@/core/persistence/IndexedDBPersister.svelte.js'
+import { JsonPersister } from '@/core/persistence/JsonPersister.svelte.js'
 
 /**
  * Script de migration localStorage -> IndexedDB pour les anciens environnements Explorer.
@@ -10,7 +10,7 @@ async function migrateExplorerLocalStorage() {
     return { migrated: 0, skipped: 0 }
   }
 
-  const persister = new IndexedDBPersister('tool-explorer', {
+  const persister = new JsonPersister('tool-explorer', {
     storeName: 'tool-explorer'
   })
 

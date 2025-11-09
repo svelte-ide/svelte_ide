@@ -3,15 +3,24 @@ import { layoutService } from '@/core/LayoutService.svelte.js'
 import { mainMenuService } from '@/core/MainMenuService.svelte.js'
 import { MODAL_CANCELLED_BY_X, modalService } from '@/core/ModalService.svelte.js'
 import { panelsManager } from '@/core/PanelsManager.svelte.js'
-import { persistenceRegistry } from '@/core/PersistenceRegistry.svelte.js'
+import { persistenceRegistry } from '@/core/persistence/PersistenceRegistry.svelte.js'
 import { preferencesService } from '@/core/PreferencesService.svelte.js'
 import { SCROLL_MODES } from '@/core/ScrollModes.svelte.js'
 import { stateProviderService } from '@/core/StateProviderService.svelte.js'
 import { Tab } from '@/core/Tab.svelte.js'
 import { toolFocusCoordinator } from '@/core/ToolFocusCoordinator.svelte.js'
+import { registerStorageMenu } from '@/core/StorageMenuHelper.svelte.js'
 import { getAuthStore } from './authStore.svelte.js'
 
 const LAYOUT_SCHEMA_VERSION = 2
+
+const DEFAULT_STORAGE_BUNDLE = {
+  entries: [
+    { type: 'json', namespace: 'user-layout', path: 'data/user-layout.json' },
+    { type: 'json', namespace: 'tool-explorer', path: 'data/tool-explorer.json' },
+    { type: 'blob', namespace: 'tool-explorer-blobs', basePath: 'files/tool-explorer/' }
+  ]
+}
 
 const buildUserStorageKey = (user) => {
   if (!user) return null
@@ -50,7 +59,7 @@ class IdeStore {
     
     this.panelsManager = panelsManager
     try {
-      this.layoutPersister = persistenceRegistry.createPersister('user-layout', 'indexedDB', {
+      this.layoutPersister = persistenceRegistry.createPersister('user-layout', 'json', {
         storeName: 'user-layout'
       })
     } catch (error) {
@@ -72,6 +81,14 @@ class IdeStore {
       this._setCurrentFocusGroup(groupId)
     })
 
+    registerStorageMenu(this, 'core-storage', 'user-layout', {
+      menuLabel: 'Sauvegarde',
+      exportLabel: 'Exporter toutes les données...',
+      importLabel: 'Importer toutes les données...',
+      filename: 'svelte-ide-backup.zip',
+      menuOrder: 850,
+      bundle: DEFAULT_STORAGE_BUNDLE
+    })
   }
 
   get tabs() {

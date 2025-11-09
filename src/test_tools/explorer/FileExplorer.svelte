@@ -5,7 +5,7 @@
   import { openFileInIDE } from './fileService.svelte.js'
   import { explorerPersistence } from './ExplorerPersistenceService.svelte.js'
 
-  let { files = [], toolId } = $props()
+  let { files = [], toolId, loading = false, loadError = null, reloadFiles = null } = $props()
   let selectedFileName = $state(null)
   let persistenceLoaded = $state(false)
 
@@ -38,17 +38,25 @@
   }
 
   async function handleFileDoubleClick(file) {
-    // Utiliser la fonction partagée
-    openFileInIDE(file.name, ideStore, FileViewer)
-    
-    ideStore.addLog(`Fichier ${file.name} ouvert`, 'info', 'Explorateur')
-    
-    ideStore.addNotification(
-      'Fichier ouvert',
-      `Le fichier "${file.name}" a été ouvert dans l'éditeur`,
-      'success',
-      'Explorateur'
-    )
+    selectedFileName = file.name
+    try {
+      await openFileInIDE(file.name, ideStore, FileViewer, toolId)
+      ideStore.addLog(`Fichier ${file.name} ouvert`, 'info', 'Explorateur')
+      ideStore.addNotification(
+        'Fichier ouvert',
+        `Le fichier "${file.name}" a été ouvert dans l'éditeur`,
+        'success',
+        'Explorateur'
+      )
+    } catch (error) {
+      console.error('Explorer: ouverture du fichier impossible', error)
+      ideStore.addNotification(
+        'Erreur d\'ouverture',
+        error?.message || 'Impossible d\'ouvrir ce fichier.',
+        'error',
+        'Explorateur'
+      )
+    }
   }
 
   async function handleFolderClick(folder) {
@@ -77,9 +85,9 @@
         id: 'open',
         label: 'Ouvrir',
         icon: '📄',
-        action: (context) => {
+        action: async (context) => {
           if (context.type === 'file') {
-            handleFileDoubleClick(context)
+            await handleFileDoubleClick(context)
           }
         },
         disabled: item.type !== 'file'
@@ -87,6 +95,12 @@
     ]
 
     contextMenuService.show(e.clientX, e.clientY, item, menuItems)
+  }
+
+  function handleRefreshClick() {
+    if (typeof reloadFiles === 'function') {
+      reloadFiles()
+    }
   }
 
   function handleFolderKeydown(e, folder) {
@@ -109,7 +123,7 @@
 
 <div class="file-explorer">
   <div class="toolbar">
-    <button class="refresh-btn" title="Actualiser">
+    <button class="refresh-btn" title="Actualiser" onclick={handleRefreshClick} disabled={loading}>
       🔄
     </button>
     <button class="new-folder-btn" title="Nouveau dossier">
@@ -121,7 +135,12 @@
   </div>
   
   <div class="file-tree" role="tree" aria-label="Arborescence de fichiers">
-    {#if !persistenceLoaded}
+    {#if loadError}
+      <div class="empty-state">
+        <p>{loadError}</p>
+        <p class="hint">Utilisez 🔄 pour réessayer</p>
+      </div>
+    {:else if loading || !persistenceLoaded}
       <div class="empty-state">
         <p>Chargement de la persistance...</p>
       </div>
@@ -192,6 +211,11 @@
     border-radius: 3px;
     cursor: pointer;
     font-size: 12px;
+  }
+
+  .toolbar button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   .toolbar button:hover {

@@ -17,12 +17,22 @@ export { statusBarService } from './core/StatusBarService.svelte.js'
 export { ConsoleTool, NotificationsTool } from './core/SystemTools.js'
 export { Tool } from './core/Tool.svelte.js'
 export { toolManager } from './core/ToolManager.svelte.js'
+export { createExportAction, createImportAction } from './core/MenuActionsHelpers.svelte.js'
+export { registerStorageMenu } from './core/StorageMenuHelper.svelte.js'
 export { getAuthStore } from './stores/authStore.svelte.js'
 export { ideStore } from './stores/ideStore.svelte.js'
 
-// IndexedDB persistance sécurisée
-export { IndexedDBPersister } from './core/persistence/IndexedDBPersister.svelte.js'
-export { getIndexedDBService, IndexedDBService, indexedDBService } from './core/persistence/IndexedDBService.svelte.js'
+// Persistence API
+export { BinaryPersister } from './core/persistence/BinaryPersister.svelte.js'
+export { JsonPersister } from './core/persistence/JsonPersister.svelte.js'
+export { PersistenceRegistry, persistenceRegistry } from './core/persistence/PersistenceRegistry.svelte.js'
+export { LocalStoragePersister, MemoryPersister, PersisterInterface, SimplePersister } from './core/persistence/PersisterInterface.js'
+
+// Persistence implementations (rétrocompatibilité)
+// Rétrocompatibilité (deprecated)
+export { BinaryStorageService, binaryStorageService, getBinaryStorageService } from './core/persistence/BinaryStorageService.svelte.js'
+export { IndexedDBService, getIndexedDBService, indexedDBService } from './core/persistence/IndexedDBService.svelte.js'
+export { JsonPersister as IndexedDBPersister } from './core/persistence/JsonPersister.svelte.js'
 
 // Dérivation de clé de chiffrement
 export {
