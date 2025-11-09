@@ -4,6 +4,7 @@ import ActiveTabItem from '@/components/layout/chrome/statusbar/ActiveTabItem.sv
 import ClockItem from '@/components/layout/chrome/statusbar/ClockItem.svelte'
 import IndexedDBUsageItem from '@/components/layout/chrome/statusbar/IndexedDBUsageItem.svelte'
 import StatusMessageItem from '@/components/layout/chrome/statusbar/StatusMessageItem.svelte'
+import { registerBackupMenu } from '@/core/registerBackupMenu.svelte.js'
 import { applyCsp } from '@/core/security/csp.svelte.js'
 import { statusBarService } from '@/core/StatusBarService.svelte.js'
 import { ConsoleTool, NotificationsTool } from '@/core/SystemTools.js'
@@ -37,6 +38,12 @@ if (import.meta.env.DEV) {
   }
 
   registerDefaultHelpMenu(ideStore, { ownerId: 'demo' })
+
+  // Enregistrer le menu "Sauvegarde" avec export/import exhaustif
+  registerBackupMenu(ideStore, {
+    menuLabel: 'sauvegarde',
+    ownerId: 'demo'
+  })
 
   statusBarService.registerItem('left', {
     id: 'status-message',

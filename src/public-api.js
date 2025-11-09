@@ -12,6 +12,7 @@ export { eventBus } from './core/EventBusService.svelte.js'
 export { mainMenuService } from './core/MainMenuService.svelte.js'
 export { createExportAction, createExportAllAction, createImportAction, createImportAllAction, exportAllNamespaces, importAllNamespaces } from './core/MenuActionsHelpers.svelte.js'
 export { MODAL_CANCELLED_BY_X, modalService } from './core/ModalService.svelte.js'
+export { registerBackupMenu } from './core/registerBackupMenu.svelte.js'
 export { applyCsp } from './core/security/csp.svelte.js'
 export { TokenCipher } from './core/security/tokenCipher.svelte.js'
 export { statusBarService } from './core/StatusBarService.svelte.js'
@@ -31,7 +32,7 @@ export { LocalStoragePersister, MemoryPersister, PersisterInterface, SimplePersi
 // Persistence implementations (rétrocompatibilité)
 // Rétrocompatibilité (deprecated)
 export { BinaryStorageService, binaryStorageService, getBinaryStorageService } from './core/persistence/BinaryStorageService.svelte.js'
-export { IndexedDBService, getIndexedDBService, indexedDBService } from './core/persistence/IndexedDBService.svelte.js'
+export { getIndexedDBService, IndexedDBService, indexedDBService } from './core/persistence/IndexedDBService.svelte.js'
 export { JsonPersister as IndexedDBPersister } from './core/persistence/JsonPersister.svelte.js'
 
 // Dérivation de clé de chiffrement

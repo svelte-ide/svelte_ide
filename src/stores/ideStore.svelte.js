@@ -1,7 +1,6 @@
 import { eventBus } from '@/core/EventBusService.svelte.js'
 import { layoutService } from '@/core/LayoutService.svelte.js'
 import { mainMenuService } from '@/core/MainMenuService.svelte.js'
-import { createExportAllAction, createImportAllAction } from '@/core/MenuActionsHelpers.svelte.js'
 import { MODAL_CANCELLED_BY_X, modalService } from '@/core/ModalService.svelte.js'
 import { panelsManager } from '@/core/PanelsManager.svelte.js'
 import { persistenceRegistry } from '@/core/persistence/PersistenceRegistry.svelte.js'
@@ -72,79 +71,6 @@ class IdeStore {
     eventBus.subscribe('tools:focus-group-changed', ({ groupId }) => {
       this._setCurrentFocusGroup(groupId)
     })
-
-    // Enregistrer le menu "Sauvegarde" avec export/import exhaustif
-    this.registerMenu({ id: 'sauvegarde', label: 'Sauvegarde', order: 850 }, 'core-storage')
-    
-    this.registerMenuItem('sauvegarde', {
-      id: 'export-all-data',
-      label: 'Exporter toutes les données...',
-      order: 10,
-      action: createExportAllAction({
-        onSuccess: ({ filename, namespaces }) => {
-          this.addNotification(
-            'Export réussi',
-            `${namespaces.length} namespace(s) exportés dans ${filename}`,
-            'success',
-            'core-storage'
-          )
-          this.addLog(
-            `Export complet terminé : ${filename} (${namespaces.join(', ')})`,
-            'info',
-            'core-storage'
-          )
-        },
-        onError: (error) => {
-          this.addNotification(
-            'Erreur d\'export',
-            error?.message || 'Impossible d\'exporter les données',
-            'error',
-            'core-storage'
-          )
-          this.addLog(
-            `Export complet échoué : ${error?.message || 'Erreur inconnue'}`,
-            'error',
-            'core-storage'
-          )
-        }
-      })
-    }, 'core-storage')
-
-    this.registerMenuItem('sauvegarde', {
-      id: 'import-all-data',
-      label: 'Importer toutes les données...',
-      order: 20,
-      action: createImportAllAction({
-        mode: 'replace',
-        confirmReplace: true,
-        onSuccess: ({ filename, namespaces }) => {
-          this.addNotification(
-            'Import réussi',
-            `${namespaces.length} namespace(s) restaurés depuis ${filename}`,
-            'success',
-            'core-storage'
-          )
-          this.addLog(
-            `Import complet terminé : ${filename} (${namespaces.join(', ')})`,
-            'info',
-            'core-storage'
-          )
-        },
-        onError: (error) => {
-          this.addNotification(
-            'Erreur d\'import',
-            error?.message || 'Impossible d\'importer les données',
-            'error',
-            'core-storage'
-          )
-          this.addLog(
-            `Import complet échoué : ${error?.message || 'Erreur inconnue'}`,
-            'error',
-            'core-storage'
-          )
-        }
-      })
-    }, 'core-storage')
   }
 
   get tabs() {
