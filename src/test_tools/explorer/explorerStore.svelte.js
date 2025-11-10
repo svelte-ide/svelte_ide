@@ -40,5 +40,22 @@ export const explorerStore = {
     }
     delete fileContents[fileName]
     delete fileOriginalContents[fileName]
+  },
+
+  // Méthodes pour la persistance globale
+  getAllContents() {
+    return { ...fileContents }
+  },
+
+  getAllOriginalContents() {
+    return { ...fileOriginalContents }
+  },
+
+  restoreAllContents(contents = {}, originalContents = {}) {
+    Object.keys(fileContents).forEach(key => delete fileContents[key])
+    Object.keys(fileOriginalContents).forEach(key => delete fileOriginalContents[key])
+    
+    Object.assign(fileContents, contents)
+    Object.assign(fileOriginalContents, originalContents)
   }
 }

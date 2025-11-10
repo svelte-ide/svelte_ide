@@ -1,5 +1,7 @@
+import { eventBus } from '@/core/EventBusService.svelte.js'
 import { stateProviderService } from '@/core/StateProviderService.svelte.js'
 import { persistenceRegistry } from '@/core/persistence/PersistenceRegistry.svelte.js'
+import { explorerStore } from './explorerStore.svelte.js'
 
 const DEFAULT_STATE = {
   selectedItem: null,
@@ -16,33 +18,18 @@ function normalizeFileName(name) {
 
 class ExplorerPersistenceService {
   constructor() {
+    // Démarrer avec l'état par défaut et loaded=true
+    // L'état réel sera restauré via restoreState() appelé par StateProviderService
     this.state = $state({
       ...DEFAULT_STATE,
-      loaded: false
+      loaded: true
     })
     this.persister = persistenceRegistry.createPersister('tool-explorer', 'json', {
       storeName: 'tool-explorer'
     })
 
     stateProviderService.registerProvider('tool-explorer', this)
-    this._loadInitialState()
-  }
-
-  async _loadInitialState() {
-    try {
-      const stored = await this.persister.load('state', DEFAULT_STATE)
-      this.state = {
-        ...DEFAULT_STATE,
-        ...stored,
-        loaded: true
-      }
-    } catch (error) {
-      console.warn('ExplorerPersistence: failed to restore state, fallback to defaults', error)
-      this.state = {
-        ...DEFAULT_STATE,
-        loaded: true
-      }
-    }
+    this.hasRestoredOnce = false
   }
 
   async _persist() {
@@ -82,11 +69,18 @@ class ExplorerPersistenceService {
   saveState() {
     return {
       selectedItem: this.state.selectedItem,
-      recentFiles: this.state.recentFiles
+      recentFiles: this.state.recentFiles,
+      fileContents: explorerStore.getAllContents(),
+      fileOriginalContents: explorerStore.getAllOriginalContents()
     }
   }
 
   async restoreState(restoredState) {
+    console.log('[ExplorerPersistence] restoreState called', {
+      hasData: !!restoredState,
+      hasFileContents: !!(restoredState?.fileContents)
+    })
+    
     const normalized = {
       ...DEFAULT_STATE,
       ...(restoredState ?? {})
@@ -95,7 +89,26 @@ class ExplorerPersistenceService {
       ...normalized,
       loaded: true
     }
+    
+    // Restaurer les contenus de fichiers dans explorerStore
+    if (restoredState?.fileContents || restoredState?.fileOriginalContents) {
+      console.log('[ExplorerPersistence] Restoring explorerStore contents')
+      explorerStore.restoreAllContents(
+        restoredState.fileContents ?? {},
+        restoredState.fileOriginalContents ?? {}
+      )
+    }
+    
     await this._persist()
+    
+    this.hasRestoredOnce = true
+    
+    // Publier l'événement pour notifier que l'état est restauré
+    console.log('[ExplorerPersistence] Publishing explorer:state-restored')
+    eventBus.publish('explorer:state-restored', { 
+      state: this.state,
+      hasRestoredContent: !!(restoredState?.fileContents)
+    })
   }
 }
 

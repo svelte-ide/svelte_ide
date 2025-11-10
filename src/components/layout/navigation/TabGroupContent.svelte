@@ -80,9 +80,9 @@
 {#if activeTabData && activeTabData.component}
   {@const Component = activeTabData.component}
   {#snippet renderComponent()}
-    {#if activeTabData.fileContent}
+    {#if activeTabData.content !== undefined || activeTabData.fileName}
       <Component
-        content={activeTabData.fileContent}
+        content={activeTabData.content}
         fileName={activeTabData.fileName}
         {...activeTabData}
       />
