@@ -60,6 +60,20 @@ class IdeStore {
     this._lastRestoredUserKey = null
     this._restorationAttemptedUsers = new Set()
     
+    // Flag pour éviter les sauvegardes avant que la persistance soit prête
+    this._persistenceReady = false
+    this._hasPendingSave = false
+    
+    // Écouter l'événement persistence:ready
+    eventBus.subscribe('persistence:ready', () => {
+      this._persistenceReady = true
+      // Si une sauvegarde était en attente, la déclencher maintenant
+      if (this._hasPendingSave) {
+        this._hasPendingSave = false
+        this.saveUserLayout()
+      }
+    })
+    
     // Sauvegarder automatiquement quand l'état change
     stateProviderService.registerProvider('layout', this)
     stateProviderService.registerProvider('layoutService', layoutService)
@@ -669,6 +683,13 @@ class IdeStore {
 
   async saveUserLayout() {
     if (!this.isAuthenticated || !this.user) return
+    
+    // Différer la sauvegarde si la persistance n'est pas encore prête
+    if (!this._persistenceReady) {
+      this._hasPendingSave = true
+      console.debug('IdeStore: Sauvegarde différée, persistance non prête')
+      return
+    }
     
     try {
       const userKey = buildUserStorageKey(this.user)
