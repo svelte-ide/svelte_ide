@@ -1,7 +1,7 @@
 <script>
-  import { onMount, tick } from 'svelte'
-  import ElementTreeNode from './ElementTreeNode.svelte'
-  import { FolderIcon, FileIcon, UploadIcon } from './icons.js'
+  import { onMount, tick } from 'svelte';
+  import ElementTreeNode from './ElementTreeNode.svelte';
+  import { FileIcon, FolderIcon, UploadIcon } from './icons.js';
 
   const NODE_DRAG_TYPE = 'application/x-generic-element-tree-node'
   const CONTEXT_MENU_INITIAL = { visible: false, x: 0, y: 0, items: [] }
