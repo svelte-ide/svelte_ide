@@ -33,6 +33,7 @@
   const ROOT_ID = 'documents-root'
   const NODE_DRAG_TYPE = 'application/x-document-library-node'
   const CONTEXT_MENU_INITIAL = { visible: false, x: 0, y: 0, targetId: null, targetType: null }
+  const HEADER_MENU_INITIAL = { visible: false, x: 0, y: 0 }
   const FOLDER_DIALOG_INITIAL = { visible: false, parentId: null, name: '' }
   const MOVE_DIALOG_INITIAL = { visible: false, documentId: null, targetFolderId: ROOT_ID }
   const STORAGE_NAMESPACES = ['documents', 'document-library-tree', 'document-backend-responses', 'document-library-meta']
@@ -40,6 +41,7 @@
   let tree = $state(createRootFolder())
   let expandedFolders = $state({ [ROOT_ID]: true })
   let contextMenu = $state({ ...CONTEXT_MENU_INITIAL })
+  let headerMenu = $state({ ...HEADER_MENU_INITIAL })
   let folderDialog = $state({ ...FOLDER_DIALOG_INITIAL })
   let moveDialog = $state({ ...MOVE_DIALOG_INITIAL })
   let draggedNodeId = $state(null)
@@ -324,6 +326,7 @@
   }
 
   function openFileInput() {
+    closeHeaderMenu()
     fileInputRef?.click()
   }
 
@@ -559,6 +562,7 @@
   function openContextMenu(event, node) {
     event.preventDefault()
     event.stopPropagation()
+    closeHeaderMenu()
     contextMenu = {
       visible: true,
       x: event.clientX,
@@ -576,6 +580,32 @@
   function closeContextMenu() {
     if (!contextMenu.visible) return
     contextMenu = { ...CONTEXT_MENU_INITIAL }
+  }
+
+  function toggleHeaderMenu(event) {
+    event.preventDefault()
+    event.stopPropagation()
+    if (headerMenu.visible) {
+      closeHeaderMenu()
+      return
+    }
+    closeContextMenu()
+    const rect = event.currentTarget.getBoundingClientRect()
+    headerMenu = {
+      visible: true,
+      x: rect.left,
+      y: rect.bottom + 4
+    }
+  }
+
+  function closeHeaderMenu() {
+    if (!headerMenu.visible) return
+    headerMenu = { ...HEADER_MENU_INITIAL }
+  }
+
+  function handleAlloAction() {
+    ideStore.addLog('allo', 'info', 'Core')
+    closeHeaderMenu()
   }
 
   function isNodeDrag(event) {
@@ -844,11 +874,13 @@
 
     function handleWindowClick() {
       closeContextMenu()
+      closeHeaderMenu()
     }
 
     function handleWindowKeydown(event) {
       if (event.key === 'Escape') {
         closeContextMenu()
+        closeHeaderMenu()
       }
     }
 
@@ -898,9 +930,17 @@
   aria-label="Bibliothèque de documents"
 >
   <header>
-    <h2>DOCUMENTS</h2>
-    <button type="button" class="action-btn" onclick={openFileInput} title="Ajouter">
-      {@html UploadIcon({ size: 16 }).svg}
+    <h2>BIBLIOTHÈQUE</h2>
+    <button
+      type="button"
+      class="action-btn"
+      onclick={toggleHeaderMenu}
+      aria-haspopup="true"
+      aria-expanded={headerMenu.visible}
+      aria-label="Ouvrir les options"
+      title="Options"
+    >
+      ...
     </button>
   </header>
 
@@ -912,6 +952,26 @@
     style="display: none"
     aria-label="Sélectionner des fichiers"
   />
+
+  {#if headerMenu.visible}
+    <div
+      class="context-menu"
+      role="menu"
+      tabindex="-1"
+      style={`top: ${headerMenu.y}px; left: ${headerMenu.x}px`}
+      onclick={(event) => event.stopPropagation()}
+      onkeydown={(event) => {
+        event.stopPropagation()
+        if (event.key === 'Escape') {
+          closeHeaderMenu()
+        }
+      }}
+    >
+      <button type="button" role="menuitem" onclick={handleAlloAction}>
+        allo
+      </button>
+    </div>
+  {/if}
 
   <div
     class="content"
@@ -952,13 +1012,18 @@
       />
     </ul>
 
-    {#if tree.children.length === 0}
-      <div class="empty">
-        <span class="empty-icon">{@html UploadIcon({ size: 20 }).svg}</span>
-        <span class="empty-text">Déposez ou importez vos documents pour commencer</span>
-      </div>
-    {/if}
   </div>
+
+  <button
+    type="button"
+    class="upload-hint"
+    onclick={openFileInput}
+    aria-label="Importer des documents"
+    title="Importer des documents"
+  >
+    <span class="upload-hint-icon">{@html UploadIcon({ size: 20 }).svg}</span>
+    <span class="upload-hint-text">Déposez ou importez vos documents pour commencer</span>
+  </button>
 
   {#if contextMenu.visible}
     <div
@@ -1251,7 +1316,7 @@
     color: #f48771;
   }
 
-  .empty {
+  .upload-hint {
     display: flex;
     align-items: center;
     gap: 6px;
@@ -1260,14 +1325,24 @@
     font-size: 12px;
     border-top: 1px solid #2e2e2e;
     margin: 0 8px;
+    background: transparent;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+    flex-shrink: 0;
   }
 
-  .empty-icon {
+  .upload-hint:hover {
+    color: #9a9a9a;
+  }
+
+  .upload-hint-icon {
     display: flex;
     opacity: 0.5;
   }
 
-  .empty-text {
+  .upload-hint-text {
     font-style: italic;
   }
 
