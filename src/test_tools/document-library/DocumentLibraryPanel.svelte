@@ -35,6 +35,7 @@
   const CONTEXT_MENU_INITIAL = { visible: false, x: 0, y: 0, targetId: null, targetType: null }
   const FOLDER_DIALOG_INITIAL = { visible: false, parentId: null, name: '' }
   const MOVE_DIALOG_INITIAL = { visible: false, documentId: null, targetFolderId: ROOT_ID }
+  const STORAGE_NAMESPACES = ['documents', 'document-library-tree', 'document-backend-responses', 'document-library-meta']
 
   let tree = $state(createRootFolder())
   let expandedFolders = $state({ [ROOT_ID]: true })
@@ -48,6 +49,9 @@
   let folderDialogInputRef = $state(null)
   let isRestoring = $state(true)
   let hydrationInProgress = $state(false)
+  let manualHydrationDepth = 0
+  let globalHydrationActive = false
+  let rehydratePromise = null
 
   let saveTreeTimeout = null
   let saveExpandedTimeout = null
@@ -152,6 +156,29 @@
       }
     }
     return options
+  }
+
+  function shouldHandleStorageImport(namespaces) {
+    if (!Array.isArray(namespaces)) {
+      return false
+    }
+    return namespaces.some(namespace => STORAGE_NAMESPACES.includes(namespace))
+  }
+
+  function updateHydrationState() {
+    hydrationInProgress = globalHydrationActive || manualHydrationDepth > 0
+  }
+
+  function enterManualHydration() {
+    manualHydrationDepth += 1
+    updateHydrationState()
+  }
+
+  function leaveManualHydration() {
+    if (manualHydrationDepth > 0) {
+      manualHydrationDepth -= 1
+    }
+    updateHydrationState()
   }
 
   function getFileIcon(fileName, mimeType) {
@@ -687,82 +714,102 @@
     }
   }
 
-  onMount(async () => {
-    async function restoreFilesFromBlobs(treeNode) {
-      if (!treeNode) return
+  async function restoreFilesFromBlobs(treeNode) {
+    if (!treeNode) return
 
-      if (treeNode.nodeType === 'document' && treeNode.id) {
-        try {
-          const blobData = await binaryPersister.loadBlob(treeNode.id)
-          if (blobData?.data) {
-            treeNode.file = blobData.data
-            treeNode.name = blobData.filename || treeNode.name
-            treeNode.type = blobData.mimeType || treeNode.type
-            treeNode.size = blobData.size || treeNode.size
-            if (blobData.custom?.uploadedAt) {
-              treeNode.uploadedAt = new Date(blobData.custom.uploadedAt)
-            }
-          }
-        } catch (error) {
-          console.error(`Failed to restore blob ${treeNode.id}:`, error)
-        }
-      }
-
-      if (treeNode.children) {
-        for (const child of treeNode.children) {
-          await restoreFilesFromBlobs(child)
-        }
-      }
-    }
-
-    async function restoreData() {
+    if (treeNode.nodeType === 'document' && treeNode.id) {
       try {
-        if (!treePersister || !binaryPersister) {
-          throw new Error('DocumentLibrary: persistence service is not initialized')
-        }
-
-        const savedTree = await treePersister.load('tree')
-        const savedExpanded = await treePersister.load('expandedFolders')
-
-        if (savedTree) {
-          await restoreFilesFromBlobs(savedTree)
-          tree = savedTree
-        }
-
-        if (savedExpanded) {
-          expandedFolders = savedExpanded
-        }
-
-        if (metaPersister) {
-          const meta = await metaPersister.load('meta')
-          if (meta?.activeDocumentId) {
-            const doc = findNodeById(tree, meta.activeDocumentId)
-            if (doc && doc.nodeType === 'document') {
-              let backendResponse = null
-              if (backendResponsesPersister) {
-                try {
-                  const responses = (await backendResponsesPersister.load('responses')) || {}
-                  backendResponse = responses[meta.activeDocumentId]?.backendResponse || null
-                } catch (error) {
-                  console.error('Failed to load backend response:', error)
-                }
-              }
-              setActiveDocument(doc, backendResponse)
-            }
+        const blobData = await binaryPersister.loadBlob(treeNode.id)
+        if (blobData?.data) {
+          treeNode.file = blobData.data
+          treeNode.name = blobData.filename || treeNode.name
+          treeNode.type = blobData.mimeType || treeNode.type
+          treeNode.size = blobData.size || treeNode.size
+          if (blobData.custom?.uploadedAt) {
+            treeNode.uploadedAt = new Date(blobData.custom.uploadedAt)
           }
         }
-
-        ideStore.addLog('Documents restaurés', 'info', TOOL_NAME)
       } catch (error) {
-        console.warn('Failed to restore documents, continuing with empty tree', error)
-      } finally {
-        isRestoring = false
-        eventBus.publish('document-library:state-restored', {
-          hasRestoredContent: tree.children.length > 0
-        })
+        console.error(`Failed to restore blob ${treeNode.id}:`, error)
       }
     }
 
+    if (treeNode.children) {
+      for (const child of treeNode.children) {
+        await restoreFilesFromBlobs(child)
+      }
+    }
+  }
+
+  async function restoreData() {
+    try {
+      if (!treePersister || !binaryPersister) {
+        throw new Error('DocumentLibrary: persistence service is not initialized')
+      }
+
+      const savedTree = await treePersister.load('tree')
+      const savedExpanded = await treePersister.load('expandedFolders')
+
+      if (savedTree) {
+        await restoreFilesFromBlobs(savedTree)
+        tree = savedTree
+      }
+
+      if (savedExpanded) {
+        expandedFolders = savedExpanded
+      }
+
+      if (metaPersister) {
+        const meta = await metaPersister.load('meta')
+        if (meta?.activeDocumentId) {
+          const doc = findNodeById(tree, meta.activeDocumentId)
+          if (doc && doc.nodeType === 'document') {
+            let backendResponse = null
+            if (backendResponsesPersister) {
+              try {
+                const responses = (await backendResponsesPersister.load('responses')) || {}
+                backendResponse = responses[meta.activeDocumentId]?.backendResponse || null
+              } catch (error) {
+                console.error('Failed to load backend response:', error)
+              }
+            }
+            setActiveDocument(doc, backendResponse)
+          }
+        }
+      }
+
+      ideStore.addLog('Documents restaurés', 'info', TOOL_NAME)
+    } catch (error) {
+      console.warn('Failed to restore documents, continuing with empty tree', error)
+    } finally {
+      isRestoring = false
+      eventBus.publish('document-library:state-restored', {
+        hasRestoredContent: tree.children.length > 0
+      })
+    }
+  }
+
+  function rehydrateFromStorage() {
+    if (!binaryPersister || !treePersister) {
+      return Promise.resolve()
+    }
+    if (rehydratePromise) {
+      return rehydratePromise
+    }
+    rehydratePromise = (async () => {
+      isRestoring = true
+      enterManualHydration()
+      try {
+        await restoreData()
+      } finally {
+        leaveManualHydration()
+        rehydratePromise = null
+      }
+    })()
+    return rehydratePromise
+  }
+
+  onMount(async () => {
     try {
       await indexedDBService.readyForEncryption({ timeoutMs: 8000 })
     } catch (error) {
@@ -776,14 +823,23 @@
     backendResponsesPersister = documentPersistenceService.getBackendResponsesPersister()
     metaPersister = documentPersistenceService.getMetaPersister()
 
-    await restoreData()
+    await rehydrateFromStorage()
 
     const unsubscribeHydrationBefore = eventBus.subscribe('hydration:before', () => {
-      hydrationInProgress = true
+      globalHydrationActive = true
+      updateHydrationState()
     })
 
-    const unsubscribeHydrationAfter = eventBus.subscribe('hydration:after', async () => {
-      hydrationInProgress = false
+    const unsubscribeHydrationAfter = eventBus.subscribe('hydration:after', () => {
+      globalHydrationActive = false
+      updateHydrationState()
+    })
+
+    const unsubscribeStorageImported = eventBus.subscribe('storage:imported', payload => {
+      if (!shouldHandleStorageImport(payload?.namespaces)) {
+        return
+      }
+      void rehydrateFromStorage()
     })
 
     function handleWindowClick() {
@@ -816,6 +872,7 @@
     return () => {
       unsubscribeHydrationBefore()
       unsubscribeHydrationAfter()
+      unsubscribeStorageImported()
       window.removeEventListener('click', handleWindowClick)
       window.removeEventListener('keydown', handleWindowKeydown)
       window.removeEventListener('dragend', handleWindowDragEnd)

@@ -1,3 +1,4 @@
+import { eventBus } from '@/core/EventBusService.svelte.js'
 import { MODAL_CANCELLED_BY_X, modalService } from '@/core/ModalService.svelte.js'
 import { persistenceRegistry } from '@/core/persistence/PersistenceRegistry.svelte.js'
 import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate'
@@ -132,6 +133,19 @@ async function clearBlobNamespace(namespace) {
       return persistenceRegistry.deleteBlob(namespace, blob.blobId)
     })
   )
+}
+
+function publishStorageImported(payload) {
+  const namespaces = Array.isArray(payload?.namespaces) ? Array.from(new Set(payload.namespaces)) : []
+  if (!namespaces.length) {
+    return
+  }
+  eventBus.publish('storage:imported', {
+    namespaces,
+    mode: payload?.mode ?? 'replace',
+    filename: payload?.filename ?? null,
+    scope: payload?.scope ?? 'custom'
+  })
 }
 
 function normalizeBundleDefinition(bundle, defaultNamespace) {
@@ -277,6 +291,7 @@ async function importBundle(bundle, archiveInput, { mode = 'replace', defaultNam
   }
 
   const manifestEntries = Array.isArray(manifest?.entries) ? manifest.entries : []
+  const importedNamespaces = new Set()
 
   for (const entry of manifestEntries) {
     if (entry.type === 'json') {
@@ -287,6 +302,7 @@ async function importBundle(bundle, archiveInput, { mode = 'replace', defaultNam
       }
       const payload = JSON.parse(strFromU8(payloadBytes))
       await persistenceRegistry.importNamespace(entry.namespace, payload, { mode: normalizedMode })
+      importedNamespaces.add(entry.namespace)
       continue
     }
 
@@ -295,6 +311,7 @@ async function importBundle(bundle, archiveInput, { mode = 'replace', defaultNam
         await clearBlobNamespace(entry.namespace)
       }
       const files = Array.isArray(entry.files) ? entry.files : []
+      let savedCount = 0
       for (const fileRef of files) {
         const fileData = extracted[fileRef.path]
         if (!fileData) {
@@ -311,9 +328,15 @@ async function importBundle(bundle, archiveInput, { mode = 'replace', defaultNam
           updatedAt: fileRef.metadata?.updatedAt
         }
         await persistenceRegistry.saveBlob(entry.namespace, fileRef.blobId, blob, metadataOptions)
+        savedCount += 1
+      }
+      if (savedCount > 0 || normalizedMode === 'replace') {
+        importedNamespaces.add(entry.namespace)
       }
     }
   }
+
+  return Array.from(importedNamespaces)
 }
 
 function triggerDownload(blob, filename) {
@@ -742,7 +765,7 @@ export async function importAllNamespaces(archiveInput, options = {}) {
   }
 
   return {
-    namespaces: importedNamespaces,
+    namespaces: Array.from(new Set(importedNamespaces)),
     mode: normalizedMode
   }
 }
@@ -807,8 +830,13 @@ export function createImportAllAction(options = {}) {
         return
       }
 
-      // Importer tous les namespaces
       const { namespaces } = await importAllNamespaces(data, { mode: normalizedMode })
+      publishStorageImported({
+        namespaces,
+        mode: normalizedMode,
+        filename: file.name,
+        scope: 'all'
+      })
 
       onSuccess?.({ filename: file.name, mode: normalizedMode, namespaces })
     } catch (error) {
@@ -878,12 +906,25 @@ export function createImportAction(namespace, options = {}) {
       }
 
       const lowerName = file.name.toLowerCase()
+      let importedNamespaces = []
       if (bundle) {
-        await importBundle(bundle, data, { mode: normalizedMode, defaultNamespace: namespace })
+        importedNamespaces = await importBundle(bundle, data, {
+          mode: normalizedMode,
+          defaultNamespace: namespace
+        })
       } else {
         const payload = lowerName.endsWith('.zip') ? data : parseJsonPayload(data)
         await persistenceRegistry.importNamespace(namespace, payload, { mode: normalizedMode })
+        importedNamespaces = [namespace]
       }
+
+      const resolvedNamespaces = importedNamespaces.length ? importedNamespaces : [namespace]
+      publishStorageImported({
+        namespaces: resolvedNamespaces,
+        mode: normalizedMode,
+        filename: file.name,
+        scope: bundle ? 'bundle' : 'single'
+      })
 
       onSuccess?.({ filename: file.name, mode: normalizedMode })
     } catch (error) {
