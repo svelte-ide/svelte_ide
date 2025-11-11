@@ -1,0 +1,5 @@
+export const TOOL_ID = 'document-library'
+export const TOOL_NAME = 'Bibliothèque de documents'
+export const TOOL_ICON = '📚'
+export const TAB_PREFIX = 'doc-viewer'
+export const VIEWER_RESOURCE_ID = 'document-library-viewer'

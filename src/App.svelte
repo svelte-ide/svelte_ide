@@ -1,10 +1,10 @@
 <script>
-  import { indexedDBService } from '@/core/persistence/IndexedDBService.svelte.js';
+  import { eventBus } from '@/core/EventBusService.svelte.js';
   import { binaryStorageService } from '@/core/persistence/BinaryStorageService.svelte.js';
+  import { indexedDBService } from '@/core/persistence/IndexedDBService.svelte.js';
   import { toolManager } from '@/core/ToolManager.svelte.js';
   import { getAuthStore } from '@/stores/authStore.svelte.js';
   import { ideStore } from '@/stores/ideStore.svelte.js';
-  import { eventBus } from '@/core/EventBusService.svelte.js';
 
   import StatusBar from '@/components/layout/chrome/StatusBar.svelte';
   import TitleBar from '@/components/layout/chrome/TitleBar.svelte';

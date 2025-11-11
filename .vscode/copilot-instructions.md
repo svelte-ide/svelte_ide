@@ -1,4 +1,4 @@
-# Projet BNR-CVD Génération d'un CV descriptif pour les chercheurs de l'université Laval
+# Projet svelte-ide
 
 ## Principe de Communication avec l'utilisateur
 
