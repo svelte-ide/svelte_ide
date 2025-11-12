@@ -159,13 +159,25 @@ function createAuthStore() {
   let initializing = $state(false)
   let initializationFailed = $state(false)
   let encryptionKey = $state(null)
+  let sessionStatus = $state({ type: null, message: null })
 
   // Dérivé : indique si une clé de chiffrement est disponible
   const hasEncryptionKey = $derived(encryptionKey !== null && encryptionKey.length > 0)
 
+  function setSessionStatus(type = null, message = null) {
+    if (!type) {
+      sessionStatus = { type: null, message: null }
+      return
+    }
+    sessionStatus = { type, message }
+  }
+
   function syncFromManager(forceProviders = false) {
     isAuthenticated = authManager.isAuthenticated
     currentUser = authManager.currentUser
+    if (isAuthenticated) {
+      setSessionStatus()
+    }
     if (forceProviders || initialized) {
       availableProviders = authManager.getAvailableProviders()
     }
@@ -180,6 +192,7 @@ function createAuthStore() {
     get initialized() { return initialized },
     get encryptionKey() { return encryptionKey },
     get hasEncryptionKey() { return hasEncryptionKey },
+    get sessionStatus() { return sessionStatus },
 
     setEncryptionKey(key) {
       if (!key || typeof key !== 'string') {
@@ -197,6 +210,19 @@ function createAuthStore() {
       }
     },
 
+    clearSessionStatus() {
+      setSessionStatus()
+    },
+
+    handleSessionExpired(payload = {}) {
+      this.clearEncryptionKey()
+      setSessionStatus('expired', payload?.message || 'Votre session a expiré. Veuillez vous reconnecter.')
+      isAuthenticated = false
+      currentUser = null
+      error = null
+      syncFromManager(true)
+    },
+
     async initialize() {
       if (initialized || initializing || initializationFailed) {
         return
@@ -208,8 +234,8 @@ function createAuthStore() {
         error = null
         
         initializeAuthProviders(authManager)
-        await authManager.initializeProviders()
         await authManager.ready
+        await authManager.initializeProviders()
         
         // Vérifier si on est dans un callback OAuth
         const currentPath = window.location.pathname
@@ -269,6 +295,7 @@ function createAuthStore() {
         if (result.success) {
           syncFromManager()
           authDebug('Login successful', { providerId })
+          this.clearSessionStatus()
           
           // Restaurer le layout utilisateur après une authentification réussie
           if (currentUser) {

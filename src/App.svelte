@@ -15,7 +15,6 @@
   import ContextMenu from '@/components/layout/ui/ContextMenu.svelte';
   import ModalHost from '@/components/layout/ui/ModalHost.svelte';
   import WelcomeScreen from '@/components/layout/ui/WelcomeScreen.svelte';
-  import ReAuthModal from '@/components/system/ReAuthModal.svelte';
 
   const authStore = getAuthStore()
   const PERSISTENCE_READY_TIMEOUT_MS = 10000
@@ -427,5 +426,3 @@
     flex-shrink: 0;
   }
 </style>
-
-<ReAuthModal />

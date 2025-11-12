@@ -63,6 +63,12 @@
       {/each}
     </div>
 
+    {#if authStore.sessionStatus?.type === 'expired'}
+      <p class="session-expired">
+        {authStore.sessionStatus.message || 'Session expirée. Veuillez vous reconnecter.'}
+      </p>
+    {/if}
+
     {#if authStore.initialized && authStore.availableProviders.length === 0}
       <div class="config-notice">
         <p>⚠️ Configuration requise</p>
@@ -163,6 +169,12 @@
   .provider-name {
     font-weight: 500;
     font-size: 14px;
+  }
+
+  .session-expired {
+    color: #ff5c5c;
+    font-weight: 500;
+    margin-top: 20px;
   }
 
   .config-notice {

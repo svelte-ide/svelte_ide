@@ -49,6 +49,16 @@ export class AuthManager {
       })
     }
 
+    if (this._authStoreRef?.handleSessionExpired) {
+      try {
+        this._authStoreRef.handleSessionExpired({
+          message: 'Votre session a expiré. Veuillez vous reconnecter.'
+        })
+      } catch (storeError) {
+        authWarn('Failed to notify authStore about session expiration', storeError)
+      }
+    }
+
     // Ajouter notification si ideStore disponible
     try {
       const { ideStore } = await import('@/stores/ideStore.svelte.js')
