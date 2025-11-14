@@ -485,18 +485,19 @@
     const nodeDrag = allowNodeDrag && isNodeDrag(event)
     if (nodeDrag) {
       const dragData = getDragData(event)
-      if (!dragData) return
-      if (dragData.id === targetFolderId) return
-      const draggedNode = findNodeById(tree, dragData.id)
+      const draggingId = dragData?.id ?? draggedNodeId
+      if (!draggingId) return
+      if (draggingId === targetFolderId) return
+      const draggedNode = findNodeById(tree, draggingId)
       if (!draggedNode || draggedNode.parentId === targetFolderId) return
-      if (isFolderNode(draggedNode) && isAncestor(tree, targetFolderId, dragData.id)) return
+      if (isFolderNode(draggedNode) && isAncestor(tree, targetFolderId, draggingId)) return
       event.preventDefault()
       event.stopPropagation()
       if (event.dataTransfer) {
         event.dataTransfer.dropEffect = 'move'
       }
       dragOverFolderId = targetFolderId
-      logDragState('folderDragOver', { folderId: targetFolderId, nodeDrag: true })
+      logDragState('folderDragOver', { folderId: targetFolderId, nodeDrag: true, draggingId })
       return
     }
 
@@ -533,13 +534,14 @@
     dragOverFolderId = null
     if (nodeDrag) {
       const dragData = getDragData(event)
+      const draggingId = dragData?.id ?? draggedNodeId
       draggedNodeId = null
       draggedNodeType = null
-      if (dragData?.id) {
-        moveNode(dragData.id, targetFolderId)
+      if (draggingId) {
+        moveNode(draggingId, targetFolderId)
       }
       rootDragActive = false
-      logDragState('folderDropNode', { folderId: targetFolderId, draggedId: dragData?.id ?? null })
+      logDragState('folderDropNode', { folderId: targetFolderId, draggedId: draggingId ?? null })
       return
     }
     const files = event.dataTransfer?.files
@@ -560,12 +562,13 @@
     rootDragActive = false
     if (nodeDrag) {
       const dragData = getDragData(event)
+      const draggingId = dragData?.id ?? draggedNodeId
       draggedNodeId = null
       draggedNodeType = null
-      if (dragData?.id) {
-        moveNode(dragData.id, rootId)
+      if (draggingId) {
+        moveNode(draggingId, rootId)
       }
-      logDragState('rootDropNode', { draggedId: dragData?.id ?? null })
+      logDragState('rootDropNode', { draggedId: draggingId ?? null })
       return
     }
     const files = event.dataTransfer?.files
