@@ -1,6 +1,6 @@
 <script>
-  import { eventBus } from '@/core/EventBusService.svelte.js';
-  import { getAuthStore } from '@/stores/authStore.svelte.js';
+  import { eventBus } from '@svelte-ide/core/EventBusService.svelte.js';
+  import { getAuthStore } from '@svelte-ide/stores/authStore.svelte.js';
 
   const authStore = getAuthStore()
 

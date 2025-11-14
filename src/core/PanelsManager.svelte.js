@@ -1,6 +1,6 @@
-import { genericLayoutService } from '@/core/GenericLayoutService.svelte.js'
-import { zoneRegistry } from '@/core/layout/ZoneRegistry.svelte.js'
-import { stateProviderService } from '@/core/StateProviderService.svelte.js'
+import { genericLayoutService } from '@svelte-ide/core/GenericLayoutService.svelte.js'
+import { zoneRegistry } from '@svelte-ide/core/layout/ZoneRegistry.svelte.js'
+import { stateProviderService } from '@svelte-ide/core/StateProviderService.svelte.js'
 
 export class PanelsManager {
     constructor() {

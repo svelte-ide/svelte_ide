@@ -1,4 +1,4 @@
-import { SCROLL_MODES } from '@/core/ScrollModes.svelte.js'
+import { SCROLL_MODES } from '@svelte-ide/core/ScrollModes.svelte.js'
 
 export class LayoutService {
   constructor() {
@@ -33,7 +33,7 @@ export class LayoutService {
   _autoSave() {
     try {
       // Import dynamique d'ideStore pour éviter les dépendances circulaires
-      import('@/stores/ideStore.svelte.js').then(({ ideStore }) => {
+      import('@svelte-ide/stores/ideStore.svelte.js').then(({ ideStore }) => {
         if (ideStore.user) {
           ideStore.saveUserLayout()
         }

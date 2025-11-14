@@ -1,5 +1,5 @@
-import { binaryStorageService } from '@/core/persistence/BinaryStorageService.svelte.js'
-import { PersisterInterface } from '@/core/persistence/PersisterInterface.js'
+import { binaryStorageService } from '@svelte-ide/core/persistence/BinaryStorageService.svelte.js'
+import { PersisterInterface } from '@svelte-ide/core/persistence/PersisterInterface.js'
 
 export class BinaryPersister extends PersisterInterface {
   constructor(namespace, options = {}) {

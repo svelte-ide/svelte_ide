@@ -1,7 +1,7 @@
-import { authDebug, authError, authWarn } from '@/core/auth/authLogging.svelte.js'
-import { avatarCacheService } from '@/core/auth/AvatarCacheService.svelte.js'
-import { deriveEncryptionKey } from '@/core/auth/EncryptionKeyDerivation.svelte.js'
-import { TokenManager } from '@/core/auth/TokenManager.svelte.js'
+import { authDebug, authError, authWarn } from '@svelte-ide/core/auth/authLogging.svelte.js'
+import { avatarCacheService } from '@svelte-ide/core/auth/AvatarCacheService.svelte.js'
+import { deriveEncryptionKey } from '@svelte-ide/core/auth/EncryptionKeyDerivation.svelte.js'
+import { TokenManager } from '@svelte-ide/core/auth/TokenManager.svelte.js'
 
 export class AuthManager {
   constructor() {
@@ -42,7 +42,7 @@ export class AuthManager {
 
     // Émettre événement pour que l'UI puisse réagir
     if (typeof window !== 'undefined') {
-      const { eventBus } = await import('@/core/EventBusService.svelte.js')
+      const { eventBus } = await import('@svelte-ide/core/EventBusService.svelte.js')
       eventBus.publish('auth:session-expired', {
         timestamp: new Date().toISOString(),
         message: 'Votre session a expiré. Veuillez vous reconnecter.'
@@ -61,7 +61,7 @@ export class AuthManager {
 
     // Ajouter notification si ideStore disponible
     try {
-      const { ideStore } = await import('@/stores/ideStore.svelte.js')
+      const { ideStore } = await import('@svelte-ide/stores/ideStore.svelte.js')
       ideStore.addNotification({
         type: 'warning',
         message: 'Session expirée',

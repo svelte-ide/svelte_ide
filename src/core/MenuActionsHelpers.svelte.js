@@ -1,6 +1,6 @@
-import { eventBus } from '@/core/EventBusService.svelte.js'
-import { MODAL_CANCELLED_BY_X, modalService } from '@/core/ModalService.svelte.js'
-import { persistenceRegistry } from '@/core/persistence/PersistenceRegistry.svelte.js'
+import { eventBus } from '@svelte-ide/core/EventBusService.svelte.js'
+import { MODAL_CANCELLED_BY_X, modalService } from '@svelte-ide/core/ModalService.svelte.js'
+import { persistenceRegistry } from '@svelte-ide/core/persistence/PersistenceRegistry.svelte.js'
 import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate'
 
 const DEFAULT_FILE_ACCEPT = '.json,.zip'
@@ -510,7 +510,7 @@ function normalizeMode(mode) {
  * downloadFile(blob, filename)
  */
 export async function exportAllNamespaces(options = {}) {
-  const { APP_KEY } = await import('@/core/config/appKey.js')
+  const { APP_KEY } = await import('@svelte-ide/core/config/appKey.js')
   
   const {
     appKey = APP_KEY,

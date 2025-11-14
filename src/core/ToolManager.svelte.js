@@ -1,8 +1,8 @@
-import { ideStore } from '@/stores/ideStore.svelte.js'
-import { panelsManager } from '@/core/PanelsManager.svelte.js'
-import { focusDisplayCoordinator } from '@/core/FocusDisplayCoordinator.svelte.js'
-import { toolFocusCoordinator } from '@/core/ToolFocusCoordinator.svelte.js'
-import { mainMenuService } from '@/core/MainMenuService.svelte.js'
+import { ideStore } from '@svelte-ide/stores/ideStore.svelte.js'
+import { panelsManager } from '@svelte-ide/core/PanelsManager.svelte.js'
+import { focusDisplayCoordinator } from '@svelte-ide/core/FocusDisplayCoordinator.svelte.js'
+import { toolFocusCoordinator } from '@svelte-ide/core/ToolFocusCoordinator.svelte.js'
+import { mainMenuService } from '@svelte-ide/core/MainMenuService.svelte.js'
 
 class ToolManagerSvelte {
   constructor() {

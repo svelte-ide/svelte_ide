@@ -65,7 +65,7 @@ Pour la communication découplée entre les outils, ou entre l'IDE et les outils
 -   **Principe :** Un composant publie un événement sans savoir qui écoute. D'autres composants s'abonnent à cet événement et réagissent.
 -   **Publier un événement :**
     ```javascript
-    import { eventBus } from '@/core/EventBusService.svelte.js';
+    import { eventBus } from '@svelte-ide/core/EventBusService.svelte.js';
     eventBus.publish('mon-evenement:nom', { maData: 'valeur' });
     ```
 -   **S'abonner à un événement (Exemple dans un composant Svelte) :**

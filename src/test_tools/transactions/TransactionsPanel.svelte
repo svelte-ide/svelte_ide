@@ -1,8 +1,8 @@
 <script>
-  import { eventBus } from '@/core/EventBusService.svelte.js';
-  import { SCROLL_MODES } from '@/core/ScrollModes.svelte.js';
-  import { Tab } from '@/core/Tab.svelte.js';
-  import { ideStore } from '@/stores/ideStore.svelte.js';
+  import { eventBus } from '@svelte-ide/core/EventBusService.svelte.js';
+  import { SCROLL_MODES } from '@svelte-ide/core/ScrollModes.svelte.js';
+  import { Tab } from '@svelte-ide/core/Tab.svelte.js';
+  import { ideStore } from '@svelte-ide/stores/ideStore.svelte.js';
   import { transactionsState, transactionsStore } from './transactionsStore.svelte.js';
   import TransactionsView from './TransactionsView.svelte';
 

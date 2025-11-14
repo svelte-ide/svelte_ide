@@ -1,6 +1,6 @@
-import { namespacedKey } from '@/core/config/appKey.js'
-import { TokenCipher } from '@/core/security/tokenCipher.svelte.js'
-import { createLogger } from '@/lib/logger.js'
+import { namespacedKey } from '@svelte-ide/core/config/appKey.js'
+import { TokenCipher } from '@svelte-ide/core/security/tokenCipher.svelte.js'
+import { createLogger } from '@svelte-ide/lib/logger.js'
 import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate'
 
 const logger = createLogger('core/persistence/binary-storage')

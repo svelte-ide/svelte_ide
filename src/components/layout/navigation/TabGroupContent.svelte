@@ -1,9 +1,9 @@
 <script>
-  import { dragDropService } from '@/core/DragDropService.svelte.js';
-  import { eventBus } from '@/core/EventBusService.svelte.js';
-  import { layoutService } from '@/core/LayoutService.svelte.js';
-  import { panelsManager } from '@/core/PanelsManager.svelte.js';
-  import { SCROLL_MODES } from '@/core/ScrollModes.svelte.js';
+  import { dragDropService } from '@svelte-ide/core/DragDropService.svelte.js';
+  import { eventBus } from '@svelte-ide/core/EventBusService.svelte.js';
+  import { layoutService } from '@svelte-ide/core/LayoutService.svelte.js';
+  import { panelsManager } from '@svelte-ide/core/PanelsManager.svelte.js';
+  import { SCROLL_MODES } from '@svelte-ide/core/ScrollModes.svelte.js';
 
   let { layoutNode } = $props()
 

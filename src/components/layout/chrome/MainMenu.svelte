@@ -1,5 +1,5 @@
 <script>
-  import { mainMenuService } from '@/core/MainMenuService.svelte.js'
+  import { mainMenuService } from '@svelte-ide/core/MainMenuService.svelte.js'
 
   let menus = $state([])
   let openMenuId = $state(null)

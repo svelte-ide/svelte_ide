@@ -1,5 +1,5 @@
-import { SCROLL_MODES } from '@/core/ScrollModes.svelte.js'
-import { persistenceRegistry } from '@/core/persistence/PersistenceRegistry.svelte.js'
+import { SCROLL_MODES } from '@svelte-ide/core/ScrollModes.svelte.js'
+import { persistenceRegistry } from '@svelte-ide/core/persistence/PersistenceRegistry.svelte.js'
 import { explorerStore } from './explorerStore.svelte.js'
 
 const JSON_NAMESPACE = 'tool-explorer'

@@ -1,5 +1,5 @@
 <script>
-  import { ideStore } from '@/stores/ideStore.svelte.js'
+  import { ideStore } from '@svelte-ide/stores/ideStore.svelte.js'
 
   const props = $props()
   const label = $derived(props.label ?? 'Fichier actif :')

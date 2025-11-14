@@ -19,7 +19,7 @@ export default defineConfig(() => {
     },
     resolve: {
       alias: {
-        '@': path.resolve(dirPath, './src')
+        '@svelte-ide': path.resolve(dirPath, './src')
       }
     }
   }

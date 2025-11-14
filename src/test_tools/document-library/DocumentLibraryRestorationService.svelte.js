@@ -1,5 +1,5 @@
-import { eventBus } from '@/core/EventBusService.svelte.js'
-import { createLogger } from '@/lib/logger.js'
+import { eventBus } from '@svelte-ide/core/EventBusService.svelte.js'
+import { createLogger } from '@svelte-ide/lib/logger.js'
 import DocumentViewerTab from './DocumentViewerTab.svelte'
 import { TOOL_ID, VIEWER_RESOURCE_ID } from './constants.js'
 

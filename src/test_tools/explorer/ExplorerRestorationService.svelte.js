@@ -1,5 +1,5 @@
-import { eventBus } from '@/core/EventBusService.svelte.js'
-import { createLogger } from '@/lib/logger.js'
+import { eventBus } from '@svelte-ide/core/EventBusService.svelte.js'
+import { createLogger } from '@svelte-ide/lib/logger.js'
 import { explorerStore } from './explorerStore.svelte.js'
 import { getFileContent } from './fileService.svelte.js'
 import FileViewer from './FileViewer.svelte'
@@ -96,7 +96,7 @@ class ExplorerRestorationService {
       logger.log('[ExplorerRestoration] Verifying tab was hydrated via ideStore')
       
       // Vérifier que le tab a bien été hydraté
-      import('@/stores/ideStore.svelte.js').then(({ ideStore }) => {
+      import('@svelte-ide/stores/ideStore.svelte.js').then(({ ideStore }) => {
         const tab = ideStore.tabs.find(t => t.fileName === fileName)
         logger.log('[ExplorerRestoration] Tab verification', {
           found: !!tab,

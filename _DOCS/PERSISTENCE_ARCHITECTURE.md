@@ -648,19 +648,19 @@ const persister = persistenceRegistry.createPersister('myTool', 'json')
 
 ```javascript
 // /src/public-api.js
-export { persistenceRegistry } from '@/core/PersistenceRegistry.svelte.js'
-export { PersisterInterface } from '@/core/PersisterInterface.js'
+export { persistenceRegistry } from '@svelte-ide/core/PersistenceRegistry.svelte.js'
+export { PersisterInterface } from '@svelte-ide/core/PersisterInterface.js'
 
 // Rétrocompatibilité (deprecated, usage avancé uniquement)
 /**
  * @deprecated Use persistenceRegistry.saveBlob() instead
  */
-export { binaryStorageService } from '@/core/persistence/BinaryStorageService.svelte.js'
+export { binaryStorageService } from '@svelte-ide/core/persistence/BinaryStorageService.svelte.js'
 
 /**
  * @deprecated Internal use only, use persistenceRegistry
  */
-export { indexedDBService } from '@/core/persistence/IndexedDBService.svelte.js'
+export { indexedDBService } from '@svelte-ide/core/persistence/IndexedDBService.svelte.js'
 ```
 
 ### Migration Guide

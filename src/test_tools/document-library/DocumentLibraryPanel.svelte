@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { eventBus, getAuthStore, ideStore, indexedDBService } from 'svelte-ide';
-  import GenericElementTree from '@/components/ui/generic-element-tree/GenericElementTree.svelte';
+  import GenericElementTree from '@svelte-ide/components/ui/generic-element-tree/GenericElementTree.svelte';
   import DocumentViewerTab from './DocumentViewerTab.svelte';
   import { TAB_PREFIX, TOOL_ICON, TOOL_ID, TOOL_NAME, VIEWER_RESOURCE_ID } from './constants.js';
   import { documentPersistenceService } from './documentPersistenceService.js';

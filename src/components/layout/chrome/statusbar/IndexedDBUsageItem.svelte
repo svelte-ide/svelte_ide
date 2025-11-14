@@ -1,5 +1,5 @@
 <script>
-  import { createLogger } from '@/lib/logger.js'
+  import { createLogger } from '@svelte-ide/lib/logger.js'
 
   const props = $props()
   const className = $derived(props.className ?? '')

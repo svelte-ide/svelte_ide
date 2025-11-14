@@ -59,7 +59,7 @@ Le framework **n'effectue PLUS de migration automatique** pour garder le comport
 Pour migrer manuellement des données legacy (environnements très anciens), un script utilitaire est disponible :
 
 ```js
-import migrateExplorerLocalStorage from '@/scripts/migrateExplorerLocalStorage.js'
+import migrateExplorerLocalStorage from '@svelte-ide/scripts/migrateExplorerLocalStorage.js'
 await migrateExplorerLocalStorage()
 // Console: "Migration terminée { migrated: 5, skipped: 120 }"
 ```

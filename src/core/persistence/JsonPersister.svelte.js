@@ -1,5 +1,5 @@
-import { indexedDBService } from '@/core/persistence/IndexedDBService.svelte.js'
-import { LocalStoragePersister, MemoryPersister, PersisterInterface } from '@/core/persistence/PersisterInterface.js'
+import { indexedDBService } from '@svelte-ide/core/persistence/IndexedDBService.svelte.js'
+import { LocalStoragePersister, MemoryPersister, PersisterInterface } from '@svelte-ide/core/persistence/PersisterInterface.js'
 
 const ENV_FALLBACK = (import.meta.env.VITE_INDEXEDDB_FALLBACK_STRATEGY || 'block').toLowerCase()
 const ALLOWED_STRATEGIES = ['block', 'localstorage', 'memory']

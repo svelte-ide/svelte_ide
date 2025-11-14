@@ -168,7 +168,7 @@ await indexedDBService.clear('default')
    - Le fichier/dossier sélectionné avant reload reste sélectionné.
 6. En console, vérifier que la migration s’exécute :
    ```javascript
-   await import('@/scripts/migrateExplorerLocalStorage.js').then(m => m.default())
+   await import('@svelte-ide/scripts/migrateExplorerLocalStorage.js').then(m => m.default())
    ```
    Doit afficher `Entrée "...tool-explorer..." migrée` si des données legacy étaient présentes.
 
@@ -218,7 +218,7 @@ Si configuré avec Google ou Azure :
 
 ## Annexes
 
-- Script de migration Explorer : `await import('@/scripts/migrateExplorerLocalStorage.js').then(m => m.default())`
+- Script de migration Explorer : `await import('@svelte-ide/scripts/migrateExplorerLocalStorage.js').then(m => m.default())`
 - Ressource guide : `_GUIDES/INDEXEDDB_USAGE.md`
 
 ## Problèmes Courants

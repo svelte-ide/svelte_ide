@@ -1,7 +1,7 @@
 <script>
   import ResizeHandle from './ResizeHandle.svelte'
   import LayoutContainer from './LayoutContainer.svelte'
-  import { layoutService } from '@/core/LayoutService.svelte.js'
+  import { layoutService } from '@svelte-ide/core/LayoutService.svelte.js'
 
   let { layoutNode } = $props()
 

@@ -1,5 +1,5 @@
-import { eventBus } from '@/core/EventBusService.svelte.js'
-import { indexedDBService } from '@/core/persistence/IndexedDBService.svelte.js'
+import { eventBus } from '@svelte-ide/core/EventBusService.svelte.js'
+import { indexedDBService } from '@svelte-ide/core/persistence/IndexedDBService.svelte.js'
 
 /**
  * Test helper used in development builds to observe the persistence/hydration lifecycle.

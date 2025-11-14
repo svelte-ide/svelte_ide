@@ -1,9 +1,9 @@
-import { authDebug, authError, authWarn } from '@/core/auth/authLogging.svelte.js'
-import { AuthManager } from '@/core/auth/AuthManager.svelte.js'
-import { AzureProvider, GoogleProvider, MockProvider } from '@/core/auth/providers/index.js'
+import { authDebug, authError, authWarn } from '@svelte-ide/core/auth/authLogging.svelte.js'
+import { AuthManager } from '@svelte-ide/core/auth/AuthManager.svelte.js'
+import { AzureProvider, GoogleProvider, MockProvider } from '@svelte-ide/core/auth/providers/index.js'
 
 function getIdeStore() {
-  return import('@/stores/ideStore.svelte.js').then(module => module.ideStore)
+  return import('@svelte-ide/stores/ideStore.svelte.js').then(module => module.ideStore)
 }
 
 function initializeAuthProviders(authManager) {

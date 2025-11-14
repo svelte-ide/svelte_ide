@@ -1,7 +1,7 @@
-import { eventBus } from '@/core/EventBusService.svelte.js'
-import { stateProviderService } from '@/core/StateProviderService.svelte.js'
-import { persistenceRegistry } from '@/core/persistence/PersistenceRegistry.svelte.js'
-import { createLogger } from '@/lib/logger.js'
+import { eventBus } from '@svelte-ide/core/EventBusService.svelte.js'
+import { stateProviderService } from '@svelte-ide/core/StateProviderService.svelte.js'
+import { persistenceRegistry } from '@svelte-ide/core/persistence/PersistenceRegistry.svelte.js'
+import { createLogger } from '@svelte-ide/lib/logger.js'
 import { explorerStore } from './explorerStore.svelte.js'
 
 const logger = createLogger('test-tools/explorer/persistence')

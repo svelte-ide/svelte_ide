@@ -1,4 +1,4 @@
-import { Tool } from '@/core/Tool.svelte.js'
+import { Tool } from '@svelte-ide/core/Tool.svelte.js'
 import TransactionsPanel from './TransactionsPanel.svelte'
 import './TransactionsRestorationService.svelte.js'
 

@@ -69,7 +69,7 @@ Le service est **automatiquement appelé au démarrage** de l'application :
 
 ```javascript
 // src/App.svelte (déjà implémenté)
-import { storagePersistenceService } from '@/core/persistence/StoragePersistenceService.svelte.js'
+import { storagePersistenceService } from '@svelte-ide/core/persistence/StoragePersistenceService.svelte.js'
 
 // Au démarrage, après initialisation d'IndexedDB
 const granted = await storagePersistenceService.requestPersistence()

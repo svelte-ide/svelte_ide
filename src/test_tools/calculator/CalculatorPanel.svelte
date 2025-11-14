@@ -1,6 +1,6 @@
 <script>
   import Calculator from './Calculator.svelte'
-  import { panelsManager } from '@/core/PanelsManager.svelte.js'
+  import { panelsManager } from '@svelte-ide/core/PanelsManager.svelte.js'
 
   let { panelId } = $props()
 

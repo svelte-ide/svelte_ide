@@ -1,5 +1,5 @@
 <script>
-  import { modalService, MODAL_CANCELLED_BY_X } from '@/core/ModalService.svelte.js'
+  import { modalService, MODAL_CANCELLED_BY_X } from '@svelte-ide/core/ModalService.svelte.js'
 
   let modalElement = $state(null)
 

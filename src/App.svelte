@@ -1,22 +1,22 @@
 <script>
-  import { eventBus } from '@/core/EventBusService.svelte.js';
-  import { binaryStorageService } from '@/core/persistence/BinaryStorageService.svelte.js';
-  import { indexedDBService } from '@/core/persistence/IndexedDBService.svelte.js';
-  import { storagePersistenceService } from '@/core/persistence/StoragePersistenceService.svelte.js';
-  import { toolManager } from '@/core/ToolManager.svelte.js';
-  import { getAuthStore } from '@/stores/authStore.svelte.js';
-  import { ideStore } from '@/stores/ideStore.svelte.js';
-  import { createLogger } from '@/lib/logger.js';
+  import { eventBus } from '@svelte-ide/core/EventBusService.svelte.js';
+  import { binaryStorageService } from '@svelte-ide/core/persistence/BinaryStorageService.svelte.js';
+  import { indexedDBService } from '@svelte-ide/core/persistence/IndexedDBService.svelte.js';
+  import { storagePersistenceService } from '@svelte-ide/core/persistence/StoragePersistenceService.svelte.js';
+  import { toolManager } from '@svelte-ide/core/ToolManager.svelte.js';
+  import { getAuthStore } from '@svelte-ide/stores/authStore.svelte.js';
+  import { ideStore } from '@svelte-ide/stores/ideStore.svelte.js';
+  import { createLogger } from '@svelte-ide/lib/logger.js';
 
-  import StatusBar from '@/components/layout/chrome/StatusBar.svelte';
-  import TitleBar from '@/components/layout/chrome/TitleBar.svelte';
-  import Toolbar from '@/components/layout/chrome/Toolbar.svelte';
-  import ToolPanel from '@/components/layout/chrome/ToolPanel.svelte';
-  import MainViewSplit from '@/components/layout/containers/MainViewSplit.svelte';
-  import ResizeHandle from '@/components/layout/containers/ResizeHandle.svelte';
-  import ContextMenu from '@/components/layout/ui/ContextMenu.svelte';
-  import ModalHost from '@/components/layout/ui/ModalHost.svelte';
-  import WelcomeScreen from '@/components/layout/ui/WelcomeScreen.svelte';
+  import StatusBar from '@svelte-ide/components/layout/chrome/StatusBar.svelte';
+  import TitleBar from '@svelte-ide/components/layout/chrome/TitleBar.svelte';
+  import Toolbar from '@svelte-ide/components/layout/chrome/Toolbar.svelte';
+  import ToolPanel from '@svelte-ide/components/layout/chrome/ToolPanel.svelte';
+  import MainViewSplit from '@svelte-ide/components/layout/containers/MainViewSplit.svelte';
+  import ResizeHandle from '@svelte-ide/components/layout/containers/ResizeHandle.svelte';
+  import ContextMenu from '@svelte-ide/components/layout/ui/ContextMenu.svelte';
+  import ModalHost from '@svelte-ide/components/layout/ui/ModalHost.svelte';
+  import WelcomeScreen from '@svelte-ide/components/layout/ui/WelcomeScreen.svelte';
 
   const authStore = getAuthStore()
   const PERSISTENCE_READY_TIMEOUT_MS = 10000

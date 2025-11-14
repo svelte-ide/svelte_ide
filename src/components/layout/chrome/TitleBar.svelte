@@ -1,5 +1,5 @@
 <script>
-  import { getAuthStore } from '@/stores/authStore.svelte.js';
+  import { getAuthStore } from '@svelte-ide/stores/authStore.svelte.js';
   import AuthUserMenu from './AuthUserMenu.svelte';
   import MainMenu from './MainMenu.svelte';
 

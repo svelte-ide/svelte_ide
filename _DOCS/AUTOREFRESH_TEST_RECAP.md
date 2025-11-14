@@ -171,7 +171,7 @@ Ces logs sont visibles uniquement quand le mode test est activé, évitant la po
 **Fichier modifié** : `src/App.svelte`
 
 ```javascript
-import { testAutoRefresh } from '@/test_tools/testAutoRefresh.svelte.js';
+import { testAutoRefresh } from '@svelte-ide/test_tools/testAutoRefresh.svelte.js';
 ```
 
 L'import active automatiquement l'exposition dans `window.testAutoRefresh` via le code d'initialisation du module.

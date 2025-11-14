@@ -1,8 +1,8 @@
 <script>
-  import { ideStore } from '@/stores/ideStore.svelte.js'
-  import { contextMenuService } from '@/core/ContextMenuService.svelte.js'
-  import { layoutService } from '@/core/LayoutService.svelte.js'
-  import { dragDropService } from '@/core/DragDropService.svelte.js'
+  import { ideStore } from '@svelte-ide/stores/ideStore.svelte.js'
+  import { contextMenuService } from '@svelte-ide/core/ContextMenuService.svelte.js'
+  import { layoutService } from '@svelte-ide/core/LayoutService.svelte.js'
+  import { dragDropService } from '@svelte-ide/core/DragDropService.svelte.js'
   import TabScrollContainer from './TabScrollContainer.svelte'
   import Tab from './Tab.svelte'
 

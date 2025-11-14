@@ -41,9 +41,9 @@ Créez un service qui gère la sauvegarde et restauration de l'état de votre ou
 **Fichier** : `src/tools/mon-outil/MonOutilPersistenceService.svelte.js`
 
 ```javascript
-import { eventBus } from '@/core/EventBusService.svelte.js'
-import { stateProviderService } from '@/core/StateProviderService.svelte.js'
-import { persistenceRegistry } from '@/core/persistence/PersistenceRegistry.svelte.js'
+import { eventBus } from '@svelte-ide/core/EventBusService.svelte.js'
+import { stateProviderService } from '@svelte-ide/core/StateProviderService.svelte.js'
+import { persistenceRegistry } from '@svelte-ide/core/persistence/PersistenceRegistry.svelte.js'
 
 const DEFAULT_STATE = {
   selectedItem: null,
@@ -139,7 +139,7 @@ Créez un service qui écoute les événements `tab:hydrate` et hydrate les ongl
 **Fichier** : `src/tools/mon-outil/MonOutilRestorationService.svelte.js`
 
 ```javascript
-import { eventBus } from '@/core/EventBusService.svelte.js'
+import { eventBus } from '@svelte-ide/core/EventBusService.svelte.js'
 import { monOutilStore } from './monOutilStore.svelte.js'
 import { getFileContent } from './monOutilFileService.svelte.js'
 import MonOutilViewer from './MonOutilViewer.svelte'
@@ -283,7 +283,7 @@ Importez vos services dans le point d'entrée de votre outil.
 **Fichier** : `src/tools/mon-outil/index.svelte.js`
 
 ```javascript
-import { Tool } from '@/core/Tool.svelte.js'
+import { Tool } from '@svelte-ide/core/Tool.svelte.js'
 import MonOutilWrapper from './MonOutilWrapper.svelte'
 import './MonOutilPersistenceService.svelte.js'
 import './MonOutilRestorationService.svelte.js'

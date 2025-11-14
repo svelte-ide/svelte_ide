@@ -1,5 +1,5 @@
 <script>
-  import { layoutService } from '@/core/LayoutService.svelte.js';
+  import { layoutService } from '@svelte-ide/core/LayoutService.svelte.js';
   import LayoutContainer from './LayoutContainer.svelte';
 </script>
 

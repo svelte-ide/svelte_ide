@@ -18,10 +18,10 @@
  * testReAuth.inspectState()
  */
 
-import { eventBus } from '@/core/EventBusService.svelte.js'
-import { indexedDBService } from '@/core/persistence/IndexedDBService.svelte.js'
-import { createLogger } from '@/lib/logger.js'
-import { getAuthStore } from '@/stores/authStore.svelte.js'
+import { eventBus } from '@svelte-ide/core/EventBusService.svelte.js'
+import { indexedDBService } from '@svelte-ide/core/persistence/IndexedDBService.svelte.js'
+import { createLogger } from '@svelte-ide/lib/logger.js'
+import { getAuthStore } from '@svelte-ide/stores/authStore.svelte.js'
 
 const authStore = getAuthStore()
 const testReAuthLogger = createLogger('test-tools/re-auth')

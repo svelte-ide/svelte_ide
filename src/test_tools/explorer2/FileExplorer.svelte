@@ -1,7 +1,7 @@
 <script>
-  import { ideStore } from '@/stores/ideStore.svelte.js'
+  import { ideStore } from '@svelte-ide/stores/ideStore.svelte.js'
   import FileViewer from './FileViewer.svelte'
-  import { contextMenuService } from '@/core/ContextMenuService.svelte.js'
+  import { contextMenuService } from '@svelte-ide/core/ContextMenuService.svelte.js'
   import { getFileListV2, openFileInIDEv2 } from './fileService.svelte.js'
 
   let { files = getFileListV2(), toolId } = $props()

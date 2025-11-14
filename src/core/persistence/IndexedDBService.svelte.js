@@ -1,7 +1,7 @@
-import { namespacedKey } from '@/core/config/appKey.js'
-import { TokenCipher } from '@/core/security/tokenCipher.svelte.js'
-import { eventBus } from '@/core/EventBusService.svelte.js'
-import { createLogger } from '@/lib/logger.js'
+import { namespacedKey } from '@svelte-ide/core/config/appKey.js'
+import { TokenCipher } from '@svelte-ide/core/security/tokenCipher.svelte.js'
+import { eventBus } from '@svelte-ide/core/EventBusService.svelte.js'
+import { createLogger } from '@svelte-ide/lib/logger.js'
 
 const logger = createLogger('core/persistence/indexeddb')
 

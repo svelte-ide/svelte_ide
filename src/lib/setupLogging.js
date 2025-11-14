@@ -1,4 +1,4 @@
-import { configureLogger, getLoggerConfig } from '@/lib/logger.js'
+import { configureLogger, getLoggerConfig } from '@svelte-ide/lib/logger.js'
 
 const namespaces =
   import.meta.env?.VITE_LOG_NAMESPACES ??

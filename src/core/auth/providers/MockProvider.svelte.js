@@ -1,5 +1,5 @@
-import { AuthProvider } from '@/core/auth/AuthProvider.svelte.js'
-import { authDebug, authWarn } from '@/core/auth/authLogging.svelte.js'
+import { AuthProvider } from '@svelte-ide/core/auth/AuthProvider.svelte.js'
+import { authDebug, authWarn } from '@svelte-ide/core/auth/authLogging.svelte.js'
 import * as jose from 'jose'
 
 export class MockProvider extends AuthProvider {

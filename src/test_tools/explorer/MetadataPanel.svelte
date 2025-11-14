@@ -1,7 +1,7 @@
 <script>
-  import { ideStore } from '@/stores/ideStore.svelte.js'
-  import { eventBus } from '@/core/EventBusService.svelte.js'
-  import { layoutService } from '@/core/LayoutService.svelte.js'
+  import { ideStore } from '@svelte-ide/stores/ideStore.svelte.js'
+  import { eventBus } from '@svelte-ide/core/EventBusService.svelte.js'
+  import { layoutService } from '@svelte-ide/core/LayoutService.svelte.js'
   import FileViewer from './FileViewer.svelte'
 
   let metadata = $state(null)

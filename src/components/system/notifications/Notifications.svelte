@@ -1,6 +1,6 @@
 <script>
-import { ideStore } from '@/stores/ideStore.svelte.js'
-import { modalService } from '@/core/ModalService.svelte.js'
+import { ideStore } from '@svelte-ide/stores/ideStore.svelte.js'
+import { modalService } from '@svelte-ide/core/ModalService.svelte.js'
 
   function formatTime(timestamp) {
     const now = new Date()

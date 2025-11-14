@@ -1,4 +1,4 @@
-import { SCROLL_MODES } from '@/core/ScrollModes.svelte.js'
+import { SCROLL_MODES } from '@svelte-ide/core/ScrollModes.svelte.js'
 
 export class Tab {
   constructor(id, title, component, closable = true, icon = null, scrollMode = SCROLL_MODES.ide) {

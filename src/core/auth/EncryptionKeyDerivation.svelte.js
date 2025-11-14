@@ -1,5 +1,5 @@
-import { authDebug, authError, authWarn } from '@/core/auth/authLogging.svelte.js'
-import { APP_KEY } from '@/core/config/appKey.js'
+import { authDebug, authError, authWarn } from '@svelte-ide/core/auth/authLogging.svelte.js'
+import { APP_KEY } from '@svelte-ide/core/config/appKey.js'
 
 /**
  * Vérifie si l'environnement supporte les APIs crypto nécessaires

@@ -1,4 +1,4 @@
-import { JsonPersister } from '@/core/persistence/JsonPersister.svelte.js'
+import { JsonPersister } from '@svelte-ide/core/persistence/JsonPersister.svelte.js'
 
 /**
  * Script de migration localStorage -> IndexedDB pour les anciens environnements Explorer.

@@ -1,4 +1,4 @@
-import { SCROLL_MODES } from '@/core/ScrollModes.svelte.js'
+import { SCROLL_MODES } from '@svelte-ide/core/ScrollModes.svelte.js'
 
 const workspaceFiles = [
   {

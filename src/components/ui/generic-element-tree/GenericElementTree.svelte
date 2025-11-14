@@ -2,7 +2,7 @@
   import { onMount, tick } from 'svelte';
   import ElementTreeNode from './ElementTreeNode.svelte';
   import { FileIcon, FolderIcon, UploadIcon } from './icons.js';
-  import { createLogger } from '@/lib/logger.js';
+  import { createLogger } from '@svelte-ide/lib/logger.js';
 
   const NODE_DRAG_TYPE = 'application/x-generic-element-tree-node'
   const CONTEXT_MENU_INITIAL = { visible: false, x: 0, y: 0, items: [] }

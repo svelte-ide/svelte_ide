@@ -1,7 +1,7 @@
-import { authDebug, authError, authWarn } from '@/core/auth/authLogging.svelte.js'
-import { getTokenSecurityConfig } from '@/core/auth/tokenSecurityConfig.svelte.js'
-import { namespacedKey } from '@/core/config/appKey.js'
-import { TokenCipher } from '@/core/security/tokenCipher.svelte.js'
+import { authDebug, authError, authWarn } from '@svelte-ide/core/auth/authLogging.svelte.js'
+import { getTokenSecurityConfig } from '@svelte-ide/core/auth/tokenSecurityConfig.svelte.js'
+import { namespacedKey } from '@svelte-ide/core/config/appKey.js'
+import { TokenCipher } from '@svelte-ide/core/security/tokenCipher.svelte.js'
 
 const STORAGE_KEY = namespacedKey('auth-tokens')
 

@@ -1,5 +1,5 @@
 <script>
-  import { ideStore } from '@/stores/ideStore.svelte.js'
+  import { ideStore } from '@svelte-ide/stores/ideStore.svelte.js'
   let { panelId } = $props()
 
   function selectTab(tabId) {

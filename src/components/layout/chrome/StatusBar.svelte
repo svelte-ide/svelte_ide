@@ -1,5 +1,5 @@
 <script>
-  import { statusBarService } from '@/core/StatusBarService.svelte.js'
+  import { statusBarService } from '@svelte-ide/core/StatusBarService.svelte.js'
 
   let sections = $state({ left: [], center: [], right: [] })
 

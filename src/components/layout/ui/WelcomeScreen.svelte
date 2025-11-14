@@ -1,6 +1,6 @@
 <script>
-  import { getAuthStore } from '@/stores/authStore.svelte.js'
-  import { ideStore } from '@/stores/ideStore.svelte.js'
+  import { getAuthStore } from '@svelte-ide/stores/authStore.svelte.js'
+  import { ideStore } from '@svelte-ide/stores/ideStore.svelte.js'
 
   const authStore = getAuthStore()
 

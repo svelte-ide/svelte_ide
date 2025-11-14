@@ -1,5 +1,5 @@
 <script>
-  import { contextMenuService } from '@/core/ContextMenuService.svelte.js'
+  import { contextMenuService } from '@svelte-ide/core/ContextMenuService.svelte.js'
 
   let menuElement = $state(null)
 

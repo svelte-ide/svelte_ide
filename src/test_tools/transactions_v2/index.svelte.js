@@ -1,4 +1,4 @@
-import { Tool } from '@/core/Tool.svelte.js'
+import { Tool } from '@svelte-ide/core/Tool.svelte.js'
 import TransactionsV2Panel from './TransactionsV2Panel.svelte'
 
 class TransactionsV2Tool extends Tool {

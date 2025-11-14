@@ -1,4 +1,4 @@
-import { stateProviderService } from '@/core/StateProviderService.svelte.js'
+import { stateProviderService } from '@svelte-ide/core/StateProviderService.svelte.js'
 
 export class PreferencesService {
     constructor() {

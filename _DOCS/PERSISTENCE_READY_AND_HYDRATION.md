@@ -29,7 +29,7 @@ Ces ajouts découlent de la demande du dev outils qui voulait un moyen fiable de
 
 # Comment adopter côté outils ?
 ```js
-import { eventBus } from '@/core/EventBusService.svelte.js'
+import { eventBus } from '@svelte-ide/core/EventBusService.svelte.js'
 import { indexedDBService } from 'svelte-ide/public-api'
 
 export async function bootstrapTool() {

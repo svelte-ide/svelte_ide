@@ -1,7 +1,7 @@
 <script>
-  import { ideStore } from '@/stores/ideStore.svelte.js'
+  import { ideStore } from '@svelte-ide/stores/ideStore.svelte.js'
   import FileViewer from './FileViewer.svelte'
-  import { contextMenuService } from '@/core/ContextMenuService.svelte.js'
+  import { contextMenuService } from '@svelte-ide/core/ContextMenuService.svelte.js'
   import { openFileInIDE } from './fileService.svelte.js'
   import { explorerPersistence } from './ExplorerPersistenceService.svelte.js'
 

@@ -1,15 +1,15 @@
-import '@/lib/setupLogging.js'
-import App from '@/App.svelte'
-import AppLogo from '@/components/layout/chrome/AppLogo.svelte'
-import ActiveTabItem from '@/components/layout/chrome/statusbar/ActiveTabItem.svelte'
-import ClockItem from '@/components/layout/chrome/statusbar/ClockItem.svelte'
-import IndexedDBUsageItem from '@/components/layout/chrome/statusbar/IndexedDBUsageItem.svelte'
-import StatusMessageItem from '@/components/layout/chrome/statusbar/StatusMessageItem.svelte'
-import { registerBackupMenu } from '@/core/registerBackupMenu.svelte.js'
-import { applyCsp } from '@/core/security/csp.svelte.js'
-import { statusBarService } from '@/core/StatusBarService.svelte.js'
-import { ConsoleTool, NotificationsTool } from '@/core/SystemTools.js'
-import { ideStore, registerDefaultHelpMenu } from '@/stores/ideStore.svelte.js'
+import '@svelte-ide/lib/setupLogging.js'
+import App from '@svelte-ide/App.svelte'
+import AppLogo from '@svelte-ide/components/layout/chrome/AppLogo.svelte'
+import ActiveTabItem from '@svelte-ide/components/layout/chrome/statusbar/ActiveTabItem.svelte'
+import ClockItem from '@svelte-ide/components/layout/chrome/statusbar/ClockItem.svelte'
+import IndexedDBUsageItem from '@svelte-ide/components/layout/chrome/statusbar/IndexedDBUsageItem.svelte'
+import StatusMessageItem from '@svelte-ide/components/layout/chrome/statusbar/StatusMessageItem.svelte'
+import { registerBackupMenu } from '@svelte-ide/core/registerBackupMenu.svelte.js'
+import { applyCsp } from '@svelte-ide/core/security/csp.svelte.js'
+import { statusBarService } from '@svelte-ide/core/StatusBarService.svelte.js'
+import { ConsoleTool, NotificationsTool } from '@svelte-ide/core/SystemTools.js'
+import { ideStore, registerDefaultHelpMenu } from '@svelte-ide/stores/ideStore.svelte.js'
 import { mount } from 'svelte'
 
 applyCsp()
@@ -23,7 +23,7 @@ const branding = {
 }
 
 if (import.meta.env.DEV) {
-  const module = await import('@/test_tools/devExternalTools.js')
+  const module = await import('@svelte-ide/test_tools/devExternalTools.js')
   externalTools = module.default ?? []
 
   systemTools = [

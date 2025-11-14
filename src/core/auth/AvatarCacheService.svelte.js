@@ -11,7 +11,7 @@
  * - Nettoyage automatique au logout
  */
 
-import { authDebug, authWarn } from '@/core/auth/authLogging.svelte.js'
+import { authDebug, authWarn } from '@svelte-ide/core/auth/authLogging.svelte.js'
 
 const STORE_NAME = 'user-avatars'
 const DB_NAME = 'svelte-ide-auth'

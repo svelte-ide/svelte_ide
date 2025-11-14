@@ -26,9 +26,9 @@
  * testAutoRefresh.disableFastExpiration()
  */
 
-import { eventBus } from '@/core/EventBusService.svelte.js'
-import { createLogger } from '@/lib/logger.js'
-import { getAuthStore } from '@/stores/authStore.svelte.js'
+import { eventBus } from '@svelte-ide/core/EventBusService.svelte.js'
+import { createLogger } from '@svelte-ide/lib/logger.js'
+import { getAuthStore } from '@svelte-ide/stores/authStore.svelte.js'
 
 const authStore = getAuthStore()
 const testAutoRefreshLogger = createLogger('test-tools/auto-refresh')

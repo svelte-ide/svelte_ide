@@ -1,4 +1,4 @@
-import { createLogger } from '@/lib/logger.js'
+import { createLogger } from '@svelte-ide/lib/logger.js'
 
 const DEBUG_ENABLED =
   import.meta.env.DEV ||

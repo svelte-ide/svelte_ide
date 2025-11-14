@@ -1,4 +1,4 @@
-import { eventBus } from '@/core/EventBusService.svelte.js'
+import { eventBus } from '@svelte-ide/core/EventBusService.svelte.js'
 
 class ToolFocusCoordinator {
   constructor() {

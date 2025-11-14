@@ -380,7 +380,7 @@ src/components/layout/
 
 ### Règles Svelte 5
 - ✅ Pas de `$derived` → `$effect` + `$state` uniquement
-- ✅ Imports absolus via `@/` uniquement
+- ✅ Imports absolus via `@svelte-ide/` uniquement
 - ✅ Séparation IDE/Outils stricte respectée
 - ✅ API via facades et services
 

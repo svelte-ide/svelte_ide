@@ -1,4 +1,4 @@
-import { indexedDBService } from '@/core/persistence/IndexedDBService.svelte.js'
+import { indexedDBService } from '@svelte-ide/core/persistence/IndexedDBService.svelte.js'
 import { buildSeedTransactions } from './TransactionsV2SeedData.svelte.js'
 
 const STORE_NAME = 'transactions-v2'

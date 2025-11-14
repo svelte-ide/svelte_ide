@@ -1,6 +1,6 @@
 <script>
-  import { dragDropService } from '@/core/DragDropService.svelte.js'
-  import { layoutService } from '@/core/LayoutService.svelte.js'
+  import { dragDropService } from '@svelte-ide/core/DragDropService.svelte.js'
+  import { layoutService } from '@svelte-ide/core/LayoutService.svelte.js'
 
   let { layoutNode, children } = $props()
   let activeTabId = $state(null)

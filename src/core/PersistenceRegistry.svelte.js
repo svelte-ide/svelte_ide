@@ -1,7 +1,7 @@
-import { APP_KEY } from '@/core/config/appKey.js'
-import { BinaryPersister } from '@/core/persistence/BinaryPersister.svelte.js'
-import { JsonPersister } from '@/core/persistence/JsonPersister.svelte.js'
-import { LocalStoragePersister, MemoryPersister } from '@/core/persistence/PersisterInterface.js'
+import { APP_KEY } from '@svelte-ide/core/config/appKey.js'
+import { BinaryPersister } from '@svelte-ide/core/persistence/BinaryPersister.svelte.js'
+import { JsonPersister } from '@svelte-ide/core/persistence/JsonPersister.svelte.js'
+import { LocalStoragePersister, MemoryPersister } from '@svelte-ide/core/persistence/PersisterInterface.js'
 
 const ALLOWED_TYPES = ['json', 'binary', 'localstorage', 'memory']
 

@@ -1,4 +1,4 @@
-import { panelsManager as defaultPanelsManager } from '@/core/PanelsManager.svelte.js'
+import { panelsManager as defaultPanelsManager } from '@svelte-ide/core/PanelsManager.svelte.js'
 
 class FocusDisplayCoordinator {
   constructor() {

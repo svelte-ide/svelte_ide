@@ -1,5 +1,5 @@
-import { zoneRegistry } from '@/core/layout/ZoneRegistry.svelte.js'
-import { persistenceRegistry } from '@/core/persistence/PersistenceRegistry.svelte.js'
+import { zoneRegistry } from '@svelte-ide/core/layout/ZoneRegistry.svelte.js'
+import { persistenceRegistry } from '@svelte-ide/core/persistence/PersistenceRegistry.svelte.js'
 
 export class GenericLayoutService {
     constructor() {
