@@ -103,10 +103,6 @@
     resolvedBranding = normalizeBranding(branding)
   })
 
-  if (import.meta.env.DEV) {
-    $inspect('App resolvedBranding', resolvedBranding)
-  }
-  
   const {
     initializing: initializingStatus = '',
     systemTools: systemToolsStatus = '',

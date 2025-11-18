@@ -64,7 +64,7 @@ export class PersistenceRegistry {
             throw new Error('Namespace prefix must be a string')
         }
         if (this.persisters.size > 0) {
-            console.warn('Namespace prefix set after persisters were created; existing persisters keep their current namespace')
+            logger.warn('Namespace prefix set after persisters were created; existing persisters keep their current namespace')
         }
         this.namespacePrefix = prefix && prefix.length > 0 ? prefix : null
     }
@@ -187,7 +187,7 @@ export class PersistenceRegistry {
             try {
                 persister.clear()
             } catch (error) {
-                console.error('Failed to clear persister:', error)
+                logger.error('Failed to clear persister:', error)
             }
         })
     }

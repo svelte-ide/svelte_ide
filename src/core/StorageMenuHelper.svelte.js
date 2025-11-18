@@ -37,15 +37,15 @@ export function registerStorageMenu(
   options = {}
 ) {
   if (!ideStoreInstance || typeof ideStoreInstance.registerMenu !== 'function') {
-    console.warn('registerStorageMenu: ideStore invalide')
+    logger.warn('registerStorageMenu: ideStore invalide')
     return null
   }
   if (!toolId) {
-    console.warn('registerStorageMenu: toolId requis')
+    logger.warn('registerStorageMenu: toolId requis')
     return null
   }
   if (!namespace) {
-    console.warn('registerStorageMenu: namespace requis')
+    logger.warn('registerStorageMenu: namespace requis')
     return null
   }
 

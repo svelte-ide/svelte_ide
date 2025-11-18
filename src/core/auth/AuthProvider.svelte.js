@@ -1,3 +1,7 @@
+import { createLogger } from '@svelte-ide/lib/logger.js'
+
+const logger = createLogger('core/auth/auth-provider')
+
 export class AuthProvider {
   constructor(providerId, displayName, config = {}) {
     this.id = providerId
@@ -76,7 +80,7 @@ export class AuthProvider {
     try {
       sessionStorage.setItem(this.getStorageKey('state'), JSON.stringify(payload))
     } catch (error) {
-      console.warn(`Provider ${this.id}: Failed to persist OAuth state`, error)
+      logger.warn(`Provider ${this.id}: Failed to persist OAuth state`, error)
     }
   }
 
@@ -101,13 +105,13 @@ export class AuthProvider {
         : true
 
       if (isExpired) {
-        console.warn(`Provider ${this.id}: Stored OAuth state expired`)
+        logger.warn(`Provider ${this.id}: Stored OAuth state expired`)
         return null
       }
 
       return parsed.value
     } catch (error) {
-      console.warn(`Provider ${this.id}: Failed to parse stored OAuth state`, error)
+      logger.warn(`Provider ${this.id}: Failed to parse stored OAuth state`, error)
       return null
     }
   }

@@ -49,7 +49,7 @@
         'Explorateur'
       )
     } catch (error) {
-      console.error('Explorer: ouverture du fichier impossible', error)
+      logger.error('Explorer: ouverture du fichier impossible', error)
       ideStore.addNotification(
         'Erreur d\'ouverture',
         error?.message || 'Impossible d\'ouvrir ce fichier.',

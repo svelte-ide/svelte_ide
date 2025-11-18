@@ -161,7 +161,7 @@ async function ensureSampleBlob(entries, blobEntry) {
       return
     }
   } catch (error) {
-    console.warn('Explorer: lecture du blob de démonstration impossible, recréation', error)
+    logger.warn('Explorer: lecture du blob de démonstration impossible, recréation', error)
   }
 
   const payload = encodeText(BLOB_SAMPLE_CONTENT)
@@ -186,7 +186,7 @@ async function readEntries() {
       return stored
     }
   } catch (error) {
-    console.warn('Explorer: impossible de lire les fichiers persistés, re-génération', error)
+    logger.warn('Explorer: impossible de lire les fichiers persistés, re-génération', error)
   }
   return seedEntries()
 }
@@ -307,7 +307,7 @@ export async function openFileInIDE(fileName, ideStore, FileViewer, toolId = 'ex
       )
       return true
     } catch (error) {
-      console.error('Explorer: sauvegarde impossible', error)
+      logger.error('Explorer: sauvegarde impossible', error)
       ideStore.addNotification(
         'Erreur de sauvegarde',
         error?.message || 'Impossible d\'enregistrer ce fichier.',

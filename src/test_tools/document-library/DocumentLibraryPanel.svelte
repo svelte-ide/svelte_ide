@@ -267,7 +267,7 @@
 
     if (binaryPersister) {
       binaryPersister.deleteBlob(node.id).catch(error => {
-        console.error(`Failed to delete blob ${node.id}:`, error)
+        logger.error(`Failed to delete blob ${node.id}:`, error)
       })
     }
 
@@ -291,7 +291,7 @@
     try {
       await treePersister.save('tree', tree)
     } catch (error) {
-      console.error('Failed to save tree:', error)
+      logger.error('Failed to save tree:', error)
     }
   }
 
@@ -300,7 +300,7 @@
     try {
       await treePersister.save('expandedFolders', expandedFolders)
     } catch (error) {
-      console.error('Failed to save expanded folders:', error)
+      logger.error('Failed to save expanded folders:', error)
     }
   }
 
@@ -318,7 +318,7 @@
     if (!files?.length) return
 
     if (!binaryPersister) {
-      console.warn('Binary persister not available, data will be temporary')
+      logger.warn('Binary persister not available, data will be temporary')
     }
 
     const newDocuments = Array.from(files).map(file => ({
@@ -345,7 +345,7 @@
           }
         })
       } catch (error) {
-        console.error(`Failed to save blob ${doc.id}:`, error)
+        logger.error(`Failed to save blob ${doc.id}:`, error)
         ideStore.addLog(`Erreur lors de la sauvegarde de "${doc.name}"`, 'error', TOOL_NAME)
       }
     }
@@ -374,7 +374,7 @@
         const responses = (await backendResponsesPersister.load('responses')) || {}
         backendResponse = responses[documentId]?.backendResponse || null
       } catch (error) {
-        console.error('Failed to load backend response:', error)
+        logger.error('Failed to load backend response:', error)
       }
     }
 
@@ -459,7 +459,7 @@
       
       ideStore.addLog(`Fichier "${result.filename}" envoyé (${result.size} octets)`, 'info', TOOL_NAME)
     } catch (error) {
-      console.error('Failed to send file to backend:', error)
+      logger.error('Failed to send file to backend:', error)
       
       const backendResponses = await backendResponsesPersister.load('responses') || {}
       backendResponses[documentId] = {
@@ -516,7 +516,7 @@
           }
         }
       } catch (error) {
-        console.error(`Failed to restore blob ${treeNode.id}:`, error)
+        logger.error(`Failed to restore blob ${treeNode.id}:`, error)
       }
     }
 
@@ -556,7 +556,7 @@
                 const responses = (await backendResponsesPersister.load('responses')) || {}
                 backendResponse = responses[meta.activeDocumentId]?.backendResponse || null
               } catch (error) {
-                console.error('Failed to load backend response:', error)
+                logger.error('Failed to load backend response:', error)
               }
             }
             setActiveDocument(doc, backendResponse)
@@ -566,7 +566,7 @@
 
       ideStore.addLog('Documents restaurés', 'info', TOOL_NAME)
     } catch (error) {
-      console.warn('Failed to restore documents, continuing with empty tree', error)
+      logger.warn('Failed to restore documents, continuing with empty tree', error)
     } finally {
       isRestoring = false
       eventBus.publish('document-library:state-restored', {
@@ -599,7 +599,7 @@
     try {
       await indexedDBService.readyForEncryption({ timeoutMs: 8000 })
     } catch (error) {
-      console.error('DocumentLibrary: encrypted persistence unavailable', error)
+      logger.error('DocumentLibrary: encrypted persistence unavailable', error)
       ideStore.addLog('Persistance indisponible pour la bibliothèque de documents', 'error', TOOL_NAME)
       throw error
     }
@@ -662,7 +662,7 @@
     if (!currentActiveId) return
 
     metaPersister.save('meta', { activeDocumentId: currentActiveId }).catch(error => {
-      console.error('Failed to save activeDocumentId:', error)
+      logger.error('Failed to save activeDocumentId:', error)
     })
   })
 </script>

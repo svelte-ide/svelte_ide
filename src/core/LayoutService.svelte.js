@@ -1,4 +1,7 @@
 import { SCROLL_MODES } from '@svelte-ide/core/ScrollModes.svelte.js'
+import { createLogger } from '@svelte-ide/lib/logger.js'
+
+const logger = createLogger('core/layout-service')
 
 export class LayoutService {
   constructor() {
@@ -39,7 +42,7 @@ export class LayoutService {
         }
       })
     } catch (error) {
-      console.warn('Auto-sauvegarde echouee:', error)
+      logger.warn('Auto-sauvegarde echouee:', error)
     }
   }
 

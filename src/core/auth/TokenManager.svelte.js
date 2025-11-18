@@ -2,6 +2,9 @@ import { authDebug, authError, authWarn } from '@svelte-ide/core/auth/authLoggin
 import { getTokenSecurityConfig } from '@svelte-ide/core/auth/tokenSecurityConfig.svelte.js'
 import { namespacedKey } from '@svelte-ide/core/config/appKey.js'
 import { TokenCipher } from '@svelte-ide/core/security/tokenCipher.svelte.js'
+import { createLogger } from '@svelte-ide/lib/logger.js'
+
+const logger = createLogger('core/auth/token-manager')
 
 const STORAGE_KEY = namespacedKey('auth-tokens')
 
@@ -416,10 +419,7 @@ export class TokenManager {
         })
       }
       
-      // 🔍 LOGGING DEV
-      if (import.meta.env.DEV) {
-        console.log('🎫 getAccessToken() → Token par défaut:', sanitizeToken(this.accessToken))
-      }
+      logger.debug('🎫 getAccessToken() → Token par défaut:', sanitizeToken(this.accessToken))
 
       return this.accessToken
     }
@@ -441,10 +441,7 @@ export class TokenManager {
           })
         }
         
-        // 🔍 LOGGING DEV
-        if (import.meta.env.DEV) {
-          console.log(`🎫 getAccessToken('${audienceOrScopes}') → Audience exacte:`, sanitizeToken(tokenData.accessToken))
-        }
+        logger.debug(`🎫 getAccessToken('${audienceOrScopes}') → Audience exacte:`, sanitizeToken(tokenData.accessToken))
 
         return tokenData.accessToken
       }
@@ -464,10 +461,7 @@ export class TokenManager {
             })
           }
           
-          // 🔍 LOGGING DEV
-          if (import.meta.env.DEV) {
-            console.log(`🎫 getAccessToken('${audienceOrScopes}') → Match partiel audience '${aud}':`, sanitizeToken(tokenData.accessToken))
-          }
+          logger.debug(`🎫 getAccessToken('${audienceOrScopes}') → Match partiel audience '${aud}':`, sanitizeToken(tokenData.accessToken))
 
           return tokenData.accessToken
         }
@@ -488,10 +482,7 @@ export class TokenManager {
             })
           }
           
-          // 🔍 LOGGING DEV
-          if (import.meta.env.DEV) {
-            console.log(`🎫 getAccessToken('${audienceOrScopes}') → Match scope dans '${aud}':`, sanitizeToken(tokenData.accessToken))
-          }
+          logger.debug(`🎫 getAccessToken('${audienceOrScopes}') → Match scope dans '${aud}':`, sanitizeToken(tokenData.accessToken))
 
           return tokenData.accessToken
         }
@@ -524,10 +515,7 @@ export class TokenManager {
             })
           }
           
-          // 🔍 LOGGING DEV
-          if (import.meta.env.DEV) {
-            console.log(`🎫 getAccessToken([${audienceOrScopes.join(', ')}]) → Match tous scopes dans '${aud}':`, sanitizeToken(tokenData.accessToken))
-          }
+          logger.debug(`🎫 getAccessToken([${audienceOrScopes.join(', ')}]) → Match tous scopes dans '${aud}':`, sanitizeToken(tokenData.accessToken))
 
           return tokenData.accessToken
         }

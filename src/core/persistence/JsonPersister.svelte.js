@@ -13,21 +13,21 @@ function createFallbackPersister(namespace, strategy) {
   const normalized = strategy?.toLowerCase() || 'block'
 
   if (!ALLOWED_STRATEGIES.includes(normalized)) {
-    console.error(`JsonPersister: Unknown fallback strategy "${strategy}", using 'block'`)
+    logger.error(`JsonPersister: Unknown fallback strategy "${strategy}", using 'block'`)
     throw new Error(`IndexedDB is required but not available for namespace "${namespace}"`)
   }
 
   switch (normalized) {
     case 'block':
-      console.error(`JsonPersister: IndexedDB required but unavailable for "${namespace}"`)
+      logger.error(`JsonPersister: IndexedDB required but unavailable for "${namespace}"`)
       throw new Error(`IndexedDB is required but not available for namespace "${namespace}"`)
 
     case 'localstorage':
-      console.warn(`JsonPersister: Falling back to localStorage for "${namespace}" (unencrypted, low quota)`)
+      logger.warn(`JsonPersister: Falling back to localStorage for "${namespace}" (unencrypted, low quota)`)
       return new LocalStoragePersister(namespace)
 
     case 'memory':
-      console.warn(`JsonPersister: Falling back to in-memory storage for "${namespace}" (lost on reload)`)
+      logger.warn(`JsonPersister: Falling back to in-memory storage for "${namespace}" (lost on reload)`)
       return new MemoryPersister(namespace)
 
     default:
@@ -74,7 +74,7 @@ export class JsonPersister extends PersisterInterface {
       this.initialized = true
       return true
     } catch (error) {
-      console.error(`JsonPersister: Failed to initialize store "${this.storeName}"`, error)
+      logger.error(`JsonPersister: Failed to initialize store "${this.storeName}"`, error)
       this.fallbackPersister = createFallbackPersister(this.namespace, this.fallbackStrategy)
       return false
     }
@@ -82,7 +82,7 @@ export class JsonPersister extends PersisterInterface {
 
   async save(key, data) {
     if (!key) {
-      console.warn('JsonPersister: save() called without a key')
+      logger.warn('JsonPersister: save() called without a key')
       return false
     }
 
@@ -100,7 +100,7 @@ export class JsonPersister extends PersisterInterface {
       const success = await indexedDBService.save(this.storeName, fullKey, data)
       return Boolean(success)
     } catch (error) {
-      console.error(`JsonPersister: Failed to save "${key}"`, error)
+      logger.error(`JsonPersister: Failed to save "${key}"`, error)
       return false
     }
   }
@@ -124,7 +124,7 @@ export class JsonPersister extends PersisterInterface {
       const data = await indexedDBService.load(this.storeName, fullKey, defaultValue)
       return data ?? defaultValue
     } catch (error) {
-      console.error(`JsonPersister: Failed to load "${key}"`, error)
+      logger.error(`JsonPersister: Failed to load "${key}"`, error)
       return defaultValue
     }
   }
@@ -148,7 +148,7 @@ export class JsonPersister extends PersisterInterface {
       const success = await indexedDBService.delete(this.storeName, fullKey)
       return Boolean(success)
     } catch (error) {
-      console.error(`JsonPersister: Failed to remove "${key}"`, error)
+      logger.error(`JsonPersister: Failed to remove "${key}"`, error)
       return false
     }
   }
@@ -167,7 +167,7 @@ export class JsonPersister extends PersisterInterface {
       const success = await indexedDBService.clear(this.storeName)
       return Boolean(success)
     } catch (error) {
-      console.error(`JsonPersister: Failed to clear store "${this.storeName}"`, error)
+      logger.error(`JsonPersister: Failed to clear store "${this.storeName}"`, error)
       return false
     }
   }
@@ -191,14 +191,14 @@ export class JsonPersister extends PersisterInterface {
       const value = await indexedDBService.load(this.storeName, fullKey, null)
       return value !== null && value !== undefined
     } catch (error) {
-      console.error(`JsonPersister: Failed to check existence for "${key}"`, error)
+      logger.error(`JsonPersister: Failed to check existence for "${key}"`, error)
       return false
     }
   }
 
   async export() {
     if (!this.supportsExport) {
-      console.warn(`JsonPersister: export() unavailable when fallback "${this.fallbackStrategy}" is active`)
+      logger.warn(`JsonPersister: export() unavailable when fallback "${this.fallbackStrategy}" is active`)
       return null
     }
 
@@ -225,7 +225,7 @@ export class JsonPersister extends PersisterInterface {
 
   async import(payload, options = {}) {
     if (!this.supportsExport) {
-      console.warn(`JsonPersister: import() unavailable when fallback "${this.fallbackStrategy}" is active`)
+      logger.warn(`JsonPersister: import() unavailable when fallback "${this.fallbackStrategy}" is active`)
       const entryCount = Array.isArray(payload?.entries) ? payload.entries.length : 0
       return { importedCount: 0, skippedCount: entryCount, mode: 'skip' }
     }
@@ -262,7 +262,7 @@ export class JsonPersister extends PersisterInterface {
         importedCount += 1
       } catch (error) {
         skippedCount += 1
-        console.warn(`JsonPersister: Failed to import entry "${key}"`, error)
+        logger.warn(`JsonPersister: Failed to import entry "${key}"`, error)
       }
     }
 

@@ -8,7 +8,7 @@
   - Répond d’abord à la question (concept, choix d’architecture, clarification).
   - Ne propose du code (nouveau fichier, refactor, etc.) qu’après validation explicite de l’utilisateur.
 
-- **Initiatives à ne pas prendre (INTERDIT SANS DEMANDE EXPLICITE) :**
+- **Initiatives à ne pas prendre (INTERDIT SANS APPROBATION EXPLICITE) :**
   - Ne crée **pas** de documentation (README, commentaires détaillés, ADR, etc.) de ta propre initiative.
   - Ne **lance jamais** de tests (unitaires, d’intégration, end-to-end, etc.). Les tests sont exécutés par l’utilisateur.
   - Ne **développe pas** de tests unitaires ou d’intégration si l’utilisateur ne l’a pas explicitement demandé.
@@ -16,6 +16,7 @@
 - **Builds :**
   - Tu peux lancer des builds ou des commandes de compilation pour vérifier que le projet build/compile correctement.
   - Si le build échoue, résume l’erreur de manière concise et propose une correction minimale.
+  - Tu peux te créer des scripts utilitaires et jetables pour accélerer ton travail; tu dois les supprimer après utilisation.
 
 - **Style général :**
   - Évite le bavardage et les formules de politesse superflues.

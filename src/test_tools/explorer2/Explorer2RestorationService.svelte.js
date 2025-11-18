@@ -29,7 +29,7 @@ class Explorer2RestorationService {
       })
 
     } catch (error) {
-      console.error('Erreur hydratation fichier V2:', error)
+      logger.error('Erreur hydratation fichier V2:', error)
     }
   }
 }

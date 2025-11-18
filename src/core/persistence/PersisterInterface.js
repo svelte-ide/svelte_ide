@@ -132,7 +132,7 @@ export class LocalStoragePersister extends PersisterInterface {
             localStorage.setItem(fullKey, serialized)
             return true
         } catch (error) {
-            console.error(`LocalStoragePersister: Failed to save "${key}"`, error)
+            logger.error(`LocalStoragePersister: Failed to save "${key}"`, error)
             return false
         }
     }
@@ -146,7 +146,7 @@ export class LocalStoragePersister extends PersisterInterface {
             }
             return JSON.parse(serialized)
         } catch (error) {
-            console.error(`LocalStoragePersister: Failed to load "${key}"`, error)
+            logger.error(`LocalStoragePersister: Failed to load "${key}"`, error)
             return defaultValue
         }
     }
@@ -157,7 +157,7 @@ export class LocalStoragePersister extends PersisterInterface {
             localStorage.removeItem(fullKey)
             return true
         } catch (error) {
-            console.error(`LocalStoragePersister: Failed to remove "${key}"`, error)
+            logger.error(`LocalStoragePersister: Failed to remove "${key}"`, error)
             return false
         }
     }
@@ -174,7 +174,7 @@ export class LocalStoragePersister extends PersisterInterface {
             keys.forEach(key => localStorage.removeItem(key))
             return true
         } catch (error) {
-            console.error(`LocalStoragePersister: Failed to clear namespace "${this.namespace}"`, error)
+            logger.error(`LocalStoragePersister: Failed to clear namespace "${this.namespace}"`, error)
             return false
         }
     }
@@ -216,7 +216,7 @@ export class MemoryPersister extends PersisterInterface {
             this.storage.set(fullKey, JSON.parse(JSON.stringify(data)))
             return true
         } catch (error) {
-            console.error(`MemoryPersister: Failed to save "${key}"`, error)
+            logger.error(`MemoryPersister: Failed to save "${key}"`, error)
             return false
         }
     }
@@ -230,7 +230,7 @@ export class MemoryPersister extends PersisterInterface {
             const data = this.storage.get(fullKey)
             return JSON.parse(JSON.stringify(data))
         } catch (error) {
-            console.error(`MemoryPersister: Failed to load "${key}"`, error)
+            logger.error(`MemoryPersister: Failed to load "${key}"`, error)
             return defaultValue
         }
     }

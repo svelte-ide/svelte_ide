@@ -13,10 +13,6 @@
     brandingProps = branding?.props ?? {}
   })
 
-  if (import.meta.env.DEV) {
-    $inspect('TitleBar branding', { component: brandingComponent, props: brandingProps })
-  }
-
   const authStore = getAuthStore()
   let isAuthenticated = $state(false)
 

@@ -1,3 +1,7 @@
+import { createLogger } from '@svelte-ide/lib/logger.js'
+
+const logger = createLogger('core/main-menu-service')
+
 class MainMenuService {
   constructor() {
     this.menus = $state([])
@@ -6,7 +10,7 @@ class MainMenuService {
   registerMenu(config = {}, ownerId = 'core') {
     const label = typeof config.label === 'string' ? config.label.trim() : ''
     if (!label) {
-      console.warn('MainMenuService: missing label for menu', config)
+      logger.warn('MainMenuService: missing label for menu', config)
       return null
     }
 
@@ -54,14 +58,14 @@ class MainMenuService {
   registerMenuItem(menuId, itemConfig = {}, ownerId = 'core') {
     const menu = this._findMenu(menuId)
     if (!menu) {
-      console.warn(`MainMenuService: menu "${menuId}" not found for item`, itemConfig)
+      logger.warn(`MainMenuService: menu "${menuId}" not found for item`, itemConfig)
       return null
     }
 
     const label = typeof itemConfig.label === 'string' ? itemConfig.label.trim() : ''
     const isSeparator = !!itemConfig.separator
     if (!label && !isSeparator) {
-      console.warn('MainMenuService: missing label for menu item', itemConfig)
+      logger.warn('MainMenuService: missing label for menu item', itemConfig)
       return null
     }
 

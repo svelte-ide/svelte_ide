@@ -254,7 +254,7 @@ export class TabsManager {
             
             await this.persister.save(`user-${userKey}`, layoutData)
         } catch (error) {
-            console.error('Error saving tabs state:', error)
+            logger.error('Error saving tabs state:', error)
         }
     }
 
@@ -303,7 +303,7 @@ export class TabsManager {
             }
 
         } catch (error) {
-            console.error('Error restoring tabs state:', error)
+            logger.error('Error restoring tabs state:', error)
         }
     }
 }

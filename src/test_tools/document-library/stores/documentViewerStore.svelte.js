@@ -31,7 +31,7 @@ function notifyChange() {
     try {
       handler(snapshot)
     } catch (error) {
-      console.error('documentViewerStore: change handler failed', error)
+      logger.error('documentViewerStore: change handler failed', error)
     }
   })
 }

@@ -119,7 +119,7 @@ async function clearBlobNamespace(namespace) {
   try {
     existing = await persistenceRegistry.listBlobs(namespace)
   } catch (error) {
-    console.warn(`Impossible de lister les blobs pour "${namespace}"`, error)
+    logger.warn(`Impossible de lister les blobs pour "${namespace}"`, error)
     return
   }
   if (!Array.isArray(existing) || existing.length === 0) {
@@ -219,7 +219,7 @@ async function exportBundle(bundle, defaultNamespace) {
     try {
       metadataList = await persistenceRegistry.listBlobs(entry.namespace)
     } catch (error) {
-      console.warn(`exportBundle: impossible de lister les blobs pour "${entry.namespace}"`, error)
+      logger.warn(`exportBundle: impossible de lister les blobs pour "${entry.namespace}"`, error)
       metadataList = []
     }
 
@@ -236,7 +236,7 @@ async function exportBundle(bundle, defaultNamespace) {
       try {
         blobRecord = await persistenceRegistry.loadBlob(entry.namespace, blobId, { as: 'arrayBuffer' })
       } catch (error) {
-        console.warn(`exportBundle: impossible de charger le blob "${blobId}"`, error)
+        logger.warn(`exportBundle: impossible de charger le blob "${blobId}"`, error)
         continue
       }
       if (!blobRecord || !blobRecord.data) {
@@ -297,7 +297,7 @@ async function importBundle(bundle, archiveInput, { mode = 'replace', defaultNam
     if (entry.type === 'json') {
       const payloadBytes = extracted[entry.path]
       if (!payloadBytes) {
-        console.warn('importBundle: fichier JSON manquant', entry.path)
+        logger.warn('importBundle: fichier JSON manquant', entry.path)
         continue
       }
       const payload = JSON.parse(strFromU8(payloadBytes))
@@ -315,7 +315,7 @@ async function importBundle(bundle, archiveInput, { mode = 'replace', defaultNam
       for (const fileRef of files) {
         const fileData = extracted[fileRef.path]
         if (!fileData) {
-          console.warn('importBundle: fichier blob manquant', fileRef.path)
+          logger.warn('importBundle: fichier blob manquant', fileRef.path)
           continue
         }
         const blob = new Blob([fileData], { type: fileRef.mimeType || 'application/octet-stream' })
@@ -608,7 +608,7 @@ export function createExportAllAction(options = {}) {
       
       onSuccess?.({ filename, namespaces, data: blob })
     } catch (error) {
-      console.error('createExportAllAction: export échoué', error)
+      logger.error('createExportAllAction: export échoué', error)
       onError?.(error)
     }
   }
@@ -653,7 +653,7 @@ export function createExportAction(namespace, options = {}) {
       downloadFile(data, resolvedFilename, mimeType)
       onSuccess?.({ filename: resolvedFilename, data })
     } catch (error) {
-      console.error('createExportAction: export échoué', error)
+      logger.error('createExportAction: export échoué', error)
       onError?.(error)
     }
   }
@@ -702,7 +702,7 @@ export async function importAllNamespaces(archiveInput, options = {}) {
   // Restaurer chaque namespace du manifest
   for (const entry of manifest.entries) {
     if (!entry || !entry.namespace) {
-      console.warn('importAllNamespaces: entrée manifest invalide', entry)
+      logger.warn('importAllNamespaces: entrée manifest invalide', entry)
       continue
     }
 
@@ -712,7 +712,7 @@ export async function importAllNamespaces(archiveInput, options = {}) {
       // Restaurer namespace JSON
       const payloadBytes = extracted[entry.path]
       if (!payloadBytes) {
-        console.warn(`importAllNamespaces: fichier JSON manquant pour "${namespace}"`, entry.path)
+        logger.warn(`importAllNamespaces: fichier JSON manquant pour "${namespace}"`, entry.path)
         continue
       }
 
@@ -721,7 +721,7 @@ export async function importAllNamespaces(archiveInput, options = {}) {
         await persistenceRegistry.importNamespace(namespace, payload, { mode: normalizedMode })
         importedNamespaces.push(namespace)
       } catch (error) {
-        console.error(`importAllNamespaces: échec import JSON "${namespace}"`, error)
+        logger.error(`importAllNamespaces: échec import JSON "${namespace}"`, error)
       }
     } else if (type === 'blob') {
       // Restaurer namespace binary
@@ -735,7 +735,7 @@ export async function importAllNamespaces(archiveInput, options = {}) {
       for (const fileRef of files) {
         const fileData = extracted[fileRef.path]
         if (!fileData) {
-          console.warn(`importAllNamespaces: fichier blob manquant pour "${namespace}"`, fileRef.path)
+          logger.warn(`importAllNamespaces: fichier blob manquant pour "${namespace}"`, fileRef.path)
           continue
         }
 
@@ -752,7 +752,7 @@ export async function importAllNamespaces(archiveInput, options = {}) {
           await persistenceRegistry.saveBlob(namespace, fileRef.blobId, blob, metadataOptions)
           successCount++
         } catch (error) {
-          console.error(`importAllNamespaces: échec sauvegarde blob "${fileRef.blobId}"`, error)
+          logger.error(`importAllNamespaces: échec sauvegarde blob "${fileRef.blobId}"`, error)
         }
       }
 
@@ -760,7 +760,7 @@ export async function importAllNamespaces(archiveInput, options = {}) {
         importedNamespaces.push(namespace)
       }
     } else {
-      console.warn(`importAllNamespaces: type inconnu "${type}" pour namespace "${namespace}"`)
+      logger.warn(`importAllNamespaces: type inconnu "${type}" pour namespace "${namespace}"`)
     }
   }
 
@@ -843,7 +843,7 @@ export function createImportAllAction(options = {}) {
       if (error?.code === FILE_PICKER_CANCELLED) {
         return
       }
-      console.error('createImportAllAction: import échoué', error)
+      logger.error('createImportAllAction: import échoué', error)
       onError?.(error)
     }
   }
@@ -931,7 +931,7 @@ export function createImportAction(namespace, options = {}) {
       if (error?.code === FILE_PICKER_CANCELLED) {
         return
       }
-      console.error('createImportAction: import échoué', error)
+      logger.error('createImportAction: import échoué', error)
       onError?.(error)
     }
   }

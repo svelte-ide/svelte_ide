@@ -1,6 +1,8 @@
 import { genericLayoutService } from '@svelte-ide/core/GenericLayoutService.svelte.js'
-import { zoneRegistry } from '@svelte-ide/core/layout/ZoneRegistry.svelte.js'
 import { stateProviderService } from '@svelte-ide/core/StateProviderService.svelte.js'
+import { createLogger } from '@svelte-ide/lib/logger.js'
+
+const logger = createLogger('core/panels-manager')
 
 export class PanelsManager {
     constructor() {
@@ -28,7 +30,7 @@ export class PanelsManager {
             try {
                 callback()
             } catch (error) {
-                console.error(`❌ Erreur callback:`, error)
+                logger.error(`❌ Erreur callback:`, error)
             }
         })
     }
@@ -73,7 +75,7 @@ export class PanelsManager {
     activatePanel(panelId, component = null, options = {}) {
         const panel = this.panels.get(panelId)
         if (!panel) {
-            console.warn(`❌ Panel ${panelId} non trouvé dans panels:`, Array.from(this.panels.keys()))
+            logger.warn(`❌ Panel ${panelId} non trouvé dans panels:`, Array.from(this.panels.keys()))
             return false
         }
 
@@ -93,7 +95,7 @@ export class PanelsManager {
             this.focusedPanel = focus ? panelId : null
             this._notifyChange()
         } else {
-            console.warn(`❌ Échec activation zone ${panel.zoneId}`)
+            logger.warn(`❌ Échec activation zone ${panel.zoneId}`)
         }
 
         return success

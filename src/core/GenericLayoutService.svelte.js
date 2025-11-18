@@ -180,11 +180,11 @@ export class GenericLayoutService {
             const result = this.persister.save(stateKey, state)
             if (result && typeof result.then === 'function') {
                 result.catch(error => {
-                    console.error(`Error saving zone state "${stateKey}"`, error)
+                    logger.error(`Error saving zone state "${stateKey}"`, error)
                 })
             }
         } catch (error) {
-            console.error(`Error scheduling zone state save for "${stateKey}"`, error)
+            logger.error(`Error scheduling zone state save for "${stateKey}"`, error)
         }
     }
 
@@ -206,7 +206,7 @@ export class GenericLayoutService {
                     }
                 }
             } catch (error) {
-                console.error(`Error restoring zone state "${stateKey}"`, error)
+                logger.error(`Error restoring zone state "${stateKey}"`, error)
             }
         }
     }
@@ -226,7 +226,7 @@ export class GenericLayoutService {
                     await result
                 }
             } catch (error) {
-                console.error(`Error clearing zone state "${stateKey}"`, error)
+                logger.error(`Error clearing zone state "${stateKey}"`, error)
             }
         }
     }

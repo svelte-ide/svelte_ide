@@ -1,3 +1,7 @@
+import { createLogger } from '@svelte-ide/lib/logger.js'
+
+const logger = createLogger('core/state-provider-service')
+
 class StateProviderService {
   constructor() {
     this.providers = new Map()
@@ -20,7 +24,7 @@ class StateProviderService {
       try {
         states[key] = provider.saveState()
       } catch (error) {
-        console.error(`Error saving state for provider "${key}":`, error)
+        logger.error(`Error saving state for provider "${key}":`, error)
       }
     }
     return states
@@ -33,7 +37,7 @@ class StateProviderService {
         const result = provider.saveState()
         states[key] = result instanceof Promise ? await result : result
       } catch (error) {
-        console.error(`Error saving async state for provider "${key}":`, error)
+        logger.error(`Error saving async state for provider "${key}":`, error)
       }
     }
     return states
@@ -51,7 +55,7 @@ class StateProviderService {
           }
         }
       } catch (error) {
-        console.error(`Error restoring state for provider "${key}":`, error)
+        logger.error(`Error restoring state for provider "${key}":`, error)
       }
     }
   }

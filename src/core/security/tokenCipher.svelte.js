@@ -36,7 +36,7 @@ function toArrayBuffer(data) {
   if (data == null) {
     return new ArrayBuffer(0)
   }
-  console.warn('TokenCipher: Expected ArrayBuffer or TypedArray for binary operation, received', typeof data)
+  logger.warn('TokenCipher: Expected ArrayBuffer or TypedArray for binary operation, received', typeof data)
   return null
 }
 
@@ -65,7 +65,7 @@ export class TokenCipher {
           ['encrypt', 'decrypt']
         )
       } catch (error) {
-        console.warn('TokenCipher: Failed to import encryption key, disabling encryption', error)
+        logger.warn('TokenCipher: Failed to import encryption key, disabling encryption', error)
         this.enabled = false
         return null
       }
@@ -98,7 +98,7 @@ export class TokenCipher {
 
       return bytesToBase64(resultBytes)
     } catch (error) {
-      console.warn('TokenCipher: Encryption failed, storing plaintext instead', error)
+      logger.warn('TokenCipher: Encryption failed, storing plaintext instead', error)
       return plaintext
     }
   }
@@ -130,7 +130,7 @@ export class TokenCipher {
 
       return decoder.decode(decrypted)
     } catch (error) {
-      console.warn('TokenCipher: Decryption failed, clearing stored tokens', error)
+      logger.warn('TokenCipher: Decryption failed, clearing stored tokens', error)
       return null
     }
   }
@@ -164,7 +164,7 @@ export class TokenCipher {
 
       return resultBytes.buffer
     } catch (error) {
-      console.warn('TokenCipher: encryptBytes failed, returning plaintext buffer', error)
+      logger.warn('TokenCipher: encryptBytes failed, returning plaintext buffer', error)
       return toArrayBuffer(data) || data
     }
   }
@@ -201,7 +201,7 @@ export class TokenCipher {
 
       return decrypted
     } catch (error) {
-      console.warn('TokenCipher: decryptBytes failed, returning null', error)
+      logger.warn('TokenCipher: decryptBytes failed, returning null', error)
       return null
     }
   }

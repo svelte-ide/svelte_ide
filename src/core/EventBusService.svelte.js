@@ -1,3 +1,7 @@
+import { createLogger } from '@svelte-ide/lib/logger.js'
+
+const logger = createLogger('core/event-bus')
+
 class EventBusService {
   constructor() {
     this.listeners = {}
@@ -6,12 +10,7 @@ class EventBusService {
 
   publish(eventName, data) {
     if (this.debugMode) {
-      console.log(
-        `%c[EventBus] %c${eventName}`,
-        'color: #ff7f50; font-weight: bold;',
-        'color: #87ceeb;',
-        data
-      )
+      logger.debug(`[EventBus] ${eventName}`, data)
     }
 
     if (!this.listeners[eventName]) {
@@ -21,7 +20,7 @@ class EventBusService {
       try {
         callback(data)
       } catch (error) {
-        console.error(`Erreur dans un callback d'événement pour '${eventName}':`, error)
+        logger.error(`Erreur dans un callback d'événement pour '${eventName}':`, error)
       }
     })
   }

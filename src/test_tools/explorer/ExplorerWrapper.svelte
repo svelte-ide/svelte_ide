@@ -14,7 +14,7 @@
     try {
       files = await getExplorerItems()
     } catch (error) {
-      console.error('ExplorerWrapper: impossible de charger les fichiers', error)
+      logger.error('ExplorerWrapper: impossible de charger les fichiers', error)
       files = []
       loadError = 'Impossible de charger les fichiers.'
     } finally {

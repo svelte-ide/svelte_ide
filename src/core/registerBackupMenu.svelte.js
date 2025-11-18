@@ -1,4 +1,7 @@
+import { createLogger } from '@svelte-ide/lib/logger.js'
 import { createExportAllAction, createImportAllAction } from './MenuActionsHelpers.svelte.js'
+
+const logger = createLogger('core/register-backup-menu')
 
 /**
  * Enregistre un menu "Sauvegarde" avec export/import exhaustif de tous les namespaces.
@@ -26,7 +29,7 @@ import { createExportAllAction, createImportAllAction } from './MenuActionsHelpe
  */
 export function registerBackupMenu(ideStoreInstance, options = {}) {
   if (!ideStoreInstance || typeof ideStoreInstance.registerMenu !== 'function') {
-    console.warn('registerBackupMenu: ideStore invalide')
+    logger.warn('registerBackupMenu: ideStore invalide')
     return null
   }
 

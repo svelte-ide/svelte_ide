@@ -7,16 +7,12 @@
     sections = statusBarService.sections
   })
 
-  if (import.meta.env.DEV) {
-    $inspect('StatusBar sections', sections)
-  }
-
   function getDisplayText(item) {
     if (typeof item.text === 'function') {
       try {
         return item.text()
       } catch (error) {
-        console.warn('StatusBar: failed to resolve text item', error)
+        logger.warn('StatusBar: failed to resolve text item', error)
         return ''
       }
     }

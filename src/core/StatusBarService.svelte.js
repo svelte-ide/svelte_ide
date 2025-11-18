@@ -1,3 +1,7 @@
+import { createLogger } from '@svelte-ide/lib/logger.js'
+
+const logger = createLogger('core/status-bar-service')
+
 class StatusBarService {
   constructor() {
     this.sections = $state({
@@ -18,7 +22,7 @@ class StatusBarService {
   registerItem(position, itemConfig = {}, ownerId = 'core') {
     const zone = this._normalizePosition(position)
     if (!zone) {
-      console.warn('StatusBarService: invalid position', position)
+      logger.warn('StatusBarService: invalid position', position)
       return null
     }
 
