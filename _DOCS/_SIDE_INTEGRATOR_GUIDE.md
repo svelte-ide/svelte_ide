@@ -51,6 +51,7 @@ L’IDE expose des services prêts à l’emploi pour brancher vos outils sans r
 ## Préférences & UI système
 - `preferencesService` : préférences système/outil/utilisateur (`getToolPreference`, `setToolPreference`, `getEffectivePreference`).
 - Composants prêts à afficher dans le chrome : `AppLogo`, status bar items (ActiveTab, Clock, IndexedDBUsage, StatusMessage), `ReAuthModal`, `GenericElementTree`.
+- `GenericElementTree` : passez `activeNodeId` pour surligner un item (ex. document affiché) même si le focus UI change.
 
 ## Outils système inclus
 - Console (`ConsoleTool`) et Notifications (`NotificationsTool`) déjà enregistrés ; réutilisez-les plutôt que de dupliquer ces fonctions.

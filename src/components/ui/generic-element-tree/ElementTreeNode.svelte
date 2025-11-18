@@ -17,6 +17,7 @@
     getSortedChildren,
     toggleFolder,
     openContextMenu,
+    activeNodeId,
     handleNodeDragStart,
     handleNodeDragEnd,
     handleFolderDragOver,
@@ -40,6 +41,7 @@
     inlineActionBuilder ? inlineActionBuilder(node, inlineActionHelpers) ?? [] : []
   )
   const nodeIcon = $derived(resolveNodeIcon(node, { isFolder }) ?? null)
+  const isActive = $derived(node?.id && activeNodeId ? node.id === activeNodeId : false)
 
   function handleItemClick(event) {
     handlePrimaryAction(node)
@@ -59,7 +61,7 @@
   class:dragging-folder={draggedNodeType === 'folder' && draggedNodeId === node.id}
   role="treeitem"
   aria-expanded={isFolder ? isExpanded : undefined}
-  aria-selected="false"
+  aria-selected={isActive ? 'true' : 'false'}
   aria-level={depth + 1}
 >
   <div
@@ -71,6 +73,7 @@
     <div
       class="item-content"
       style={`padding-left: ${indent}px`}
+      class:active={isActive}
       onclick={(event) => handleItemClick(event)}
       onkeydown={(event) => {
         if (event.key === 'Enter') {
@@ -149,6 +152,7 @@
             {getSortedChildren}
             {toggleFolder}
             {openContextMenu}
+            {activeNodeId}
             {handleNodeDragStart}
             {handleNodeDragEnd}
             {handleFolderDragOver}

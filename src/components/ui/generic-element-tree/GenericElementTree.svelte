@@ -172,6 +172,7 @@
     allowExternalFileDrop = true,
     showUploadHint = true,
     showHeader = true,
+    activeNodeId = null,
     uploadHintText = 'Déposez ou importez vos éléments pour commencer',
     autoAppendDroppedFiles = true,
     contextMenuBuilder: contextMenuBuilderProp = null,
@@ -749,6 +750,7 @@
         {getSortedChildren}
         {toggleFolder}
         {openContextMenu}
+        {activeNodeId}
         {handleNodeDragStart}
         {handleNodeDragEnd}
         {handleFolderDragOver}
@@ -954,6 +956,11 @@
   :global(.item-content:focus) {
     outline: none;
     background: #094771;
+  }
+
+  :global(.item-content.active) {
+    background: #094771;
+    color: #ffffff;
   }
 
   :global(.tree-children) {

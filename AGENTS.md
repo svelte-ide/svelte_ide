@@ -4,6 +4,11 @@
 * [Architecture](_GUIDES/ARCHITECTURE.md): L'architecture générale du projet, les choix de patrons et de design à respecter lors du développement
 * [SVELTE5.md](_GUIDES/SVELTE5.md): Les normes programmation essentielles à suivre lors du développement.
 
+## Glossaire  
+
+GeT: GenericElementTree  
+SIDE: Svelte-IDE  
+
 
 ## Interaction avec l'utilisateur (CONSIGNES)
 

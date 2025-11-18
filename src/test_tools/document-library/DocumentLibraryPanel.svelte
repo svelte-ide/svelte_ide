@@ -14,7 +14,13 @@
       Trash2Icon,
       UploadIcon
   } from './icons.js';
-  import { getActiveDocumentId, removeDocument, setActiveDocument, setBackendResponse } from './stores/documentViewerStore.svelte.js';
+  import {
+      getActiveDocumentId,
+      removeDocument,
+      setActiveDocument,
+      setBackendResponse,
+      subscribeViewerStore
+  } from './stores/documentViewerStore.svelte.js';
 
   let { panelId } = $props()
 
@@ -40,6 +46,7 @@
   let manualHydrationDepth = 0
   let globalHydrationActive = false
   let rehydratePromise = null
+  let activeDocumentId = $state(getActiveDocumentId())
 
   let saveTreeTimeout = null
   let saveExpandedTimeout = null
@@ -603,6 +610,7 @@
     metaPersister = documentPersistenceService.getMetaPersister()
 
     await rehydrateFromStorage()
+    activeDocumentId = getActiveDocumentId()
 
     const unsubscribeHydrationBefore = eventBus.subscribe('hydration:before', () => {
       globalHydrationActive = true
@@ -633,11 +641,15 @@
 
     window.addEventListener('click', handleWindowClick)
     window.addEventListener('keydown', handleWindowKeydown)
+    const unsubscribeViewer = subscribeViewerStore(snapshot => {
+      activeDocumentId = snapshot?.activeDocumentId ?? null
+    })
 
     return () => {
       unsubscribeHydrationBefore()
       unsubscribeHydrationAfter()
       unsubscribeStorageImported()
+      unsubscribeViewer?.()
       window.removeEventListener('click', handleWindowClick)
       window.removeEventListener('keydown', handleWindowKeydown)
     }
@@ -715,6 +727,7 @@
     onFilesSelected={handleFilesSelected}
     onExpandedFoldersChange={handleExpandedFoldersChange}
     sortComparer={compareNodes}
+    activeNodeId={activeDocumentId}
   />
 </section>
 
