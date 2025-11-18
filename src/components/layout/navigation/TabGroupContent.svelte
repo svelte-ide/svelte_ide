@@ -65,6 +65,7 @@
       panelsManager.clearFocus()
     }
     if (changed) {
+      eventBus.publish('tabs:activated', tab)
       eventBus.publish('tabs:focus-changed', { tab })
     }
   }
