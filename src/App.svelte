@@ -298,6 +298,9 @@
 
       await toolManager.registerExternalTools(externalTools)
 
+      // Restaurer le layout utilisateur une fois les outils (et leurs panneaux) enregistrés
+      await ensureUserLayoutRestored()
+
       if (readyStatus) {
         ideStore.setStatusMessage(readyStatus)
       } else if (initializingStatus || systemToolsStatus || externalToolsStatus) {
