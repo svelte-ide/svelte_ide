@@ -79,32 +79,34 @@
 </script>
 
 {#if activeTabData && activeTabData.component}
-  {@const Component = activeTabData.component}
-  {#snippet renderComponent()}
-    {#if activeTabData.content !== undefined || activeTabData.fileName}
-      <Component
-        content={activeTabData.content}
-        fileName={activeTabData.fileName}
-        {...activeTabData}
-      />
-    {:else}
-      <Component {...activeTabData} />
-    {/if}
-  {/snippet}
-  <div
-    class="tab-content-root"
-    tabindex="-1"
-    onfocusin={() => focusTabContent(activeTabData)}
-    onpointerdown={event => handleTabPointerDown(event, activeTabData)}
-  >
-    {#if activeTabScrollMode === SCROLL_MODES.tool}
-      {@render renderComponent()}
-    {:else}
-      <div class="tab-scroll-surface">
+  {#key activeTabData.id}
+    {@const Component = activeTabData.component}
+    {#snippet renderComponent()}
+      {#if activeTabData.content !== undefined || activeTabData.fileName}
+        <Component
+          content={activeTabData.content}
+          fileName={activeTabData.fileName}
+          {...activeTabData}
+        />
+      {:else}
+        <Component {...activeTabData} />
+      {/if}
+    {/snippet}
+    <div
+      class="tab-content-root"
+      tabindex="-1"
+      onfocusin={() => focusTabContent(activeTabData)}
+      onpointerdown={event => handleTabPointerDown(event, activeTabData)}
+    >
+      {#if activeTabScrollMode === SCROLL_MODES.tool}
         {@render renderComponent()}
-      </div>
-    {/if}
-  </div>
+      {:else}
+        <div class="tab-scroll-surface">
+          {@render renderComponent()}
+        </div>
+      {/if}
+    </div>
+  {/key}
 {:else if activeTabData}
   <div class="placeholder">
     <h3>{activeTabData.title}</h3>
