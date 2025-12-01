@@ -3,10 +3,11 @@
   import { binaryStorageService } from '@svelte-ide/core/persistence/BinaryStorageService.svelte.js';
   import { indexedDBService } from '@svelte-ide/core/persistence/IndexedDBService.svelte.js';
   import { storagePersistenceService } from '@svelte-ide/core/persistence/StoragePersistenceService.svelte.js';
+  import { stateProviderService } from '@svelte-ide/core/StateProviderService.svelte.js';
   import { toolManager } from '@svelte-ide/core/ToolManager.svelte.js';
+  import { createLogger } from '@svelte-ide/lib/logger.js';
   import { getAuthStore } from '@svelte-ide/stores/authStore.svelte.js';
   import { ideStore } from '@svelte-ide/stores/ideStore.svelte.js';
-  import { createLogger } from '@svelte-ide/lib/logger.js';
 
   import StatusBar from '@svelte-ide/components/layout/chrome/StatusBar.svelte';
   import TitleBar from '@svelte-ide/components/layout/chrome/TitleBar.svelte';
@@ -171,6 +172,32 @@
   let leftPanelWidth = $state(250)
   let rightPanelWidth = $state(250)
   let bottomPanelHeight = $state(200)
+
+  // Provider de persistance pour les dimensions des panneaux
+  const panelDimensionsProvider = {
+    saveState() {
+      return {
+        leftPanelWidth,
+        rightPanelWidth,
+        bottomPanelHeight
+      }
+    },
+    restoreState(state) {
+      if (!state) return
+      if (typeof state.leftPanelWidth === 'number') {
+        leftPanelWidth = Math.max(50, state.leftPanelWidth)
+      }
+      if (typeof state.rightPanelWidth === 'number') {
+        rightPanelWidth = Math.max(50, state.rightPanelWidth)
+      }
+      if (typeof state.bottomPanelHeight === 'number') {
+        bottomPanelHeight = Math.max(50, state.bottomPanelHeight)
+      }
+    }
+  }
+
+  // Enregistrer le provider pour la persistance
+  stateProviderService.registerProvider('panelDimensions', panelDimensionsProvider)
   
   let hasTopLeft = $state(false)
   let hasBottomLeft = $state(false)
@@ -206,6 +233,8 @@
         document.removeEventListener('mouseup', stopResize)
         document.body.style.cursor = ''
         document.body.style.userSelect = ''
+        // Sauvegarder les dimensions après le resize
+        ideStore.saveUserLayout()
       }
 
       document.addEventListener('mousemove', handleResize)
@@ -222,16 +251,19 @@
   function adjustLeftPanel(delta) {
     const nextWidth = delta < 0 ? leftPanelWidth - KEYBOARD_RESIZE_STEP : leftPanelWidth + KEYBOARD_RESIZE_STEP
     leftPanelWidth = Math.max(50, nextWidth)
+    ideStore.saveUserLayout()
   }
 
   function adjustRightPanel(delta) {
     const nextWidth = delta < 0 ? rightPanelWidth + KEYBOARD_RESIZE_STEP : rightPanelWidth - KEYBOARD_RESIZE_STEP
     rightPanelWidth = Math.max(50, nextWidth)
+    ideStore.saveUserLayout()
   }
 
   function adjustBottomPanel(delta) {
     const nextHeight = delta < 0 ? bottomPanelHeight + KEYBOARD_RESIZE_STEP : bottomPanelHeight - KEYBOARD_RESIZE_STEP
     bottomPanelHeight = Math.max(50, nextHeight)
+    ideStore.saveUserLayout()
   }
 
   (async () => {
