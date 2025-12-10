@@ -8,14 +8,14 @@ class MainMenuService {
   }
 
   registerMenu(config = {}, ownerId = 'core') {
-    const type = config.type === 'action' ? 'action' : 'menu'
+    const action = typeof config.action === 'function' ? config.action : null
+    const type = config.type === 'action' || (!config.type && action) ? 'action' : 'menu'
     const label = typeof config.label === 'string' ? config.label.trim() : ''
     const ariaLabel = typeof config.ariaLabel === 'string' ? config.ariaLabel.trim() : ''
     const icon = typeof config.icon === 'string' ? config.icon.trim() : ''
     const normalizedId = this._normalizeId(config.id ?? label ?? icon)
     const order = Number.isFinite(config.order) ? config.order : 0
     const disabled = !!config.disabled
-    const action = typeof config.action === 'function' ? config.action : null
 
     if (type === 'menu' && !label) {
       logger.warn('MainMenuService: missing label for menu', config)

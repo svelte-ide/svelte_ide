@@ -9,6 +9,13 @@
     menus = mainMenuService.menus
   })
 
+  function isActionMenu(menu) {
+    if (!menu) return false
+    if (menu.type === 'action') return true
+    if (menu.action && (!menu.items || menu.items.length === 0)) return true
+    return false
+  }
+
   function toggleMenu(menuId) {
     openMenuId = openMenuId === menuId ? null : menuId
   }
@@ -18,7 +25,7 @@
   }
 
   function handleMenuTrigger(menu) {
-    if (menu?.type === 'action') {
+    if (isActionMenu(menu)) {
       if (!menu.disabled && typeof menu.action === 'function') {
         menu.action()
       }
@@ -70,20 +77,20 @@
 <div class="main-menu" bind:this={rootElement}>
   <ul class="menu-bar" role="menubar">
     {#each menus as menu (menu.id)}
-      <li class="menu-bar-item" class:open={openMenuId === menu.id} class:action={menu.type === 'action'} role="none">
+      <li class="menu-bar-item" class:open={openMenuId === menu.id} class:action={isActionMenu(menu)} role="none">
         <button
           type="button"
           class="menu-trigger"
-          class:icon-only={menu.type === 'action'}
+          class:icon-only={isActionMenu(menu)}
           class:disabled={menu.disabled}
           onclick={() => handleMenuTrigger(menu)}
-          aria-haspopup={menu.type === 'action' ? undefined : 'true'}
-          aria-expanded={menu.type === 'menu' ? openMenuId === menu.id : undefined}
-          aria-label={menu.type === 'action' ? menu.ariaLabel || menu.label : null}
-          title={menu.type === 'action' ? menu.title || menu.label || menu.ariaLabel : null}
+          aria-haspopup={isActionMenu(menu) ? undefined : 'true'}
+          aria-expanded={isActionMenu(menu) ? undefined : openMenuId === menu.id}
+          aria-label={isActionMenu(menu) ? menu.ariaLabel || menu.label : null}
+          title={isActionMenu(menu) ? menu.title || menu.label || menu.ariaLabel : null}
           disabled={menu.disabled}
         >
-          {#if menu.type === 'action'}
+          {#if isActionMenu(menu)}
             {#if menu.icon}
               <span class="menu-icon" aria-hidden="true">{menu.icon}</span>
             {:else if menu.label}
