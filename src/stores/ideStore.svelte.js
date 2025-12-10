@@ -667,10 +667,14 @@ class IdeStore {
 
   _reconstructLayout(layoutData, tabsMap) {
     if (layoutData.type === 'tabgroup') {
+      const tabs = layoutData.tabs.map(tabData => tabsMap.get(tabData.id)).filter(Boolean)
+      const activeTab = tabs.find(tab => tab.id === layoutData.activeTab)
+        ? layoutData.activeTab
+        : (tabs[0]?.id ?? null)
       return {
         ...layoutData,
-        tabs: layoutData.tabs.map(tabData => tabsMap.get(tabData.id)).filter(Boolean),
-        activeTab: layoutData.activeTab
+        tabs,
+        activeTab
       }
     } else if (layoutData.type === 'container') {
       return {

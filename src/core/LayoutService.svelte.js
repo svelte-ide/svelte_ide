@@ -50,31 +50,75 @@ export class LayoutService {
     if (!layout) {
       return null
     }
-    
-    const serializableLayout = {
-      ...layout,
-      tabs: layout.tabs ? layout.tabs.map(tab => {
-        // Vérifier que le tab a la méthode getSerializableData
-        if (tab && typeof tab.getSerializableData === 'function') {
-          return tab.getSerializableData()
-        }
-        // Fallback pour les tabs qui n'ont pas la méthode
+
+    const serializeNode = (node) => {
+      if (!node) return null
+
+      if (node.type === 'tabgroup') {
+        const activeTabId = typeof node.activeTab === 'object'
+          ? node.activeTab?.id || null
+          : node.activeTab || null
+
+        const serializedTabs = Array.isArray(node.tabs)
+          ? node.tabs
+              .map(tab => {
+                if (!tab) return null
+                if (typeof tab.getSerializableData === 'function') {
+                  return tab.getSerializableData()
+                }
+                return {
+                  id: tab.id,
+                  title: tab.title,
+                  closable: tab.closable,
+                  icon: tab.icon,
+                  descriptor: tab.descriptor || null,
+                  scrollMode: tab.scrollMode || SCROLL_MODES.ide
+                }
+              })
+              .filter(Boolean)
+          : []
+
         return {
-          id: tab.id,
-          title: tab.title,
-          closable: tab.closable,
-          icon: tab.icon,
-          descriptor: tab.descriptor || null,
-          scrollMode: tab.scrollMode || SCROLL_MODES.ide
+          type: 'tabgroup',
+          id: node.id,
+          tabs: serializedTabs,
+          activeTab: activeTabId
         }
-      }) : [],
-      activeTab: layout.activeTab ? layout.activeTab.id : null
+      }
+
+      if (node.type === 'container') {
+        const children = Array.isArray(node.children)
+          ? node.children.map(serializeNode).filter(Boolean)
+          : []
+
+        const sizes = (() => {
+          if (Array.isArray(node.sizes) && node.sizes.length === children.length) {
+            return [...node.sizes]
+          }
+          if (children.length === 0) return []
+          const equalSize = 100 / children.length
+          return new Array(children.length).fill(equalSize)
+        })()
+
+        return {
+          type: 'container',
+          id: node.id,
+          direction: node.direction,
+          sizes,
+          children
+        }
+      }
+
+      return null
     }
-    
-    // Ajouter le focus global au layout sérialisé
-    serializableLayout.globalFocusedTab = this.globalFocusedTab
-    
-    return serializableLayout
+
+    const serializedRoot = serializeNode(layout)
+    if (!serializedRoot) {
+      return null
+    }
+
+    serializedRoot.globalFocusedTab = this.globalFocusedTab
+    return serializedRoot
   }
 
   // ===== SECTION 2: API SIMPLE - GESTION DES TABS =====
@@ -493,9 +537,11 @@ export class LayoutService {
       }
       
       // Redistribuer les tailles si nécessaire
-      if (node.children.length > 0 && node.children.length !== node.sizes.length) {
-        const equalSize = 100 / node.children.length
-        node.sizes = new Array(node.children.length).fill(equalSize)
+      const childCount = node.children.length
+      const hasSizes = Array.isArray(node.sizes)
+      if (childCount > 0 && (!hasSizes || childCount !== node.sizes.length)) {
+        const equalSize = 100 / childCount
+        node.sizes = new Array(childCount).fill(equalSize)
       }
     }
   }
