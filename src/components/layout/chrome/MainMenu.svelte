@@ -17,6 +17,17 @@
     openMenuId = null
   }
 
+  function handleMenuTrigger(menu) {
+    if (menu?.type === 'action') {
+      if (!menu.disabled && typeof menu.action === 'function') {
+        menu.action()
+      }
+      closeMenu()
+      return
+    }
+    toggleMenu(menu.id)
+  }
+
   function handleItemClick(item) {
     if (item.disabled) {
       return
@@ -59,18 +70,31 @@
 <div class="main-menu" bind:this={rootElement}>
   <ul class="menu-bar" role="menubar">
     {#each menus as menu (menu.id)}
-      <li class="menu-bar-item" class:open={openMenuId === menu.id} role="none">
+      <li class="menu-bar-item" class:open={openMenuId === menu.id} class:action={menu.type === 'action'} role="none">
         <button
           type="button"
           class="menu-trigger"
-          onclick={() => toggleMenu(menu.id)}
-          aria-haspopup="true"
-          aria-expanded={openMenuId === menu.id}
+          class:icon-only={menu.type === 'action'}
+          class:disabled={menu.disabled}
+          onclick={() => handleMenuTrigger(menu)}
+          aria-haspopup={menu.type === 'action' ? undefined : 'true'}
+          aria-expanded={menu.type === 'menu' ? openMenuId === menu.id : undefined}
+          aria-label={menu.type === 'action' ? menu.ariaLabel || menu.label : null}
+          title={menu.type === 'action' ? menu.title || menu.label || menu.ariaLabel : null}
+          disabled={menu.disabled}
         >
-          {menu.label}
+          {#if menu.type === 'action'}
+            {#if menu.icon}
+              <span class="menu-icon" aria-hidden="true">{menu.icon}</span>
+            {:else if menu.label}
+              <span class="menu-label">{menu.label}</span>
+            {/if}
+          {:else}
+            {menu.label}
+          {/if}
         </button>
 
-        {#if openMenuId === menu.id}
+        {#if menu.type !== 'action' && openMenuId === menu.id}
           <div class="menu-dropdown" role="menu">
             {#if menu.items.length === 0}
               <div class="menu-empty" role="presentation">Aucune action</div>
@@ -136,10 +160,20 @@
     transition: background 0.15s ease, color 0.15s ease;
   }
 
+  .menu-trigger.icon-only {
+    padding: 0 8px;
+  }
+
   .menu-trigger:hover,
   .menu-bar-item.open .menu-trigger {
     background: #3e3e42;
     color: #ffffff;
+  }
+
+  .menu-trigger.disabled,
+  .menu-trigger:disabled {
+    opacity: 0.5;
+    cursor: default;
   }
 
   .menu-dropdown {
@@ -201,5 +235,15 @@
     padding: 6px 12px;
     color: #777777;
     font-size: 13px;
+  }
+
+  .menu-icon {
+    font-size: 14px;
+    line-height: 1;
+  }
+
+  .menu-label {
+    font-size: 13px;
+    line-height: 24px;
   }
 </style>

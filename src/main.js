@@ -40,6 +40,19 @@ if (import.meta.env.DEV) {
 
   registerDefaultHelpMenu(ideStore, { ownerId: 'demo' })
 
+  ideStore.registerMenu({
+    id: 'quick-run',
+    type: 'action',
+    icon: '▶',
+    ariaLabel: 'Action rapide de test',
+    title: 'Action rapide de test',
+    order: 40,
+    action: () => {
+      ideStore.addNotification('Action rapide', 'Action de menu déclenchée', 'info', 'demo')
+      ideStore.addLog('Action rapide exécutée', 'info', 'demo')
+    }
+  }, 'demo')
+
   // Enregistrer le menu "Sauvegarde" avec export/import exhaustif
   registerBackupMenu(ideStore, {
     menuLabel: 'sauvegarde',

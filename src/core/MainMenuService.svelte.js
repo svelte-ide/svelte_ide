@@ -8,22 +8,45 @@ class MainMenuService {
   }
 
   registerMenu(config = {}, ownerId = 'core') {
+    const type = config.type === 'action' ? 'action' : 'menu'
     const label = typeof config.label === 'string' ? config.label.trim() : ''
-    if (!label) {
+    const ariaLabel = typeof config.ariaLabel === 'string' ? config.ariaLabel.trim() : ''
+    const icon = typeof config.icon === 'string' ? config.icon.trim() : ''
+    const normalizedId = this._normalizeId(config.id ?? label ?? icon)
+    const order = Number.isFinite(config.order) ? config.order : 0
+    const disabled = !!config.disabled
+    const action = typeof config.action === 'function' ? config.action : null
+
+    if (type === 'menu' && !label) {
       logger.warn('MainMenuService: missing label for menu', config)
       return null
     }
 
-    const normalizedId = this._normalizeId(config.id ?? label)
-    const order = Number.isFinite(config.order) ? config.order : 0
+    if (type === 'action') {
+      if (!icon && !label) {
+        logger.warn('MainMenuService: missing icon for action menu', config)
+        return null
+      }
+      if (!ariaLabel && !label) {
+        logger.warn('MainMenuService: missing accessible label for action menu', config)
+        return null
+      }
+    }
+
     const existing = this._findMenu(normalizedId)
 
     if (existing) {
       const updated = {
         ...existing,
+        type,
         label,
+        ariaLabel: ariaLabel || label,
+        icon: type === 'action' ? icon : '',
+        title: typeof config.title === 'string' ? config.title.trim() : existing.title || '',
         order,
-        ownerId: existing.ownerId || ownerId
+        ownerId: existing.ownerId || ownerId,
+        disabled,
+        action: type === 'action' ? action : null
       }
       if (this._hasMenuChanged(existing, updated)) {
         this._replaceMenu(updated)
@@ -33,9 +56,15 @@ class MainMenuService {
 
     const menu = {
       id: normalizedId,
+      type,
       label,
+      ariaLabel: ariaLabel || label,
+      icon: type === 'action' ? icon : '',
+      title: typeof config.title === 'string' ? config.title.trim() : '',
       order,
       ownerId,
+      disabled,
+      action: type === 'action' ? action : null,
       items: []
     }
 
@@ -59,6 +88,11 @@ class MainMenuService {
     const menu = this._findMenu(menuId)
     if (!menu) {
       logger.warn(`MainMenuService: menu "${menuId}" not found for item`, itemConfig)
+      return null
+    }
+
+    if (menu.type === 'action') {
+      logger.warn(`MainMenuService: cannot register menu item on action menu "${menuId}"`, itemConfig)
       return null
     }
 
@@ -157,7 +191,17 @@ class MainMenuService {
   }
 
   _hasMenuChanged(previous, next) {
-    return previous.label !== next.label || previous.order !== next.order || previous.ownerId !== next.ownerId
+    return (
+      previous.label !== next.label ||
+      previous.order !== next.order ||
+      previous.ownerId !== next.ownerId ||
+      previous.type !== next.type ||
+      previous.icon !== next.icon ||
+      previous.ariaLabel !== next.ariaLabel ||
+      previous.disabled !== next.disabled ||
+      previous.title !== next.title ||
+      previous.action !== next.action
+    )
   }
 
   _sortMenus(menus = []) {
@@ -165,7 +209,9 @@ class MainMenuService {
       if (a.order !== b.order) {
         return a.order - b.order
       }
-      return a.label.localeCompare(b.label, 'fr', { sensitivity: 'base' })
+      const labelA = a.label || a.ariaLabel || a.id
+      const labelB = b.label || b.ariaLabel || b.id
+      return labelA.localeCompare(labelB, 'fr', { sensitivity: 'base' })
     })
   }
 
