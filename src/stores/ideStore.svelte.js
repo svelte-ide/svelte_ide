@@ -605,9 +605,9 @@ class IdeStore {
         }
         
         const restoredLayout = this._reconstructLayout(layoutData.layout, restoredTabs)
-        
-        // Si aucun onglet n'est actif mais qu'il y a des onglets, activer le premier
-        if (!restoredLayout.activeTab && restoredLayout.tabs.length > 0) {
+
+        // Si la racine est un tabgroup et qu'aucun actif n'est défini, activer le premier onglet
+        if (restoredLayout?.type === 'tabgroup' && !restoredLayout.activeTab && restoredLayout.tabs.length > 0) {
           restoredLayout.activeTab = restoredLayout.tabs[0].id
         }
         
