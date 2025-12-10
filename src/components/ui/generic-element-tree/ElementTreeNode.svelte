@@ -28,7 +28,8 @@
     inlineActionBuilder,
     inlineActionHelpers,
     resolveNodeIcon,
-    allowNodeDrag = true
+    allowNodeDrag = true,
+    expandOnSelect = true
   } = $props()
 
   const isFolder = $derived(isFolderNode(node))
@@ -45,7 +46,8 @@
 
   function handleItemClick(event) {
     handlePrimaryAction(node)
-    if (isFolder && event?.detail === 1) {
+    const shouldToggle = expandOnSelect && isFolder && event?.detail === 1
+    if (shouldToggle) {
       toggleFolder(node.id)
     }
   }
@@ -77,9 +79,10 @@
       onclick={(event) => handleItemClick(event)}
       onkeydown={(event) => {
         if (event.key === 'Enter') {
-          if (isFolder) {
+          if (isFolder && expandOnSelect) {
             toggleFolder(node.id)
-          } else {
+          }
+          if (!isFolder || !expandOnSelect) {
             handlePrimaryAction(node)
           }
         }
@@ -164,6 +167,7 @@
             {inlineActionHelpers}
             {resolveNodeIcon}
             {allowNodeDrag}
+            {expandOnSelect}
           />
         {/each}
       </ul>

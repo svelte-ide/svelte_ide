@@ -169,6 +169,7 @@
     initialExpandedState = null,
     allowFolderCreation = true,
     allowNodeDrag = true,
+    expandOnSelect = true,
     allowExternalFileDrop = true,
     showUploadHint = true,
     showHeader = true,
@@ -762,6 +763,7 @@
         inlineActionHelpers={inlineActionHelpers}
         resolveNodeIcon={iconResolver}
         allowNodeDrag={allowNodeDrag}
+        expandOnSelect={expandOnSelect}
       />
     </ul>
   </div>
