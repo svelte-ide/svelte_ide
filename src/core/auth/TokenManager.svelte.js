@@ -630,13 +630,34 @@ export class TokenManager {
       this.refreshTimer = null
     }
 
-    if (!this.tokenExpiry || !this.refreshToken) {
+    if (!this.tokenExpiry) {
       return
     }
 
     const now = Date.now()
     const expiryTime = this.tokenExpiry.getTime()
     const timeUntilExpiry = expiryTime - now
+
+    // Pas de refresh token : expirer proprement à l'échéance de l'access token
+    if (!this.refreshToken) {
+      const expireSession = () => {
+        this.handleExpiredSession().catch(error => {
+          authError('Failed to handle expired session without refresh token', error)
+        })
+      }
+
+      if (timeUntilExpiry <= 0) {
+        authWarn('Token expired and no refresh token available, expiring session now')
+        expireSession()
+      } else {
+        authWarn('No refresh token available; scheduling session expiration at access token expiry', {
+          expiresInMs: timeUntilExpiry
+        })
+        this.refreshTimer = setTimeout(expireSession, timeUntilExpiry)
+      }
+      return
+    }
+
     const refreshLeadTime = 5 * 60 * 1000 // 5 minutes avant expiration
     const timeUntilRefresh = timeUntilExpiry - refreshLeadTime
 
