@@ -4,6 +4,13 @@ import { getAuthStore } from '../../stores/authStore.svelte.js'
 const authStore = getAuthStore()
 
 let userMenuOpen = $state(false)
+let avatarFailed = $state(false)
+let avatarSrc = $derived(authStore.currentUser?.avatar || null)
+
+$effect(() => {
+  avatarSrc
+  avatarFailed = false
+})
 
 function toggleUserMenu() {
   userMenuOpen = !userMenuOpen
@@ -22,6 +29,10 @@ function handleWindowClick(event) {
   if (!event.target.closest('.side-auth')) {
     closeUserMenu()
   }
+}
+
+function handleAvatarError() {
+  avatarFailed = true
 }
 
 function getUserDisplayName(user) {
@@ -46,7 +57,18 @@ function getUserInitial(user) {
       aria-expanded={userMenuOpen}
       disabled={authStore.isLoading}
     >
-      <span class="side-user-avatar">{getUserInitial(authStore.currentUser)}</span>
+      <span class="side-user-avatar">
+        {#if avatarSrc && !avatarFailed}
+          <img
+            class="side-user-avatar-image"
+            src={avatarSrc}
+            alt={getUserDisplayName(authStore.currentUser)}
+            onerror={handleAvatarError}
+          />
+        {:else}
+          {getUserInitial(authStore.currentUser)}
+        {/if}
+      </span>
       <span class="side-user-name">{getUserDisplayName(authStore.currentUser)}</span>
       <span class="side-user-arrow" class:open={userMenuOpen}>v</span>
     </button>
@@ -54,7 +76,18 @@ function getUserInitial(user) {
     {#if userMenuOpen}
       <div class="side-user-menu" role="menu">
         <div class="side-user-info">
-          <div class="side-user-avatar large">{getUserInitial(authStore.currentUser)}</div>
+          <div class="side-user-avatar large">
+            {#if avatarSrc && !avatarFailed}
+              <img
+                class="side-user-avatar-image"
+                src={avatarSrc}
+                alt={getUserDisplayName(authStore.currentUser)}
+                onerror={handleAvatarError}
+              />
+            {:else}
+              {getUserInitial(authStore.currentUser)}
+            {/if}
+          </div>
           <div class="side-user-details">
             <div class="side-user-name">{getUserDisplayName(authStore.currentUser)}</div>
             <div class="side-user-provider">{authStore.currentUser.provider || 'OAuth'}</div>
@@ -106,12 +139,20 @@ function getUserInitial(user) {
   color: var(--text-on-primary);
   font-size: 10px;
   font-weight: 600;
+  overflow: hidden;
 }
 
 .side-user-avatar.large {
   width: 32px;
   height: 32px;
   font-size: 16px;
+}
+
+.side-user-avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .side-user-name {
