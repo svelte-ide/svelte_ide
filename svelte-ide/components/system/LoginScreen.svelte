@@ -1,5 +1,6 @@
 <script>
 import { getAuthStore } from '../../stores/authStore.svelte.js'
+import { themeService } from '../../core/themeService.svelte.js'
 
 const authStore = getAuthStore()
 
@@ -8,7 +9,17 @@ const handleLogin = (providerId) => {
 }
 </script>
 
-<div class="login-screen">
+<div
+  class="login-screen"
+  style:--background={themeService.getColor('background')}
+  style:--surface-raised={themeService.getColor('surfaceRaised')}
+  style:--surface-alt={themeService.getColor('surfaceAlt')}
+  style:--surface-hover={themeService.getColor('surfaceHover')}
+  style:--text={themeService.getColor('text')}
+  style:--border={themeService.getColor('border')}
+  style:--text-muted={themeService.getColor('textMuted')}
+  style:--danger={themeService.getColor('danger')}
+>
   <div class="login-card">
     <h1>Sign in</h1>
 
@@ -42,16 +53,16 @@ const handleLogin = (providerId) => {
   min-height: 100vh;
   width: 100%;
   padding: 32px;
-  background: #0f1115;
-  color: #e5e7eb;
+  background: var(--background);
+  color: var(--text);
 }
 
 .login-card {
   max-width: 360px;
   width: 100%;
   padding: 24px;
-  border: 1px solid #374151;
-  background: #151a21;
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
 }
 
 .provider-list {
@@ -63,10 +74,14 @@ const handleLogin = (providerId) => {
 
 .provider-button {
   padding: 12px 16px;
-  border: 1px solid #374151;
-  background: #111827;
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
   color: inherit;
   cursor: pointer;
+}
+
+.provider-button:hover {
+  background: var(--surface-hover);
 }
 
 .provider-button:disabled {
@@ -76,12 +91,12 @@ const handleLogin = (providerId) => {
 
 .loading {
   margin-top: 12px;
-  color: #9ca3af;
+  color: var(--text-muted);
 }
 
 .error,
 .session-expired {
   margin-top: 12px;
-  color: #fca5a5;
+  color: var(--danger);
 }
 </style>

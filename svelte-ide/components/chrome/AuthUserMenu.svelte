@@ -103,7 +103,7 @@ function getUserInitial(user) {
   height: 16px;
   border-radius: 50%;
   background: var(--primary);
-  color: white;
+  color: var(--text-on-primary);
   font-size: 10px;
   font-weight: 600;
 }

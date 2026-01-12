@@ -1,6 +1,5 @@
 import { createLogger } from '../../../lib/logger.js'
 import { AuthProvider } from '../AuthProvider.svelte.js'
-import { avatarCacheService } from '../AvatarCacheService.svelte.js'
 
 const logger = createLogger('core/auth/azure-provider')
 
@@ -48,7 +47,7 @@ export class AzureProvider extends AuthProvider {
     const codeVerifier = this.generateCodeVerifier()
     const codeChallenge = await this.generateCodeChallenge(codeVerifier)
     
-    sessionStorage.setItem(this.getStorageKey('state'), state)
+    this.storeState(state)
     sessionStorage.setItem(this.getStorageKey('code_verifier'), codeVerifier)
 
     const params = new URLSearchParams({
@@ -100,7 +99,7 @@ export class AzureProvider extends AuthProvider {
       }
     }
 
-    const storedState = sessionStorage.getItem(this.getStorageKey('state'))
+    const storedState = this.consumeStoredState()
     const codeVerifier = sessionStorage.getItem(this.getStorageKey('code_verifier'))
     
     logger.debug('Azure state validation', {
@@ -110,7 +109,15 @@ export class AzureProvider extends AuthProvider {
       hasCodeVerifier: !!codeVerifier
     })
 
-    if (!state || state !== storedState) {
+    if (!state || !storedState) {
+      logger.warn('Azure state validation failed: missing or expired state')
+      return {
+        success: false,
+        error: 'Invalid or expired state parameter - possible CSRF attack'
+      }
+    }
+
+    if (state !== storedState) {
       logger.warn('Azure state mismatch', { received: state, stored: storedState })
       return {
         success: false,
@@ -126,7 +133,6 @@ export class AzureProvider extends AuthProvider {
       }
     }
 
-    sessionStorage.removeItem(this.getStorageKey('state'))
     sessionStorage.removeItem(this.getStorageKey('code_verifier'))
 
     try {
@@ -149,18 +155,6 @@ export class AzureProvider extends AuthProvider {
         hasName: Boolean(userInfo.name),
         sub: userInfo.sub
       })
-      
-      
-      try {
-        const avatarUrl = await this.loadUserAvatar(userInfo.sub, tokenData.access_token, tokenData.refresh_token)
-        if (avatarUrl) {
-          userInfo.avatar = avatarUrl
-          logger.debug('Azure avatar loaded successfully', { hasAvatar: true })
-        }
-      } catch (avatarErr) {
-        logger.debug('Failed to load Azure avatar (non-blocking)', avatarErr)
-        
-      }
       
       
       const accessTokens = []
@@ -299,57 +293,68 @@ export class AzureProvider extends AuthProvider {
   }
 
   
-  async loadUserAvatar(userId, accessToken, refreshToken) {
+  async fetchAvatar({ tokens }) {
     try {
-      
-      let avatar = await avatarCacheService.getAvatar(userId)
-      
-      if (avatar) {
-        logger.debug('Azure user avatar restored from cache')
-        return avatar
+      const accessToken = this.selectAvatarAccessToken(tokens?.accessTokens)
+      const refreshToken = tokens?.refreshToken
+      if (!accessToken) {
+        return null
       }
-      
-      
-      const audience = this.extractAudienceFromToken(accessToken)
-      let graphToken = accessToken
-      
-      
-      if (audience !== '00000003-0000-0000-c000-000000000000') {
-        logger.debug('Access token is not for Graph API, requesting Graph token', { 
-          currentAudience: audience 
-        })
-        
-        try {
-          const graphTokenData = await this.refreshTokenWithScopes(
-            refreshToken, 
-            'https://graph.microsoft.com/User.Read'
-          )
-          graphToken = graphTokenData.access_token
-          logger.debug('Graph API token obtained for avatar download (temporary, not stored)')
-        } catch (refreshError) {
-          logger.warn('Failed to obtain Graph token for avatar', refreshError)
-          return null
-        }
+
+      const graphToken = await this.resolveGraphToken(accessToken, refreshToken)
+      if (!graphToken) {
+        return null
       }
-      
-      
+
       const photoResponse = await fetch('https://graph.microsoft.com/v1.0/me/photo/$value', {
         headers: {
           'Authorization': `Bearer ${graphToken}`
         }
       })
-      
-      if (photoResponse.ok) {
-        const photoBlob = await photoResponse.blob()
-        avatar = await avatarCacheService.saveAvatar(userId, photoBlob)
-        logger.debug('Azure user avatar downloaded and cached')
-        return avatar
-      } else {
+
+      if (!photoResponse.ok) {
         logger.debug('Azure user profile photo unavailable (HTTP error)', { status: photoResponse.status })
         return null
       }
+
+      return await photoResponse.blob()
     } catch (error) {
       logger.debug('Azure user profile photo unavailable (network error)', error)
+      return null
+    }
+  }
+
+  selectAvatarAccessToken(accessTokens) {
+    if (!Array.isArray(accessTokens) || accessTokens.length === 0) {
+      return null
+    }
+    const graphToken = accessTokens.find(token => token.audience === '00000003-0000-0000-c000-000000000000')
+    return graphToken?.accessToken || accessTokens[0].accessToken
+  }
+
+  async resolveGraphToken(accessToken, refreshToken) {
+    const audience = this.extractAudienceFromToken(accessToken)
+    if (audience === '00000003-0000-0000-c000-000000000000') {
+      return accessToken
+    }
+
+    if (!refreshToken) {
+      return null
+    }
+
+    logger.debug('Access token is not for Graph API, requesting Graph token', {
+      currentAudience: audience
+    })
+
+    try {
+      const graphTokenData = await this.refreshTokenWithScopes(
+        refreshToken,
+        'https://graph.microsoft.com/User.Read'
+      )
+      logger.debug('Graph API token obtained for avatar download (temporary, not stored)')
+      return graphTokenData.access_token
+    } catch (refreshError) {
+      logger.warn('Failed to obtain Graph token for avatar', refreshError)
       return null
     }
   }
@@ -402,33 +407,6 @@ export class AzureProvider extends AuthProvider {
     const userData = await response.json()
     
     const userId = userData.id
-    let avatar = null
-    
-    
-    avatar = await avatarCacheService.getAvatar(userId)
-    
-    if (avatar) {
-      logger.debug('Azure user avatar restored from cache')
-    } else {
-      
-      try {
-        const photoResponse = await fetch('https://graph.microsoft.com/v1.0/me/photo/$value', {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`
-          }
-        })
-        
-        if (photoResponse.ok) {
-          const photoBlob = await photoResponse.blob()
-          avatar = await avatarCacheService.saveAvatar(userId, photoBlob)
-          logger.debug('Azure user avatar downloaded and cached')
-        } else {
-          logger.debug('Azure user profile photo unavailable (HTTP error)', { status: photoResponse.status })
-        }
-      } catch (photoError) {
-        logger.debug('Azure user profile photo unavailable (network error)', photoError)
-      }
-    }
     
     return {
       sub: userId,         
@@ -436,7 +414,7 @@ export class AzureProvider extends AuthProvider {
       email: userData.mail || userData.userPrincipalName,
       name: userData.displayName,
       provider: 'azure',
-      avatar: avatar
+      avatar: null
     }
   }
 

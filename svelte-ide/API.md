@@ -48,7 +48,14 @@ themeService.getColor('primary')
 themeService.getShadow('md')
 themeService.getSpacing('lg')
 themeService.setTheme({ colors: { primary: '#ff0000' } })
+themeService.setMode('dark')
+themeService.toggleMode()
 ```
+
+Theme tokens:
+- Colors: `primary`, `secondary`, `background`, `surface`, `surfaceAlt`, `surfaceRaised`, `surfaceHover`, `text`, `textMuted`, `textOnPrimary`, `border`, `borderStrong`, `danger`
+- Shadows: `xs`, `sm`, `md`, `lg`, `menu`
+- Spacing: `xs`, `sm`, `md`, `lg`, `xl`
 
 **i18nService**
 ```javascript

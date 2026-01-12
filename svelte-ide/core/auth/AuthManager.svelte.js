@@ -1,15 +1,15 @@
 import { createLogger } from '../../lib/logger.js'
-import { avatarCacheService } from './AvatarCacheService.svelte.js'
 import { deriveEncryptionKey } from './EncryptionKeyDerivation.svelte.js'
+import { userProfileService } from './profile/UserProfileService.svelte.js'
 import { TokenManager } from './TokenManager.svelte.js'
 
 const logger = createLogger('core/auth/auth-manager')
 
 export class AuthManager {
-  constructor() {
+  constructor(config = {}) {
     this.providers = new Map()
     this.activeProvider = null
-    this.tokenManager = new TokenManager()
+    this.tokenManager = new TokenManager(config)
     this._isAuthenticated = false
     this._currentUser = null
     this._authStoreRef = null
@@ -106,20 +106,12 @@ export class AuthManager {
     if (accessToken) {
       this._isAuthenticated = true
       this._currentUser = this.tokenManager.userInfo
-      
-      if (this._currentUser?.sub) {
-        try {
-          const cachedAvatar = await avatarCacheService.getAvatar(this._currentUser.sub)
-          if (cachedAvatar) {
-            this._currentUser.avatar = cachedAvatar
-            logger.debug('User avatar restored from cache after page reload')
-          }
-        } catch (error) {
-          logger.debug('Failed to restore avatar from cache (non-blocking)', error)
-        }
+
+      if (this._currentUser) {
+        this._currentUser = await userProfileService.applyCachedAvatar(this._currentUser)
+        this.tokenManager.userInfo = this._currentUser
       }
-      
-      
+
       if (this._currentUser) {
         await this._deriveAndSetEncryptionKey(this._currentUser)
       }
@@ -181,36 +173,30 @@ export class AuthManager {
     const result = await provider.handleOwnCallback()
     
     if (result.success) {
-      
-      if (result.tokens) {
-        
-        if (Array.isArray(result.tokens.accessTokens)) {
-          await this.tokenManager.setTokens(
-            result.tokens.accessTokens, 
-            result.tokens.refreshToken,
-            result.userInfo
-          )
+      const tokensPayload = result.tokens || null
+      let userInfo = result.userInfo || null
+
+      if (tokensPayload?.accessTokens && Array.isArray(tokensPayload.accessTokens)) {
+        if (userInfo) {
+          userInfo = await userProfileService.enrichUserInfo(provider, userInfo, tokensPayload)
         }
-        
-        else if (result.tokens.accessToken && result.tokens.expiresIn) {
-          await this.tokenManager.setTokens(
-            result.tokens.accessToken,
-            result.tokens.refreshToken,
-            result.tokens.expiresIn,
-            result.userInfo
-          )
-        }
+        await this.tokenManager.setTokens(
+          tokensPayload.accessTokens,
+          tokensPayload.refreshToken || null,
+          userInfo
+        )
       } else {
         await this.tokenManager.clear()
-        this.tokenManager.userInfo = result.userInfo || null
+        this.tokenManager.userInfo = userInfo
       }
       
       this.activeProvider = provider
       this._isAuthenticated = true
-      this._currentUser = result.userInfo
+      this._currentUser = userInfo
+      result.userInfo = userInfo
       
       
-      await this._deriveAndSetEncryptionKey(result.userInfo)
+      await this._deriveAndSetEncryptionKey(userInfo)
       
       logger.debug('Authentication successful', { providerId: provider.id })
       
@@ -246,21 +232,27 @@ export class AuthManager {
     }
 
     if (result?.success) {
-      if (result.tokens?.accessToken && result.tokens?.expiresIn) {
+      const tokensPayload = result.tokens || null
+      let userInfo = result.userInfo ?? null
+
+      if (tokensPayload?.accessTokens && Array.isArray(tokensPayload.accessTokens)) {
+        if (userInfo) {
+          userInfo = await userProfileService.enrichUserInfo(provider, userInfo, tokensPayload)
+        }
         await this.tokenManager.setTokens(
-          result.tokens.accessToken,
-          result.tokens.refreshToken,
-          result.tokens.expiresIn,
-          result.userInfo ?? null
+          tokensPayload.accessTokens,
+          tokensPayload.refreshToken || null,
+          userInfo
         )
       } else {
         await this.tokenManager.clear()
-        this.tokenManager.userInfo = result.userInfo ?? null
+        this.tokenManager.userInfo = userInfo
       }
 
       this.activeProvider = provider
       this._isAuthenticated = true
-      this._currentUser = result.userInfo ?? null
+      this._currentUser = userInfo
+      result.userInfo = userInfo
 
       
       if (this._currentUser) {
@@ -310,8 +302,8 @@ export class AuthManager {
     return { success: true }
   }
 
-  getAccessToken() {
-    return this.tokenManager.getAccessToken()
+  getAccessToken(audienceOrScopes) {
+    return this.tokenManager.getAccessToken(audienceOrScopes)
   }
 
   async refreshToken() {
@@ -337,18 +329,11 @@ export class AuthManager {
       const result = await this.activeProvider.refreshToken(refreshToken)
       
       if (result.success) {
-        
-        if (result.tokens?.accessTokens && Array.isArray(result.tokens.accessTokens)) {
+        const tokensPayload = result.tokens || null
+        if (tokensPayload?.accessTokens && Array.isArray(tokensPayload.accessTokens)) {
           await this.tokenManager.setTokens(
-            result.tokens.accessTokens,
-            result.tokens.refreshToken || refreshToken,
-            this._currentUser
-          )
-        } else if (result.tokens?.accessToken && result.tokens?.expiresIn) {
-          await this.tokenManager.setTokens(
-            result.tokens.accessToken,
-            result.tokens.refreshToken || refreshToken,
-            result.tokens.expiresIn,
+            tokensPayload.accessTokens,
+            tokensPayload.refreshToken || refreshToken,
             this._currentUser
           )
         } else {

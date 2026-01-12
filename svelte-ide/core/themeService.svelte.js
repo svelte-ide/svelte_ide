@@ -9,8 +9,10 @@ const lightTheme = {
     surfaceHover: '#e2e8f0',
     text: '#0f172a',
     textMuted: '#64748b',
+    textOnPrimary: '#ffffff',
     border: '#e2e8f0',
-    borderStrong: '#cbd5e1'
+    borderStrong: '#cbd5e1',
+    danger: '#dc2626'
   },
   shadows: {
     xs: '0 1px 1px 0 rgb(0 0 0 / 0.04)',
@@ -39,8 +41,10 @@ const darkTheme = {
     surfaceHover: '#3e3e42',
     text: '#cccccc',
     textMuted: '#9ca3af',
+    textOnPrimary: '#ffffff',
     border: '#3e3e42',
-    borderStrong: '#4d4d52'
+    borderStrong: '#4d4d52',
+    danger: '#fca5a5'
   },
   shadows: {
     xs: '0 1px 1px 0 rgb(0 0 0 / 0.35)',

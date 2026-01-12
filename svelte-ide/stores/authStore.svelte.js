@@ -1,10 +1,11 @@
 import { createLogger } from '../lib/logger.js'
 import { AuthManager } from '../core/auth/AuthManager.svelte.js'
+import { resolveAuthConfig } from '../core/auth/config/authConfig.svelte.js'
 import { providerRegistry } from '../core/auth/providers/index.js'
 
 const logger = createLogger('core/auth/auth-store')
 
-function initializeAuthProviders(authManager) {
+function createAuthProviders() {
   const rawProviders = import.meta.env.VITE_AUTH_PROVIDERS || ''
   const enabledProviders = rawProviders
     .split(',')
@@ -23,7 +24,7 @@ function initializeAuthProviders(authManager) {
 
   logger.debug('Enabled auth providers', { enabledProviders: providerIds })
 
-  let hasProviders = false
+  const providers = []
 
   for (const providerId of providerIds) {
     const ProviderClass = providerRegistry[providerId]
@@ -39,18 +40,34 @@ function initializeAuthProviders(authManager) {
       throw new Error(`AuthStore: Provider ${providerId} failed to initialize`)
     }
 
-    authManager.registerProvider(provider)
-    hasProviders = true
+    providers.push(provider)
     logger.debug('Provider registered', { providerId })
   }
 
-  if (!hasProviders) {
+  if (providers.length === 0) {
     throw new Error('AuthStore: No authentication provider configured')
   }
+
+  return providers
 }
 
 function createAuthStore() {
-  const authManager = new AuthManager()
+  let providers = []
+  let providerSetupError = null
+  try {
+    providers = createAuthProviders()
+  } catch (error) {
+    providerSetupError = error
+  }
+
+  const authConfig = resolveAuthConfig({ providers })
+  const authManager = new AuthManager(authConfig)
+
+  if (!providerSetupError) {
+    for (const provider of providers) {
+      authManager.registerProvider(provider)
+    }
+  }
   
   let isAuthenticated = $state(authManager.isAuthenticated)
   let currentUser = $state(authManager.currentUser)
@@ -134,8 +151,11 @@ function createAuthStore() {
         initializing = true
         isLoading = true
         error = null
-        
-        initializeAuthProviders(authManager)
+
+        if (providerSetupError && authManager.getAvailableProviders().length === 0) {
+          throw providerSetupError
+        }
+
         await authManager.ready
         if (authManager.initError) {
           throw authManager.initError

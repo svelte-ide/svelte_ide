@@ -1,9 +1,19 @@
 <script>
+import { themeService } from '../../core/themeService.svelte.js'
+
 let { error = null } = $props()
 let message = $derived(error?.message || 'Boot error')
 </script>
 
-<div class="boot-error">
+<div
+  class="boot-error"
+  style:--background={themeService.getColor('background')}
+  style:--surface-raised={themeService.getColor('surfaceRaised')}
+  style:--text={themeService.getColor('text')}
+  style:--border={themeService.getColor('border')}
+  style:--text-muted={themeService.getColor('textMuted')}
+  style:--danger={themeService.getColor('danger')}
+>
   <div class="boot-error-card">
     <h1>Startup error</h1>
     <p class="message">{message}</p>
@@ -19,25 +29,25 @@ let message = $derived(error?.message || 'Boot error')
   min-height: 100vh;
   width: 100%;
   padding: 32px;
-  background: #0f1115;
-  color: #e5e7eb;
+  background: var(--background);
+  color: var(--text);
 }
 
 .boot-error-card {
   max-width: 480px;
   width: 100%;
   padding: 24px;
-  border: 1px solid #374151;
-  background: #151a21;
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
 }
 
 .message {
   margin-top: 12px;
-  color: #fca5a5;
+  color: var(--danger);
 }
 
 .hint {
   margin-top: 16px;
-  color: #9ca3af;
+  color: var(--text-muted);
 }
 </style>

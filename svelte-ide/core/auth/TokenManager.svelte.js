@@ -1,18 +1,8 @@
-import { getTokenSecurityConfig } from './tokenSecurityConfig.svelte.js'
 import { namespacedKey } from '../config/appKey.js'
 import { TokenCipher } from '../security/tokenCipher.svelte.js'
 import { createLogger } from '../../lib/logger.js'
 
 const logger = createLogger('core/auth/token-manager')
-
-function getRefreshTokenPersistence() {
-  const override = import.meta.env.VITE_AUTH_REFRESH_TOKEN_PERSISTENCE
-  if (override && ['local', 'session', 'memory'].includes(override.toLowerCase())) {
-    return override.toLowerCase()
-  }
-  
-  return 'local'
-}
 
 function selectStorage(persistence) {
   if (typeof window === 'undefined') {
@@ -64,7 +54,7 @@ function extractAudience(token) {
 }
 
 export class TokenManager {
-  constructor() {
+  constructor(config = {}) {
     
     this.accessToken = null
     this.tokenExpiry = null
@@ -83,13 +73,12 @@ export class TokenManager {
     this.storageKey = null
     this.refreshTokenKey = null
 
-    const securityConfig = getTokenSecurityConfig()
-    this.persistence = securityConfig.persistence
-    this.refreshTokenPersistence = getRefreshTokenPersistence()
-    this.auditAccess = securityConfig.auditAccess
-    this.storage = selectStorage(securityConfig.persistence)
+    this.persistence = config.persistence || 'session'
+    this.refreshTokenPersistence = config.refreshTokenPersistence || 'local'
+    this.auditAccess = config.auditAccess === true
+    this.storage = selectStorage(this.persistence)
     this.refreshTokenStorage = selectStorage(this.refreshTokenPersistence)
-    this.cipher = new TokenCipher(securityConfig.encryptionKey)
+    this.cipher = new TokenCipher(config.encryptionKey || '')
 
     this.ready = this.initialize()
   }
@@ -122,38 +111,25 @@ export class TokenManager {
       const data = JSON.parse(decrypted)
       
       
-      if (data.tokens && typeof data.tokens === 'object') {
-        for (const [audience, tokenData] of Object.entries(data.tokens)) {
-          if (tokenData.expiry && new Date(tokenData.expiry) > new Date()) {
-            this.tokens.set(audience, {
-              accessToken: tokenData.accessToken,
-              expiry: new Date(tokenData.expiry),
-              scopes: tokenData.scopes || []
-            })
-          }
-        }
-        
-        
-        const firstToken = this.tokens.values().next().value
-        if (firstToken) {
-          this.accessToken = firstToken.accessToken
-          this.tokenExpiry = firstToken.expiry
-        }
+      if (!data.tokens || typeof data.tokens !== 'object') {
+        await this.clearStorage()
+        return
       }
-      
-      else if (data.expiry && new Date(data.expiry) > new Date()) {
-        this.accessToken = data.accessToken
-        this.tokenExpiry = new Date(data.expiry)
-        
-        
-        const aud = extractAudience(data.accessToken)
-        if (aud) {
-          this.tokens.set(aud, {
-            accessToken: data.accessToken,
-            expiry: this.tokenExpiry,
-            scopes: []
+
+      for (const [audience, tokenData] of Object.entries(data.tokens)) {
+        if (tokenData.expiry && new Date(tokenData.expiry) > new Date()) {
+          this.tokens.set(audience, {
+            accessToken: tokenData.accessToken,
+            expiry: new Date(tokenData.expiry),
+            scopes: tokenData.scopes || []
           })
         }
+      }
+
+      const firstToken = this.tokens.values().next().value
+      if (firstToken) {
+        this.accessToken = firstToken.accessToken
+        this.tokenExpiry = firstToken.expiry
       }
       
       this.userInfo = data.userInfo || null
@@ -213,10 +189,7 @@ export class TokenManager {
     }
 
     const data = {
-      tokens: tokensObj,  
-      
-      accessToken: this.accessToken,
-      expiry: this.tokenExpiry.toISOString(),
+      tokens: tokensObj,
       refreshToken: this.refreshToken,
       userInfo: this.userInfo
     }
@@ -268,16 +241,10 @@ export class TokenManager {
   }
 
   
-  async setTokens(tokensData, refreshToken = null, userInfo = null) {
+  async setTokens(accessTokens, refreshToken = null, userInfo = null) {
     await this.ready
 
-    
-    if (tokensData.accessToken && tokensData.expiresIn) {
-      return this.setTokensLegacy(tokensData.accessToken, refreshToken || tokensData.refreshToken, tokensData.expiresIn, userInfo)
-    }
-
-    
-    if (!Array.isArray(tokensData) || tokensData.length === 0) {
+    if (!Array.isArray(accessTokens) || accessTokens.length === 0) {
       await this.clear()
       return
     }
@@ -285,7 +252,7 @@ export class TokenManager {
     this.tokens.clear()
     let firstToken = null
 
-    for (const tokenInfo of tokensData) {
+    for (const tokenInfo of accessTokens) {
       const { accessToken, audience, scopes = [], expiresIn } = tokenInfo
       
       if (!accessToken || !expiresIn) {
@@ -314,12 +281,11 @@ export class TokenManager {
 
       logger.debug('Token registered', {
         audience: aud,
-        scopes,
-        expiresAt: expiry.toISOString()
-      })
-    }
+      scopes,
+      expiresAt: expiry.toISOString()
+    })
+  }
 
-    
     if (firstToken) {
       this.accessToken = firstToken.accessToken
       this.tokenExpiry = firstToken.expiry
@@ -334,45 +300,6 @@ export class TokenManager {
         tokenCount: this.tokens.size,
         audiences: Array.from(this.tokens.keys()),
         hasRefreshToken: Boolean(this.refreshToken)
-      })
-    }
-
-    await this.saveToStorage()
-    this.setupAutoRefresh()
-  }
-
-  
-  async setTokensLegacy(accessToken, refreshToken, expiresIn, userInfo = null) {
-    await this.ready
-
-    if (!accessToken || !expiresIn) {
-      await this.clear()
-      return
-    }
-
-    this.accessToken = accessToken
-    this.refreshToken = refreshToken || null
-    this.tokenExpiry = new Date(Date.now() + expiresIn * 1000)
-    this.userInfo = userInfo || null
-    this.refreshAttempts = 0
-
-    
-    const aud = extractAudience(accessToken)
-    if (aud) {
-      const previousScopes = this.tokens.get(aud)?.scopes
-      this.tokens.set(aud, {
-        accessToken,
-        expiry: this.tokenExpiry,
-        scopes: Array.isArray(previousScopes) && previousScopes.length > 0 ? previousScopes : []
-      })
-    }
-
-    if (this.auditAccess) {
-      logger.debug('Tokens updated (legacy format)', {
-        accessToken: sanitizeToken(this.accessToken),
-        hasRefreshToken: Boolean(this.refreshToken),
-        expiresAt: this.tokenExpiry.toISOString(),
-        audience: aud || 'unknown'
       })
     }
 

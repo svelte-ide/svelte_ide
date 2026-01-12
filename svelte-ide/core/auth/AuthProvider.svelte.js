@@ -23,6 +23,10 @@ export class AuthProvider {
     return []
   }
 
+  getAuthHints() {
+    return {}
+  }
+
   getCallbackPath() {
     return `/auth/${this.id}/callback`
   }
@@ -57,6 +61,10 @@ export class AuthProvider {
 
   async refreshToken(_refreshToken) {
     throw new Error('refreshToken() must be implemented by provider')
+  }
+
+  async fetchAvatar(_payload) {
+    return null
   }
 
   generateState() {

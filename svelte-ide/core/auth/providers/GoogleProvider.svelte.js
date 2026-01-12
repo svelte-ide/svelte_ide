@@ -1,6 +1,5 @@
 import { createLogger } from '../../../lib/logger.js'
 import { AuthProvider } from '../AuthProvider.svelte.js'
-import { avatarCacheService } from '../AvatarCacheService.svelte.js'
 
 const logger = createLogger('core/auth/google-provider')
 
@@ -75,16 +74,23 @@ export class GoogleProvider extends AuthProvider {
     
     const configuredScope = typeof config.scopes === 'string' ? config.scopes.trim() : ''
     this.scope = configuredScope && configuredScope.length > 0 ? configuredScope : 'openid profile email'
-    this.useBackendExchange = false
-    this.backendTokenUrl = null
-    this.backendRefreshUrl = null
-    this.backendHeaders = {}
-    this.backendCredentials = 'include'
-    this.allowInsecureClientSecret = false
+    this.useBackendExchange = this.useBackendExchange ?? false
+    this.backendTokenUrl = this.backendTokenUrl ?? null
+    this.backendRefreshUrl = this.backendRefreshUrl ?? this.backendTokenUrl
+    this.backendHeaders = this.backendHeaders ?? {}
+    this.backendCredentials = this.backendCredentials ?? 'include'
+    this.allowInsecureClientSecret = this.allowInsecureClientSecret ?? false
   }
 
   requiredConfigKeys() {
     return ['clientId']
+  }
+
+  getAuthHints() {
+    if (this.useBackendExchange) {
+      return { tokenPersistence: 'memory', refreshTokenPersistence: 'memory' }
+    }
+    return {}
   }
 
   validateConfig() {
@@ -288,12 +294,19 @@ export class GoogleProvider extends AuthProvider {
       })
       
       logger.debug('Google callback processed successfully')
+      const scopes = (tokenData.scope || this.scope).split(' ').filter(Boolean)
       return {
         success: true,
         tokens: {
-          accessToken: tokenData.access_token,
+          accessTokens: [
+            {
+              accessToken: tokenData.access_token,
+              scopes,
+              expiresIn: tokenData.expires_in
+            }
+          ],
           refreshToken: tokenData.refresh_token,
-          expiresIn: tokenData.expires_in
+          idToken: tokenData.id_token
         },
         userInfo: userInfo
       }
@@ -413,37 +426,7 @@ export class GoogleProvider extends AuthProvider {
     })
     
     const userId = userData.sub || userData.id
-    let avatar = null
-    
-    
-    
-    if (userData.picture) {
-      
-      avatar = await avatarCacheService.getAvatar(userId)
-      
-      if (avatar) {
-        logger.debug('Google user avatar restored from cache')
-      } else {
-        
-        try {
-          const pictureResponse = await fetch(userData.picture)
-          if (pictureResponse.ok) {
-            const pictureBlob = await pictureResponse.blob()
-            avatar = await avatarCacheService.saveAvatar(userId, pictureBlob)
-            logger.debug('Google user avatar downloaded and cached')
-          } else {
-            
-            avatar = userData.picture
-            logger.debug('Google avatar fetch failed, using direct URL')
-          }
-        } catch (error) {
-          
-          avatar = userData.picture
-          logger.debug('Google avatar download failed, using direct URL', error)
-        }
-      }
-    }
-    
+    const avatar = userData.picture || null
     
     
     return {
@@ -492,12 +475,18 @@ export class GoogleProvider extends AuthProvider {
       const tokenData = await response.json()
       logger.debug('Google token refresh completed via backend')
       
+      const scopes = (tokenData.scope || this.scope).split(' ').filter(Boolean)
       return {
         success: true,
         tokens: {
-          accessToken: tokenData.access_token,
-          refreshToken: tokenData.refresh_token || refreshToken,
-          expiresIn: tokenData.expires_in
+          accessTokens: [
+            {
+              accessToken: tokenData.access_token,
+              scopes,
+              expiresIn: tokenData.expires_in
+            }
+          ],
+          refreshToken: tokenData.refresh_token || refreshToken
         }
       }
     }
@@ -539,12 +528,18 @@ export class GoogleProvider extends AuthProvider {
 
     const tokenData = await response.json()
     
+    const scopes = (tokenData.scope || this.scope).split(' ').filter(Boolean)
     return {
       success: true,
       tokens: {
-        accessToken: tokenData.access_token,
-        refreshToken: tokenData.refresh_token || refreshToken,
-        expiresIn: tokenData.expires_in
+        accessTokens: [
+          {
+            accessToken: tokenData.access_token,
+            scopes,
+            expiresIn: tokenData.expires_in
+          }
+        ],
+        refreshToken: tokenData.refresh_token || refreshToken
       }
     }
   }

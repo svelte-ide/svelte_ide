@@ -16,9 +16,11 @@ let { capabilities = [], branding = null } = $props()
   style:--surface-hover={themeService.getColor('surfaceHover')}
   style:--text={themeService.getColor('text')}
   style:--text-muted={themeService.getColor('textMuted')}
+  style:--text-on-primary={themeService.getColor('textOnPrimary')}
   style:--border={themeService.getColor('border')}
   style:--border-strong={themeService.getColor('borderStrong')}
   style:--primary={themeService.getColor('primary')}
+  style:--danger={themeService.getColor('danger')}
   style:--shadow={themeService.getShadow('md')}
   style:--shadow-menu={themeService.getShadow('menu')}
 >
