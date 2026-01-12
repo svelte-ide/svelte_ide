@@ -124,6 +124,7 @@ celerybeat.pid
 # Environments
 .env
 .env.local
+.env.development
 .env.*.local
 .venv
 env/
@@ -186,4 +187,3 @@ flask_session/
 node_modules/
 
 .specstory/
-
