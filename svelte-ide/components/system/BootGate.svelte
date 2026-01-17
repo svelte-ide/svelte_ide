@@ -1,9 +1,9 @@
 <script>
-import { bootStore } from '../../stores/bootStore.svelte.js'
-import { getAuthStore } from '../../stores/authStore.svelte.js'
-import { themeService } from '../../core/themeService.svelte.js'
-import BootErrorScreen from './BootErrorScreen.svelte'
-import LoginScreen from './LoginScreen.svelte'
+import { themeService } from '../../core/themeService.svelte.js';
+import { getAuthStore } from '../../stores/authStore.svelte.js';
+import { bootStore } from '../../stores/bootStore.svelte.js';
+import BootErrorScreen from './BootErrorScreen.svelte';
+import LoginScreen from './LoginScreen.svelte';
 
 let { children } = $props()
 
