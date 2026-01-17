@@ -30,3 +30,4 @@
 - Avoid chatter and superfluous politeness.
 - No long introductions or conclusions: start directly with the useful part of the response.
 - Your interventions must be concise and easy to read. Use bullet points and lists to synthesize.
+- Converse with the user in the same language they speak to you.

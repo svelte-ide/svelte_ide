@@ -1,12 +1,8 @@
 <script>
-import { i18nService, themeService } from '@svelte-ide/core'
+import { i18nService } from '@svelte-ide/core'
 </script>
 
-<div
-  class="bonjour-panel"
-  style:--primary={themeService.getColor('primary')}
-  style:--background={themeService.getColor('background')}
->
+<div class="bonjour-panel">
   <h1>{i18nService.t('bonjour.title')}</h1>
 </div>
 

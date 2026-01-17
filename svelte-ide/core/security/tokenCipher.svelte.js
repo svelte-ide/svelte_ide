@@ -78,13 +78,13 @@ export class TokenCipher {
 
   async encrypt(plaintext) {
     if (!this.enabled) {
-      return plaintext
+      return null
     }
 
     try {
       const key = await this.getKey()
       if (!key) {
-        return plaintext
+        return null
       }
 
       const iv = window.crypto.getRandomValues(new Uint8Array(12))
@@ -101,25 +101,25 @@ export class TokenCipher {
 
       return bytesToBase64(resultBytes)
     } catch (error) {
-      logger.warn('TokenCipher: Encryption failed, storing plaintext instead', error)
-      return plaintext
+      logger.warn('TokenCipher: Encryption failed', error)
+      return null
     }
   }
 
   async decrypt(payload) {
     if (!this.enabled) {
-      return payload
+      return null
     }
 
     try {
       const key = await this.getKey()
       if (!key) {
-        return payload
+        return null
       }
 
       const bytes = base64ToBytes(payload)
       if (bytes.length <= 12) {
-        return payload
+        return null
       }
 
       const iv = bytes.subarray(0, 12)
@@ -133,25 +133,25 @@ export class TokenCipher {
 
       return decoder.decode(decrypted)
     } catch (error) {
-      logger.warn('TokenCipher: Decryption failed, clearing stored tokens', error)
+      logger.warn('TokenCipher: Decryption failed', error)
       return null
     }
   }
 
   async encryptBytes(data) {
     if (!this.enabled) {
-      return toArrayBuffer(data) || data
+      return null
     }
 
     try {
       const key = await this.getKey()
       if (!key) {
-        return toArrayBuffer(data) || data
+        return null
       }
 
       const buffer = toArrayBuffer(data)
       if (!buffer) {
-        return data
+        return null
       }
 
       const iv = window.crypto.getRandomValues(new Uint8Array(12))
@@ -167,8 +167,8 @@ export class TokenCipher {
 
       return resultBytes.buffer
     } catch (error) {
-      logger.warn('TokenCipher: encryptBytes failed, returning plaintext buffer', error)
-      return toArrayBuffer(data) || data
+      logger.warn('TokenCipher: encryptBytes failed', error)
+      return null
     }
   }
 
@@ -179,7 +179,7 @@ export class TokenCipher {
     }
 
     if (!this.enabled) {
-      return buffer
+      return null
     }
 
     try {
@@ -204,7 +204,7 @@ export class TokenCipher {
 
       return decrypted
     } catch (error) {
-      logger.warn('TokenCipher: decryptBytes failed, returning null', error)
+      logger.warn('TokenCipher: decryptBytes failed', error)
       return null
     }
   }

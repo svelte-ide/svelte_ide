@@ -1,4 +1,31 @@
 {
+  // Launch configurations for VS Code
+  // - "Run Explorer Dev" starts the dev server in the "explorer" folder
+  // - "Attach to Chrome" attaches the Chrome debugger to the running Vite server
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run Explorer Dev",
+      "type": "pwa-node",
+      "request": "launch",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 9229,
+      "cwd": "${workspaceFolder}/explorer",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "name": "Attach to Chrome",
+      "type": "pwa-chrome",
+      "request": "attach",
+      "url": "http://localhost:5177",
+      "webRoot": "${workspaceFolder}/explorer",
+      "timeout": 30000
+    }
+  ]
+}
+{
   "version": "0.2.0",
   "configurations": [
     {

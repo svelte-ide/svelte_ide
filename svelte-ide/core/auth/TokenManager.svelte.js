@@ -74,7 +74,7 @@ export class TokenManager {
     this.refreshTokenKey = null
 
     this.persistence = config.persistence || 'session'
-    this.refreshTokenPersistence = config.refreshTokenPersistence || 'local'
+    this.refreshTokenPersistence = config.refreshTokenPersistence || 'session'
     this.auditAccess = config.auditAccess === true
     this.storage = selectStorage(this.persistence)
     this.refreshTokenStorage = selectStorage(this.refreshTokenPersistence)
@@ -197,11 +197,19 @@ export class TokenManager {
     try {
       const payload = JSON.stringify(data)
       const encrypted = await this.cipher.encrypt(payload)
+      if (!encrypted || typeof encrypted !== 'string') {
+        await this.clearStoredTokens()
+        return
+      }
       this.storage.setItem(this.storageKey, encrypted)
 
       
       if (this.refreshToken && this.refreshTokenStorage && this.refreshTokenStorage !== this.storage) {
         const refreshEncrypted = await this.cipher.encrypt(this.refreshToken)
+        if (!refreshEncrypted || typeof refreshEncrypted !== 'string') {
+          await this.clearStoredTokens()
+          return
+        }
         this.refreshTokenStorage.setItem(this.refreshTokenKey, refreshEncrypted)
         
         if (this.auditAccess) {
@@ -215,7 +223,7 @@ export class TokenManager {
     }
   }
 
-  async clearStorage() {
+  async clearStoredTokens() {
     if (this.storage) {
       try {
         this.storage.removeItem(this.storageKey)
@@ -232,6 +240,10 @@ export class TokenManager {
         logger.warn('Failed to clear refresh token', error)
       }
     }
+  }
+
+  async clearStorage() {
+    await this.clearStoredTokens()
 
     this.accessToken = null
     this.refreshToken = null
@@ -325,8 +337,6 @@ export class TokenManager {
           expiresAt: this.tokenExpiry.toISOString()
         })
       }
-      
-      logger.debug('getAccessToken() default token', sanitizeToken(this.accessToken))
 
       return this.accessToken
     }
@@ -347,36 +357,12 @@ export class TokenManager {
             expiresAt: tokenData.expiry.toISOString()
           })
         }
-        
-        logger.debug(`getAccessToken('${audienceOrScopes}') exact audience`, sanitizeToken(tokenData.accessToken))
 
         return tokenData.accessToken
       }
 
-      
       for (const [aud, tokenData] of this.tokens) {
-        if (aud.includes(audienceOrScopes)) {
-          if (new Date() >= tokenData.expiry) {
-            continue
-          }
-
-          if (this.auditAccess) {
-            logger.debug('Access token read (by partial audience match)', {
-              requested: audienceOrScopes,
-              matched: aud,
-              accessToken: sanitizeToken(tokenData.accessToken)
-            })
-          }
-          
-          logger.debug(`getAccessToken('${audienceOrScopes}') partial audience '${aud}'`, sanitizeToken(tokenData.accessToken))
-
-          return tokenData.accessToken
-        }
-      }
-
-      
-      for (const [aud, tokenData] of this.tokens) {
-        if (tokenData.scopes.includes(audienceOrScopes) || tokenData.scopes.some(s => s.includes(audienceOrScopes))) {
+        if (tokenData.scopes.includes(audienceOrScopes)) {
           if (new Date() >= tokenData.expiry) {
             continue
           }
@@ -388,18 +374,9 @@ export class TokenManager {
               accessToken: sanitizeToken(tokenData.accessToken)
             })
           }
-          
-          logger.debug(`getAccessToken('${audienceOrScopes}') scope match in '${aud}'`, sanitizeToken(tokenData.accessToken))
 
           return tokenData.accessToken
         }
-      }
-
-      
-      const onlyScopeLessTokens = this.tokens.size > 0 && Array.from(this.tokens.values()).every(t => !t.scopes || t.scopes.length === 0)
-      if (onlyScopeLessTokens && this.accessToken && this.tokenExpiry && new Date() < this.tokenExpiry) {
-        logger.warn('No scoped token found, falling back to default access token', { requested: audienceOrScopes })
-        return this.accessToken
       }
 
       logger.warn('No token found for audience or scope', { requested: audienceOrScopes })
@@ -411,9 +388,7 @@ export class TokenManager {
       for (const [aud, tokenData] of this.tokens) {
         
         const hasAllScopes = audienceOrScopes.every(requestedScope =>
-          tokenData.scopes.some(tokenScope => 
-            tokenScope === requestedScope || tokenScope.includes(requestedScope)
-          )
+          tokenData.scopes.includes(requestedScope)
         )
 
         if (hasAllScopes) {
@@ -428,8 +403,6 @@ export class TokenManager {
               accessToken: sanitizeToken(tokenData.accessToken)
             })
           }
-          
-          logger.debug(`getAccessToken([${audienceOrScopes.join(', ')}]) all scopes match in '${aud}'`, sanitizeToken(tokenData.accessToken))
 
           return tokenData.accessToken
         }

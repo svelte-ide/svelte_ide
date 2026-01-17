@@ -1,7 +1,7 @@
-import { defineConfig, loadEnv } from 'vite'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { defineConfig, loadEnv } from 'vite'
 
 const filePath = fileURLToPath(import.meta.url)
 const dirPath = path.dirname(filePath)
@@ -17,7 +17,8 @@ export default defineConfig(({ mode }) => {
     plugins: [svelte()],
     server: {
       port: serverPort,
-      host: serverHost
+      host: serverHost,
+      open: false
     },
     resolve: {
       alias: {

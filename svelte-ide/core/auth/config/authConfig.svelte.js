@@ -61,7 +61,7 @@ export function resolveAuthConfig({ providers = [] } = {}) {
   const hintedRefreshPersistence = pickMostRestrictive(hints.map(hint => hint.refreshTokenPersistence))
 
   const persistence = resolvePersistence('VITE_AUTH_TOKEN_PERSISTENCE', hintedTokenPersistence, 'session')
-  const refreshTokenPersistence = resolvePersistence('VITE_AUTH_REFRESH_TOKEN_PERSISTENCE', hintedRefreshPersistence, 'local')
+  const refreshTokenPersistence = resolvePersistence('VITE_AUTH_REFRESH_TOKEN_PERSISTENCE', hintedRefreshPersistence, 'session')
   const encryptionKey = (import.meta.env.VITE_AUTH_TOKEN_ENCRYPTION_KEY || '').trim()
   const auditAccess = import.meta.env.VITE_AUTH_LOG_TOKEN_ACCESSES === 'true'
 

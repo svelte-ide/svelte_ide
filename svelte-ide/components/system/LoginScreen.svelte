@@ -1,6 +1,5 @@
 <script>
 import { getAuthStore } from '../../stores/authStore.svelte.js'
-import { themeService } from '../../core/themeService.svelte.js'
 
 const authStore = getAuthStore()
 
@@ -9,17 +8,7 @@ const handleLogin = (providerId) => {
 }
 </script>
 
-<div
-  class="login-screen"
-  style:--background={themeService.getColor('background')}
-  style:--surface-raised={themeService.getColor('surfaceRaised')}
-  style:--surface-alt={themeService.getColor('surfaceAlt')}
-  style:--surface-hover={themeService.getColor('surfaceHover')}
-  style:--text={themeService.getColor('text')}
-  style:--border={themeService.getColor('border')}
-  style:--text-muted={themeService.getColor('textMuted')}
-  style:--danger={themeService.getColor('danger')}
->
+<div class="login-screen">
   <div class="login-card">
     <h1>Sign in</h1>
 
@@ -63,6 +52,12 @@ const handleLogin = (providerId) => {
   padding: 24px;
   border: 1px solid var(--border);
   background: var(--surface-raised);
+  color: var(--text);
+}
+
+.login-card h1 {
+  color: var(--text);
+  margin-bottom: 8px;
 }
 
 .provider-list {
@@ -76,7 +71,7 @@ const handleLogin = (providerId) => {
   padding: 12px 16px;
   border: 1px solid var(--border);
   background: var(--surface-alt);
-  color: inherit;
+  color: var(--text);
   cursor: pointer;
 }
 
